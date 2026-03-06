@@ -43,7 +43,7 @@
 #   - mode = "today"    : loads today's schedule file (nba_schedule_YYYYMMDD.csv)
 #   - mode = "backtest" : does NOT auto-load schedule; you will call load_schedule_for_date()
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
-
+gc()
 rm(list = setdiff(ls(), c(
   # core globals
   "current_date",
@@ -66,10 +66,10 @@ rm(list = setdiff(ls(), c(
   "run_batch"
 )))
 
-gc()
 library(data.table)
 library(dplyr)
 library(purrr)
+library(hoopR)
 library(tibble)
 library(lubridate)
 library(future)
@@ -216,6 +216,8 @@ injury_data <- fread(injury_data_file, colClasses = "character", encoding = "UTF
 sched_file <- file.path(sched_dir, paste0("nba_schedule_", season_token, ".csv"))
 nba_schedule_season <- fread(sched_file, colClasses = "character", encoding = "UTF-8")
 
+nba_schedule_season <- nba_schedule_season %>%
+  filter(game_date != "2026-02-15")
 
 # -----------------------------
 # Load player odds data (optional for team MC; keep loaded for later)
@@ -226,7 +228,732 @@ player_odds_enrich_df <- fread(player_odds_enrich_file, colClasses = "character"
 delta_v2 <- fread("C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/12. Player Rotations/player_impact_assessment_delta_2025_2026.csv")
 
 
+# Remove games with no player minutes (postponed/cancelled)
+valid_game_ids <- BaseStats_Player_MC %>%
+  group_by(ESPN_GAME_ID) %>%
+  summarise(total_mins = sum(as.numeric(MINS_Q1), na.rm = TRUE)) %>%
+  filter(total_mins > 0) %>%
+  pull(ESPN_GAME_ID)
 
+BaseStats_Player_MC <- BaseStats_Player_MC %>%
+  filter(ESPN_GAME_ID %in% valid_game_ids)
+
+BaseStats_Team_MC <- BaseStats_Team_MC %>%
+  filter(ESPN_GAME_ID %in% valid_game_ids)
+
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+# 0. END: Load + Standardize Inputs (Mode-aware)
+#   - mode = "today"    : loads today's schedule file (nba_schedule_YYYYMMDD.csv)
+#   - mode = "backtest" : does NOT auto-load schedule; you will call load_schedule_for_date()
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+
+
+
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
+#
+#
+#     oooooooooo.                 .                    .oooooo.   oooo                                                     
+#     `888'   `Y8b              .o8                   d8P'  `Y8b  `888                                                     
+#      888      888  .oooo.   .o888oo  .oooo.        888           888   .ooooo.   .oooo.   ooo. .oo.    .oooo.o  .ooooo.  
+#      888      888 `P  )88b    888   `P  )88b       888           888  d88' `88b `P  )88b  `888P"Y88b  d88(  "8 d88' `88b 
+#      888      888  .oP"888    888    .oP"888       888           888  888ooo888  .oP"888   888   888  `"Y88b.  888ooo888 
+#      888     d88' d8(  888    888 . d8(  888       `88b    ooo   888  888    .o d8(  888   888   888  o.  )88b 888    .o 
+#     o888bood8P'   `Y888""8o   "888" `Y888""8o       `Y8bood8P'  o888o `Y8bod8P' `Y888""8o o888o o888o 8""888P' `Y8bod8P' 
+#
+#
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
+# ==========================================================================================================
+# AURELIUS DATA CLEANSE & DIAGNOSTIC LAYER v2
+# ----------------------------------------------------------------------------------------------------------
+# Runs after Configuration & Load, before any profile building.
+# Flags data quality issues that would cause silent failures or miscalibration downstream.
+#
+# Structure:
+#   Section 1: Structural Integrity   — row counts, date ranges, duplicates, ID/date type consistency,
+#                                       postponed/missing games
+#   Section 2: NA Audit               — NA rates on all profile-feeding columns, zero-NA key checks
+#   Section 3: Value Range Checks     — minutes, shooting pcts, scores, usage sanity
+#   Section 4: Calculation Diagnostics — delta zero-sum, Platt inputs, possession profile sanity,
+#                                        usage weight population
+#
+# Outputs:
+#   cleanse_log         — data.frame of all warnings and failures
+#   cleanse_passed      — logical, TRUE if no FAIL-level issues found
+#
+# Hard filter applied:
+#   nba_games_canon_season filtered to only games with stats in BaseStats_Team_MC
+#   (removes postponed/cancelled games automatically)
+#
+# Usage: if (!cleanse_passed) stop("Data cleanse failed — review cleanse_log before proceeding.")
+# ==========================================================================================================
+
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊
+# 💊💊💊 START: Data Cleanse & Diagnostic Layer v2
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊
+
+suppressWarnings({
+  library(dplyr)
+  library(data.table)
+})
+
+# --------------------------------------------------
+# Logging infrastructure
+# --------------------------------------------------
+cleanse_log <- data.frame(
+  section  = character(),
+  check    = character(),
+  level    = character(),
+  detail   = character(),
+  stringsAsFactors = FALSE
+)
+
+log_check <- function(section, check, level, detail) {
+  cleanse_log <<- rbind(cleanse_log, data.frame(
+    section = section,
+    check   = check,
+    level   = level,
+    detail  = as.character(detail),
+    stringsAsFactors = FALSE
+  ))
+  sym <- switch(level, INFO = "ℹ️ ", WARN = "⚠️ ", FAIL = "❌ ")
+  cat(sym, "[", section, "]", check, "—", detail, "\n")
+}
+
+na_rate <- function(x) mean(is.na(x))
+fmt_pct <- function(x) paste0(round(x * 100, 1), "%")
+
+cat("\n========================================================\n")
+cat("  AURELIUS DATA CLEANSE v2\n")
+cat("========================================================\n\n")
+
+# ==========================================================================================================
+# PRE-CLEANSE: HARD FILTER — Remove postponed/cancelled games
+# ----------------------------------------------------------------------------------------------------------
+# Filter nba_games_canon_season to only games that exist in BaseStats_Team_MC.
+# This removes postponed games, cancelled games, and any future games that
+# made it into the schedule before stats were available.
+# ==========================================================================================================
+cat("--- PRE-CLEANSE: HARD FILTERS ---\n\n")
+
+if (exists("nba_games_canon_season") && exists("BaseStats_Team_MC")) {
+  
+  n_before <- nrow(nba_games_canon_season)
+  
+  valid_game_ids <- BaseStats_Team_MC %>%
+    distinct(ESPN_GAME_ID) %>%
+    mutate(ESPN_GAME_ID = as.character(ESPN_GAME_ID))
+  
+  postponed_ids <- setdiff(
+    as.character(nba_games_canon_season$game_id),
+    valid_game_ids$ESPN_GAME_ID
+  )
+  
+  if (length(postponed_ids) > 0) {
+    cat("⚠️  Filtering", length(postponed_ids), "postponed/missing games from nba_games_canon_season:\n")
+    cat("   IDs:", paste(postponed_ids, collapse=", "), "\n\n")
+  }
+  
+  nba_games_canon_season <- nba_games_canon_season %>%
+    filter(as.character(game_id) %in% valid_game_ids$ESPN_GAME_ID)
+  
+  n_after <- nrow(nba_games_canon_season)
+  cat("✅ nba_games_canon_season filtered:", n_before, "→", n_after, "games\n\n")
+  
+} else {
+  cat("⚠️  Cannot apply postponed game filter — nba_games_canon_season or BaseStats_Team_MC missing\n\n")
+}
+
+# ==========================================================================================================
+# SECTION 1: STRUCTURAL INTEGRITY
+# ==========================================================================================================
+cat("\n--- SECTION 1: STRUCTURAL INTEGRITY ---\n\n")
+
+# --------------------------------------------------
+# 1A: Row counts and date ranges
+# --------------------------------------------------
+files <- list(
+  BaseStats_Player_MC   = if (exists("BaseStats_Player_MC"))   BaseStats_Player_MC   else NULL,
+  BaseStats_Team_MC     = if (exists("BaseStats_Team_MC"))     BaseStats_Team_MC     else NULL,
+  injury_data           = if (exists("injury_data"))           injury_data           else NULL,
+  nba_schedule_season   = if (exists("nba_schedule_season"))   nba_schedule_season   else NULL,
+  delta_v2              = if (exists("delta_v2"))              delta_v2              else NULL,
+  nba_games_canon_season = if (exists("nba_games_canon_season")) nba_games_canon_season else NULL
+)
+
+date_cols <- list(
+  BaseStats_Player_MC    = "GAME_DATE",
+  BaseStats_Team_MC      = "GAME_DATE",
+  injury_data            = "game_date_dt",
+  nba_schedule_season    = "game_date",
+  delta_v2               = "GAME_DATE",
+  nba_games_canon_season = "game_date"
+)
+
+for (nm in names(files)) {
+  df <- files[[nm]]
+  if (is.null(df)) {
+    log_check("S1", nm, "WARN", "Object not found in environment")
+    next
+  }
+  
+  dcol <- date_cols[[nm]]
+  if (!is.null(dcol) && dcol %in% names(df)) {
+    dates <- as.Date(df[[dcol]])
+    date_info <- paste0("rows=", nrow(df),
+                        " | dates=", min(dates, na.rm=TRUE),
+                        " to ", max(dates, na.rm=TRUE))
+  } else {
+    date_info <- paste0("rows=", nrow(df), " | no date col found")
+  }
+  log_check("S1", nm, "INFO", date_info)
+}
+
+# --------------------------------------------------
+# 1B: Postponed/missing games check
+# --------------------------------------------------
+if (exists("nba_games_canon_season") && exists("BaseStats_Team_MC")) {
+  
+  # After hard filter this should be 0 — but log it for audit trail
+  canon_ids <- as.character(nba_games_canon_season$game_id)
+  stats_ids <- as.character(unique(BaseStats_Team_MC$ESPN_GAME_ID))
+  still_missing <- setdiff(canon_ids, stats_ids)
+  
+  if (length(still_missing) > 0) {
+    log_check("S1", "Postponed/missing games", "WARN",
+              paste0(length(still_missing), " games in canon schedule still missing from BaseStats: ",
+                     paste(head(still_missing, 5), collapse=", ")))
+  } else {
+    log_check("S1", "Postponed/missing games", "INFO",
+              "All canon schedule games have stats in BaseStats_Team_MC ✓")
+  }
+}
+
+# --------------------------------------------------
+# 1C: Duplicate game/player/date combinations
+# --------------------------------------------------
+if (exists("BaseStats_Player_MC")) {
+  dupes <- BaseStats_Player_MC %>%
+    mutate(GAME_DATE = as.Date(GAME_DATE)) %>%
+    group_by(ESPN_GAME_ID, ESPN_PLAYER_ID, ESPN_TEAM_ID, GAME_DATE) %>%
+    filter(n() > 1) %>%
+    nrow()
+  
+  if (dupes > 0) {
+    log_check("S1", "BaseStats_Player_MC duplicates", "WARN",
+              paste0(dupes, " duplicate game/player/date rows found"))
+  } else {
+    log_check("S1", "BaseStats_Player_MC duplicates", "INFO", "No duplicates found")
+  }
+}
+
+if (exists("BaseStats_Team_MC")) {
+  dupes_t <- BaseStats_Team_MC %>%
+    mutate(GAME_DATE = as.Date(GAME_DATE)) %>%
+    group_by(ESPN_GAME_ID, ESPN_TEAM_ID, GAME_DATE) %>%
+    filter(n() > 1) %>%
+    nrow()
+  
+  if (dupes_t > 0) {
+    log_check("S1", "BaseStats_Team_MC duplicates", "WARN",
+              paste0(dupes_t, " duplicate game/team/date rows"))
+  } else {
+    log_check("S1", "BaseStats_Team_MC duplicates", "INFO", "No duplicates found")
+  }
+}
+
+# --------------------------------------------------
+# 1D: ID type consistency
+# --------------------------------------------------
+if (exists("BaseStats_Player_MC")) {
+  id_types <- sapply(
+    c("ESPN_PLAYER_ID", "ESPN_TEAM_ID", "ESPN_GAME_ID", "NBA_PLAYER_ID"),
+    function(col) if (col %in% names(BaseStats_Player_MC)) class(BaseStats_Player_MC[[col]]) else "missing"
+  )
+  
+  non_char <- id_types[id_types != "character" & id_types != "missing"]
+  if (length(non_char) > 0) {
+    log_check("S1", "ID type consistency", "WARN",
+              paste0("Non-character IDs: ", paste(names(non_char), non_char, sep="=", collapse=", ")))
+  } else {
+    log_check("S1", "ID type consistency", "INFO", "All key IDs are character type")
+  }
+}
+
+# --------------------------------------------------
+# 1E: Date format consistency
+# --------------------------------------------------
+if (exists("BaseStats_Player_MC")) {
+  if (!inherits(BaseStats_Player_MC$GAME_DATE, "Date")) {
+    sample_dates <- head(BaseStats_Player_MC$GAME_DATE, 20)
+    has_slash <- any(grepl("/", sample_dates))
+    has_dash  <- any(grepl("-", sample_dates))
+    if (has_slash && has_dash) {
+      log_check("S1", "Date format", "FAIL",
+                "Mixed date formats in BaseStats_Player_MC — standardize to YYYY-MM-DD")
+    } else if (has_slash) {
+      log_check("S1", "Date format", "WARN",
+                "MM/DD/YYYY format in BaseStats_Player_MC — convert to YYYY-MM-DD")
+    } else {
+      log_check("S1", "Date format", "INFO",
+                paste0("Date class: ", class(BaseStats_Player_MC$GAME_DATE)))
+    }
+  } else {
+    log_check("S1", "Date format", "INFO", "GAME_DATE is proper Date class ✓")
+  }
+}
+
+# ==========================================================================================================
+# SECTION 2: NA AUDIT
+# ==========================================================================================================
+cat("\n--- SECTION 2: NA AUDIT ---\n\n")
+
+NA_WARN_THRESHOLD <- 0.05
+NA_FAIL_THRESHOLD <- 0.20
+
+# --------------------------------------------------
+# 2A: Critical join keys — must be zero NA
+# --------------------------------------------------
+if (exists("BaseStats_Player_MC")) {
+  key_cols <- c("ESPN_PLAYER_ID", "ESPN_TEAM_ID", "ESPN_GAME_ID", "GAME_DATE")
+  for (col in key_cols) {
+    if (!col %in% names(BaseStats_Player_MC)) {
+      log_check("S2", paste0("Key: ", col), "FAIL", "Column missing from BaseStats_Player_MC")
+      next
+    }
+    r <- na_rate(BaseStats_Player_MC[[col]])
+    if (r > 0) {
+      log_check("S2", paste0("Key: ", col), "FAIL",
+                paste0(fmt_pct(r), " NA in critical join key"))
+    } else {
+      log_check("S2", paste0("Key: ", col), "INFO", "0% NA ✓")
+    }
+  }
+}
+
+# --------------------------------------------------
+# 2B: Profile-feeding columns NA rates
+# --------------------------------------------------
+profile_cols <- c(
+  "MINS_Q1", "MINS_Q2", "MINS_Q3", "MINS_Q4",
+  "MINS_CGS", "PTS_CGS",
+  "2PTA_CGS", "2PTM_CGS",
+  "3PTA_CGS", "3PTM_CGS",
+  "FTA_CGS",  "FTM_CGS"
+)
+
+if (exists("BaseStats_Player_MC")) {
+  for (col in profile_cols) {
+    if (!col %in% names(BaseStats_Player_MC)) {
+      log_check("S2", paste0("Profile col: ", col), "WARN", "Column not found in BaseStats_Player_MC")
+      next
+    }
+    r <- na_rate(BaseStats_Player_MC[[col]])
+    level <- if (r >= NA_FAIL_THRESHOLD) "FAIL" else if (r >= NA_WARN_THRESHOLD) "WARN" else "INFO"
+    log_check("S2", paste0("Profile col: ", col), level, paste0(fmt_pct(r), " NA rate"))
+  }
+}
+
+# --------------------------------------------------
+# 2C: Injury data NA audit
+# --------------------------------------------------
+if (exists("injury_data")) {
+  inj_key_cols <- c("espn_player_id", "espn_team_id", "date", "status")
+  for (col in inj_key_cols) {
+    if (!col %in% names(injury_data)) {
+      log_check("S2", paste0("Injury key: ", col), "WARN", "Column not found in injury_data")
+      next
+    }
+    r <- na_rate(injury_data[[col]])
+    level <- if (r > 0.01) "WARN" else "INFO"
+    log_check("S2", paste0("Injury key: ", col), level, paste0(fmt_pct(r), " NA rate"))
+  }
+  
+  if ("status" %in% names(injury_data)) {
+    status_counts <- table(tolower(injury_data$status))
+    log_check("S2", "Injury status values", "INFO",
+              paste(names(status_counts), status_counts, sep="=", collapse=" | "))
+  }
+}
+
+# --------------------------------------------------
+# 2D: Delta file NA audit
+# --------------------------------------------------
+if (exists("delta_v2")) {
+  delta_na_cols <- c("DELTA_MINS_Q1", "DELTA_MINS_Q2", "DELTA_MINS_Q3", "DELTA_MINS_Q4",
+                     "BASE_USAGE_Q1", "BASE_USAGE_Q2", "BASE_USAGE_Q3", "BASE_USAGE_Q4")
+  for (col in delta_na_cols) {
+    if (!col %in% names(delta_v2)) next
+    r <- na_rate(delta_v2[[col]])
+    level <- if (r >= NA_FAIL_THRESHOLD) "FAIL" else if (r >= NA_WARN_THRESHOLD) "WARN" else "INFO"
+    log_check("S2", paste0("Delta: ", col), level, paste0(fmt_pct(r), " NA rate"))
+  }
+}
+
+# ==========================================================================================================
+# SECTION 3: VALUE RANGE CHECKS
+# ==========================================================================================================
+cat("\n--- SECTION 3: VALUE RANGE CHECKS ---\n\n")
+
+if (exists("BaseStats_Player_MC")) {
+  bsp <- BaseStats_Player_MC %>%
+    mutate(across(starts_with("MINS_Q"), ~suppressWarnings(as.numeric(.))))
+  
+  # 3A: Player quarter minutes (0-12 per player)
+  for (q in c("Q1","Q2","Q3","Q4")) {
+    col <- paste0("MINS_", q)
+    if (!col %in% names(bsp)) next
+    vals <- bsp[[col]]
+    n_over <- sum(vals > 12, na.rm = TRUE)
+    n_neg  <- sum(vals < 0,  na.rm = TRUE)
+    
+    if (n_over > 0) {
+      log_check("S3", paste0("Player mins ", q, " > 12"), "WARN",
+                paste0(n_over, " rows exceed 12 min (", fmt_pct(n_over/nrow(bsp)), ")"))
+    } else {
+      log_check("S3", paste0("Player mins ", q), "INFO",
+                paste0("Range: ", round(min(vals, na.rm=TRUE), 1),
+                       " - ", round(max(vals, na.rm=TRUE), 1)))
+    }
+    if (n_neg > 0) {
+      log_check("S3", paste0("Player mins ", q, " negative"), "FAIL",
+                paste0(n_neg, " negative minute values"))
+    }
+  }
+  
+  # 3B: Team quarter minutes summing to ~60
+  for (q in c("Q1","Q2","Q3","Q4")) {
+    col <- paste0("MINS_", q)
+    if (!col %in% names(bsp)) next
+    
+    team_totals <- bsp %>%
+      mutate(GAME_DATE = as.Date(GAME_DATE),
+             val = suppressWarnings(as.numeric(.data[[col]]))) %>%
+      group_by(ESPN_GAME_ID, ESPN_TEAM_ID) %>%
+      summarise(team_total = sum(val, na.rm = TRUE), .groups = "drop")
+    
+    n_low  <- sum(team_totals$team_total < 45, na.rm = TRUE)
+    n_high <- sum(team_totals$team_total > 75, na.rm = TRUE)
+    mean_t <- round(mean(team_totals$team_total, na.rm = TRUE), 1)
+    
+    if (n_low > 0 || n_high > 0) {
+      log_check("S3", paste0("Team total mins ", q), "WARN",
+                paste0("Mean=", mean_t, " | <45: ", n_low, " | >75: ", n_high))
+    } else {
+      log_check("S3", paste0("Team total mins ", q), "INFO",
+                paste0("Mean=", mean_t, " (expected ~60) ✓"))
+    }
+  }
+  
+  # 3C: Shooting percentages (0-1)
+  shoot_checks <- list(
+    list(made="2PTM_CGS", att="2PTA_CGS", name="FG2%"),
+    list(made="3PTM_CGS", att="3PTA_CGS", name="FG3%"),
+    list(made="FTM_CGS",  att="FTA_CGS",  name="FT%")
+  )
+  
+  for (sc in shoot_checks) {
+    if (!all(c(sc$made, sc$att) %in% names(bsp))) next
+    pct <- suppressWarnings(as.numeric(bsp[[sc$made]]) / as.numeric(bsp[[sc$att]]))
+    pct <- pct[!is.na(pct) & is.finite(pct)]
+    n_over <- sum(pct > 1, na.rm = TRUE)
+    n_neg  <- sum(pct < 0, na.rm = TRUE)
+    
+    if (n_over > 0 || n_neg > 0) {
+      log_check("S3", sc$name, "FAIL",
+                paste0("Out of range: >1=", n_over, " | <0=", n_neg,
+                       " | mean=", round(mean(pct, na.rm=TRUE), 3)))
+    } else {
+      log_check("S3", sc$name, "INFO",
+                paste0("Mean=", round(mean(pct, na.rm=TRUE), 3),
+                       " range=[", round(min(pct), 3), ", ", round(max(pct), 3), "]"))
+    }
+  }
+  
+  # 3D: Points per minute (0-2)
+  if (all(c("PTS_CGS","MINS_CGS") %in% names(bsp))) {
+    ppm <- suppressWarnings(as.numeric(bsp$PTS_CGS) / as.numeric(bsp$MINS_CGS))
+    ppm <- ppm[!is.na(ppm) & is.finite(ppm) & as.numeric(bsp$MINS_CGS) > 2]
+    n_high <- sum(ppm > 2, na.rm = TRUE)
+    
+    if (n_high > 0) {
+      log_check("S3", "Points per minute", "WARN",
+                paste0(n_high, " rows pts/min > 2 (small sample likely) | mean=",
+                       round(mean(ppm, na.rm=TRUE), 3)))
+    } else {
+      log_check("S3", "Points per minute", "INFO",
+                paste0("Mean=", round(mean(ppm, na.rm=TRUE), 3),
+                       " max=", round(max(ppm, na.rm=TRUE), 3)))
+    }
+  }
+}
+
+# 3E: Score sanity
+if (exists("BaseStats_Team_MC")) {
+  score_col <- intersect(c("PTS_CGS","PTS","TEAM_PTS"), names(BaseStats_Team_MC))[1]
+  if (!is.na(score_col)) {
+    scores <- suppressWarnings(as.numeric(BaseStats_Team_MC[[score_col]]))
+    n_zero <- sum(scores == 0, na.rm = TRUE)
+    n_high <- sum(scores > 160, na.rm = TRUE)
+    mean_s <- round(mean(scores, na.rm = TRUE), 1)
+    
+    if (n_zero > 0) {
+      log_check("S3", "Team score sanity", "FAIL",
+                paste0(n_zero, " games with 0 points — check for postponed games"))
+    } else if (n_high > 0) {
+      log_check("S3", "Team score sanity", "WARN",
+                paste0(n_high, " games >160 pts | mean=", mean_s))
+    } else {
+      log_check("S3", "Team score sanity", "INFO",
+                paste0("Mean=", mean_s,
+                       " range=[", min(scores, na.rm=TRUE), ", ", max(scores, na.rm=TRUE), "] ✓"))
+    }
+  }
+}
+
+# ==========================================================================================================
+# SECTION 4: CALCULATION-SPECIFIC DIAGNOSTICS
+# ==========================================================================================================
+cat("\n--- SECTION 4: CALCULATION DIAGNOSTICS ---\n\n")
+
+# 4A: Delta file zero-sum check
+if (exists("delta_v2")) {
+  delta_check <- delta_v2 %>%
+    mutate(
+      ESPN_TEAM_ID  = as.character(ESPN_TEAM_ID),
+      OUT_PLAYER_ID = as.character(OUT_PLAYER_ID),
+      GAME_DATE     = as.Date(GAME_DATE)
+    ) %>%
+    group_by(ESPN_GAME_ID, ESPN_TEAM_ID, OUT_PLAYER_ID, GAME_DATE) %>%
+    summarise(
+      sum_delta_Q1 = sum(DELTA_MINS_Q1, na.rm = TRUE),
+      sum_delta_Q2 = sum(DELTA_MINS_Q2, na.rm = TRUE),
+      sum_delta_Q3 = sum(DELTA_MINS_Q3, na.rm = TRUE),
+      sum_delta_Q4 = sum(DELTA_MINS_Q4, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(total_delta = sum_delta_Q1 + sum_delta_Q2 + sum_delta_Q3 + sum_delta_Q4)
+  
+  mean_total_delta  <- round(mean(delta_check$total_delta, na.rm = TRUE), 2)
+  n_large_imbalance <- sum(abs(delta_check$total_delta) > 15, na.rm = TRUE)
+  
+  if (abs(mean_total_delta) > 3) {
+    log_check("S4", "Delta zero-sum", "WARN",
+              paste0("Mean total delta=", mean_total_delta,
+                     " (expected ~0) | >15 min imbalances: ", n_large_imbalance))
+  } else {
+    log_check("S4", "Delta zero-sum", "INFO",
+              paste0("Mean total delta=", mean_total_delta,
+                     " | large imbalances: ", n_large_imbalance))
+  }
+  
+  for (q in c("Q1","Q2","Q3","Q4")) {
+    col    <- paste0("sum_delta_", q)
+    mean_q <- round(mean(delta_check[[col]], na.rm = TRUE), 3)
+    log_check("S4", paste0("Delta mean ", q), "INFO",
+              paste0("Mean sum of deltas = ", mean_q, " (expected ~0)"))
+  }
+}
+
+# 4B: Usage weight join diagnostic
+# --------------------------------------------------
+# Critical check: how well is delta_v2 joining to player_minutes_params?
+# Low match rate means deltas aren't being applied and injury absorption
+# is falling back to proportional redistribution for most games.
+# --------------------------------------------------
+if (exists("delta_v2") && exists("player_minutes_params_backtest")) {
+  
+  n_params_total    <- nrow(player_minutes_params_backtest)
+  n_params_with_uwq <- sum(!is.na(player_minutes_params_backtest$usage_weight_Q1))
+  pct_uwq           <- fmt_pct(n_params_with_uwq / n_params_total)
+  
+  if (n_params_with_uwq / n_params_total < 0.10) {
+    log_check("S4", "Usage weight join (params)", "WARN",
+              paste0("Only ", pct_uwq, " of minute param rows have usage weights — delta join likely failing"))
+    
+    # Diagnose the join mismatch
+    delta_dates  <- sort(unique(as.Date(delta_v2$GAME_DATE)))
+    params_dates <- sort(unique(as.Date(player_minutes_params_backtest$GAME_DATE)))
+    
+    n_date_match   <- length(intersect(delta_dates, params_dates))
+    n_delta_only   <- length(setdiff(delta_dates,  params_dates))
+    n_params_only  <- length(setdiff(params_dates, delta_dates))
+    
+    log_check("S4", "Usage weight date overlap", "INFO",
+              paste0("Dates in both=", n_date_match,
+                     " | delta only=", n_delta_only,
+                     " | params only=", n_params_only))
+    
+    # Check team ID type match
+    delta_tid_class  <- class(delta_v2$ESPN_TEAM_ID)
+    params_tid_class <- class(player_minutes_params_backtest$ESPN_TEAM_ID)
+    
+    if (delta_tid_class != params_tid_class) {
+      log_check("S4", "Usage weight team ID type mismatch", "WARN",
+                paste0("delta_v2 ESPN_TEAM_ID=", delta_tid_class,
+                       " vs params ESPN_TEAM_ID=", params_tid_class,
+                       " — type mismatch will cause silent join failure"))
+    } else {
+      log_check("S4", "Usage weight team ID types", "INFO",
+                paste0("Both are ", delta_tid_class, " ✓"))
+    }
+    
+    # Check player ID type match
+    delta_pid_class  <- class(delta_v2$AFFECTED_PLAYER_ID)
+    params_pid_class <- class(player_minutes_params_backtest$ESPN_PLAYER_ID)
+    
+    if (delta_pid_class != params_pid_class) {
+      log_check("S4", "Usage weight player ID type mismatch", "WARN",
+                paste0("delta_v2 AFFECTED_PLAYER_ID=", delta_pid_class,
+                       " vs params ESPN_PLAYER_ID=", params_pid_class,
+                       " — type mismatch will cause silent join failure"))
+    } else {
+      log_check("S4", "Usage weight player ID types", "INFO",
+                paste0("Both are ", delta_pid_class, " ✓"))
+    }
+    
+  } else {
+    log_check("S4", "Usage weight join (params)", "INFO",
+              paste0(pct_uwq, " of minute param rows have usage weights ✓"))
+  }
+  
+} else if (exists("player_shooting_profile_q")) {
+  
+  # Fallback if params not available — check shooting profile
+  n_total    <- nrow(player_shooting_profile_q)
+  n_with_uwq <- sum(!is.na(player_shooting_profile_q$usage_weight_q))
+  pct_pop    <- fmt_pct(n_with_uwq / n_total)
+  
+  if (n_with_uwq / n_total < 0.10) {
+    log_check("S4", "Usage weight population (shooting)", "WARN",
+              paste0("Only ", pct_pop, " of shooting profile rows have usage_weight_q — check delta join"))
+  } else {
+    log_check("S4", "Usage weight population (shooting)", "INFO",
+              paste0(pct_pop, " of rows have usage_weight_q ✓"))
+  }
+} else {
+  log_check("S4", "Usage weight population", "INFO",
+            "Profiles not yet built — run after profile building")
+}
+
+# 4C: Possession profile sanity
+if (exists("team_poss_profile_q_backtest")) {
+  poss_data <- team_poss_profile_q_backtest %>%
+    filter(qtr %in% c(1,2,3,4,"Q1","Q2","Q3","Q4"))
+  
+  if (nrow(poss_data) > 0 && "POSS_mean" %in% names(poss_data)) {
+    mean_poss <- round(mean(poss_data$POSS_mean, na.rm = TRUE), 1)
+    n_low     <- sum(poss_data$POSS_mean < 18, na.rm = TRUE)
+    n_high    <- sum(poss_data$POSS_mean > 35, na.rm = TRUE)
+    
+    if (n_low > 0 || n_high > 0) {
+      log_check("S4", "Possession profile", "WARN",
+                paste0("Mean=", mean_poss, " | <18: ", n_low, " | >35: ", n_high))
+    } else {
+      log_check("S4", "Possession profile", "INFO",
+                paste0("Mean=", mean_poss, " per quarter (expected 24-28) ✓"))
+    }
+  }
+} else {
+  log_check("S4", "Possession profile", "INFO",
+            "team_poss_profile_q_backtest not yet built — run after profile building")
+}
+
+# 4D: Platt scaling input distribution
+if (exists("mc_backtest_validation") && "home_win_prob" %in% names(mc_backtest_validation)) {
+  wp         <- mc_backtest_validation$home_win_prob
+  mean_wp    <- round(mean(wp, na.rm = TRUE), 3)
+  sd_wp      <- round(sd(wp,   na.rm = TRUE), 3)
+  n_near50   <- sum(abs(wp - 0.5) < 0.05, na.rm = TRUE)
+  pct_near50 <- fmt_pct(n_near50 / length(wp))
+  
+  if (sd_wp < 0.05) {
+    log_check("S4", "Platt input distribution", "WARN",
+              paste0("Win probs clustered — sd=", sd_wp, " mean=", mean_wp))
+  } else {
+    log_check("S4", "Platt input distribution", "INFO",
+              paste0("mean=", mean_wp, " sd=", sd_wp,
+                     " | ", pct_near50, " within 5% of 50/50"))
+  }
+} else {
+  log_check("S4", "Platt input distribution", "INFO",
+            "mc_backtest_validation not yet built — run after simulation")
+}
+
+# 4E: Score inflation canary
+if (exists("mc_results_summary")) {
+  mean_home <- round(mean(mc_results_summary$home_pts_mean, na.rm = TRUE), 1)
+  mean_away <- round(mean(mc_results_summary$away_pts_mean, na.rm = TRUE), 1)
+  
+  if (mean_home > 122 || mean_away > 122) {
+    log_check("S4", "Score inflation canary", "FAIL",
+              paste0("Scores too high — home=", mean_home, " away=", mean_away, " (expected 112-118)"))
+  } else if (mean_home < 105 || mean_away < 105) {
+    log_check("S4", "Score inflation canary", "WARN",
+              paste0("Scores low — home=", mean_home, " away=", mean_away, " (expected 112-118)"))
+  } else {
+    log_check("S4", "Score inflation canary", "INFO",
+              paste0("home=", mean_home, " away=", mean_away, " ✓"))
+  }
+} else {
+  log_check("S4", "Score inflation canary", "INFO",
+            "mc_results_summary not yet built — run after simulation")
+}
+
+# ==========================================================================================================
+# SUMMARY
+# ==========================================================================================================
+cat("\n========================================================\n")
+cat("  CLEANSE SUMMARY\n")
+cat("========================================================\n\n")
+
+n_info <- sum(cleanse_log$level == "INFO")
+n_warn <- sum(cleanse_log$level == "WARN")
+n_fail <- sum(cleanse_log$level == "FAIL")
+
+cat("  ℹ️  INFO :", n_info, "\n")
+cat("  ⚠️  WARN :", n_warn, "\n")
+cat("  ❌ FAIL :", n_fail, "\n\n")
+
+if (n_fail > 0) {
+  cat("❌ FAIL items:\n")
+  cleanse_log %>%
+    filter(level == "FAIL") %>%
+    with(cat(paste0("  - [", section, "] ", check, ": ", detail, "\n")))
+  cat("\n")
+}
+
+if (n_warn > 0) {
+  cat("⚠️  WARN items:\n")
+  cleanse_log %>%
+    filter(level == "WARN") %>%
+    with(cat(paste0("  - [", section, "] ", check, ": ", detail, "\n")))
+  cat("\n")
+}
+
+cleanse_passed <- n_fail == 0
+
+if (cleanse_passed) {
+  cat("✅ Data cleanse passed — no FAIL-level issues found.\n\n")
+} else {
+  cat("❌ Data cleanse FAILED — review cleanse_log before proceeding.\n\n")
+  cat("View full log with: View(cleanse_log)\n\n")
+}
+
+if (!cleanse_passed) {
+  stop("❌ Data cleanse failed — review cleanse_log before proceeding. Run View(cleanse_log) for details.")
+} else {
+  readline("✅ Cleanse passed. Press ENTER to continue...")
+}
+
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊
+# 💊💊💊 END: Data Cleanse & Diagnostic Layer v2
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                            
+
+
+
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠                                                                                                             
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 #
 #
@@ -240,6 +967,9 @@ delta_v2 <- fread("C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0.
 # 
 #
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠                                                                                                             
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠                                                                                                             
+
+
 
 
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠    
@@ -273,25 +1003,25 @@ mode <- "backtest"   # Options: "production", "backtest", "calibration", "resear
 # -----------------------------
 if (mode == "production") {
   # Live predictions for today's slate
-  as_of_date         <- as.Date("2025-12-31")
+  as_of_date         <- as.Date("2026-03-03")
   load_backtest_data <- FALSE  # Don't load historical rosters (faster)
   load_player_odds   <- TRUE   # Load current market lines
   
 } else if (mode == "backtest") {
   # Historical validation on specific date
-  as_of_date         <- as.Date("2025-12-31")  # ← Set backtest date here
+  as_of_date         <- as.Date("2026-03-03")  # ← Set backtest date here
   load_backtest_data <- TRUE   # Load all rosters < as_of_date
   load_player_odds   <- FALSE  # Historical odds not needed for validation
   
 } else if (mode == "calibration") {
   # Tune variance parameters against historical games
-  as_of_date         <- as.Date("2025-12-31")  # ← Set calibration cutoff
+  as_of_date         <- as.Date("2026-03-03")  # ← Set calibration cutoff
   load_backtest_data <- TRUE   # Need historical data
   load_player_odds   <- FALSE  # Don't need odds for calibration
   
 } else if (mode == "research") {
   # Model development sandbox - load everything
-  as_of_date         <- as.Date("2025-12-31")
+  as_of_date         <- as.Date("2026-03-03")
   load_backtest_data <- TRUE   # Load all available history
   load_player_odds   <- TRUE   # Load all available data
   
@@ -862,7 +1592,7 @@ injury_data <- injury_data %>%
   )
 
 if ("date" %in% names(injury_data)) {
-  injury_data <- injury_data %>% mutate(game_date_dt = as.Date(date))
+  injury_data <- injury_data %>% mutate(date = as.Date(date))
 } else if ("game_date" %in% names(injury_data)) {
   injury_data <- injury_data %>% mutate(game_date_dt = as.Date(game_date))
 } else {
@@ -885,17 +1615,23 @@ get_team_roster_cached <- function(nba_team_id, season_token2) {
     return(get(key, envir = .roster_cache))
   }
   
-  raw <- nba_commonteamroster(team_id = nba_team_id, season = season_token2)
+  # Retry up to 3 times with increasing delay
+  raw <- NULL
+  for (attempt in 1:3) {
+    tryCatch({
+      raw <- nba_commonteamroster(team_id = nba_team_id, season = season_token2)
+      break
+    }, error = function(e) {
+      message("Attempt ", attempt, " failed for team ", nba_team_id, ": ", e$message)
+      Sys.sleep(attempt * 2)  # 2s, 4s, 6s backoff
+    })
+  }
+  
+  if (is.null(raw)) stop("Failed to fetch roster for team ", nba_team_id)
   
   roster <- raw$CommonTeamRoster %>%
-    rename(
-      NBA_TEAM_ID   = TeamID,
-      NBA_PLAYER_ID = PLAYER_ID
-    ) %>%
-    mutate(
-      NBA_TEAM_ID   = as.character(NBA_TEAM_ID),
-      NBA_PLAYER_ID = as.character(NBA_PLAYER_ID)
-    )
+    rename(NBA_TEAM_ID = TeamID, NBA_PLAYER_ID = PLAYER_ID) %>%
+    mutate(across(c(NBA_TEAM_ID, NBA_PLAYER_ID), as.character))
   
   assign(key, roster, envir = .roster_cache)
   Sys.sleep(0.5)
@@ -1281,6 +2017,44 @@ quarters <- c("Q1","Q2","Q3","Q4","Q5","Q6")
 key_to_date <- function(k) {
   suppressWarnings(as.Date(gsub("[^0-9]", "", k), "%Y%m%d"))
 }
+
+
+library(parallel)
+library(pbapply)
+
+# Set up cluster with 4 cores
+cl <- makeCluster(4)
+
+# Export everything the function needs to each worker
+clusterExport(cl, c(
+  "build_minutes_params_one_date",
+  "BaseStats_Player_MC",
+  "delta_lookup",
+  "roster_pool_backtest_by_date",
+  "roster_out_backtest_by_date",
+  "num0",
+  "quarters",
+  "key_to_date"
+))
+
+clusterEvalQ(cl, {
+  library(dplyr)
+  library(tidyr)
+})
+
+# Replace the lapply with pblapply
+player_minutes_params_backtest <- dplyr::bind_rows(
+  pblapply(bt_keys, function(kk) {
+    build_minutes_params_one_date(
+      proj_date   = key_to_date(kk),
+      roster_pool = roster_pool_backtest_by_date[[kk]],
+      roster_out  = roster_out_backtest_by_date[[kk]]
+    )
+  }, cl = cl)
+)
+
+# Always stop the cluster when done
+stopCluster(cl)
 
 # ----------------------------------------------------------
 # Pre-process delta_v2 once outside the per-date loop
@@ -1691,32 +2465,27 @@ player_minutes_params_backtest <- player_minutes_params_backtest %>%
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 
 
-# Step 1: Check delta entries for SGA out on 2/24 for OKC
+# Check if inflation is concentrated in specific teams or players
 delta_v2 %>%
-  filter(GAME_DATE == as.Date("2026-02-24"),
-         OUT_PLAYER_ID == "4278073") %>%
-  select(AFFECTED_PLAYER_NAME,
-         BASE_MINS_Q1, MINS_Q1, DELTA_MINS_Q1,
-         BASE_MINS_Q2, MINS_Q2, DELTA_MINS_Q2,
-         BASE_MINS_Q3, MINS_Q3, DELTA_MINS_Q3,
-         BASE_MINS_Q4, MINS_Q4, DELTA_MINS_Q4)
+  mutate(
+    ESPN_TEAM_ID  = as.character(ESPN_TEAM_ID),
+    OUT_PLAYER_ID = as.character(OUT_PLAYER_ID),
+    GAME_DATE     = as.Date(GAME_DATE)
+  ) %>%
+  group_by(ESPN_GAME_ID, ESPN_TEAM_ID, OUT_PLAYER_ID) %>%
+  summarise(
+    total_delta = sum(DELTA_MINS_Q1 + DELTA_MINS_Q2 + 
+                        DELTA_MINS_Q3 + DELTA_MINS_Q4, na.rm = TRUE),
+    n_affected  = n(),
+    .groups = "drop"
+  ) %>%
+  summarise(
+    mean_delta    = round(mean(total_delta), 2),
+    median_delta  = round(median(total_delta), 2),
+    mean_affected = round(mean(n_affected), 1),
+    max_affected  = max(n_affected)
+  )
 
-# Step 2: Check what the builder produced for OKC that date
-# First find OKC's ESPN_TEAM_ID
-delta_v2 %>%
-  filter(OUT_PLAYER_ID == "4278073") %>%
-  distinct(ESPN_TEAM_ID) %>%
-  head(1)
-
-# Then check the builder output — replace XX with OKC team id from above
-player_minutes_params_backtest %>%
-  filter(GAME_DATE == as.Date("2026-02-24"),
-         ESPN_TEAM_ID == "XX") %>%
-  select(PLAYER, is_out, is_active,
-         mins_mean_Q1, mins_mean_Q2,
-         mins_mean_Q3, mins_mean_Q4,
-         usage_weight_Q1, usage_weight_Q4) %>%
-  arrange(desc(mins_mean_Q1))
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # ======================================
 # START: Pull in Team Names and Opp Names
@@ -9296,11 +10065,6 @@ summary(error_model)
 # 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
 
 
-names(delta_v2)
-head(delta_v2, 3)
-nrow(delta_v2)
-summary(delta_v2[, .(DELTA_MINS_Q1, DELTA_MINS_Q2, DELTA_MINS_Q3, DELTA_MINS_Q4)])
-
 
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
@@ -9358,9 +10122,16 @@ summary(platt_model_full)
 # --------------------------------------------------
 mc_backtest_validation <- mc_backtest_validation %>%
   mutate(
-    home_win_prob_calibrated = predict(platt_model_full, type = "response")
+    home_win_prob_calibrated = ifelse(
+      !is.na(rest_diff) & !is.na(home_b2b) & !is.na(away_b2b),
+      predict(platt_model_full, newdata = ., type = "response"),
+      predict(platt_model_full, 
+              newdata = data.frame(
+                home_win_prob = home_win_prob,
+                rest_diff = 0, home_b2b = 0, away_b2b = 0
+              ), type = "response")
+    )
   )
-
 # --------------------------------------------------
 # STEP 5: Compare accuracy before and after
 # --------------------------------------------------
