@@ -45,6 +45,13 @@ rm(list = setdiff(ls(), c(
 )))
 
 
+library(hoopR)
+library(dplyr)
+library(data.table)
+library(lubridate)
+
+
+
 new_nbapbp_df <- load_nba_pbp(seasons = pbp_season)
 
 

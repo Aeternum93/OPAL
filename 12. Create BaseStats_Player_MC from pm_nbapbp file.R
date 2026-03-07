@@ -160,8 +160,9 @@ games <-
 # --- BUILD PLAYER ROWS FROM EVENTS (athlete_id_1) ---
 # Map each event's team_id to HOME_AWAY using the same game-local home/away ids,
 # then reduce to unique (game, team, player) combos.
-players_seed <-
-  pm_df %>%
+# --- De-dupe players who appear under multiple teams in same game ---
+# Keep the team_id with the most event appearances for that player in that game
+players_seed <- pm_df %>%
   select(
     game_id, nba_game_id, nba_team_id, team_id,
     home_team_id, away_team_id,
@@ -182,8 +183,14 @@ players_seed <-
     ESPN_PLAYER_ID = athlete_id_1
   ) %>%
   filter(!is.na(ESPN_PLAYER_ID), ESPN_PLAYER_ID != "", !is.na(HOME_AWAY)) %>%
+  # Count appearances per (game, team, player) before deduping
+  add_count(game_id, team_id, ESPN_PLAYER_ID, name = "n_events") %>%
+  # Within each (game, player), keep the team with the most events
+  group_by(game_id, ESPN_PLAYER_ID) %>%
+  slice_max(n_events, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(-n_events) %>%
   distinct(game_id, team_id, ESPN_PLAYER_ID, .keep_all = TRUE)
-
 # --- ATTACH DECISIONS & FINAL ADMIN FIELDS (mirror Team_MC fields) ---
 BaseStats_Player_MC <-
   players_seed %>%
@@ -5662,7 +5669,6 @@ player_odds <- fread(player_odds_path, encoding = "UTF-8", colClasses = "charact
     ODDSAPI_MAP    = as.character(ODDSAPI_MAP)
   )
 
-# 2) Keep only the ID + prop columns we want to bring over
 player_odds_sel <- player_odds %>%
   select(
     ESPN_PLAYER_ID,
@@ -5684,7 +5690,8 @@ player_odds_sel <- player_odds %>%
     `3PM_FNA_LINE_O`, `3PM_FNA_ODDS_O`, `3PM_FNA_LINE_U`, `3PM_FNA_ODDS_U`,
     `3PM_BMGM_LINE_O`, `3PM_BMGM_ODDS_O`, `3PM_BMGM_LINE_U`, `3PM_BMGM_ODDS_U`,
     PTS_COVER, AST_COVER, REB_COVER, `3PM_COVER`
-  )
+  ) %>%
+  distinct(ESPN_PLAYER_ID, ODDSAPI_MAP, .keep_all = TRUE)  # <-- this is the fix
 
 # 3) Prepare BaseStats_Player_MC keys & join odds in
 BaseStats_Player_MC <- BaseStats_Player_MC %>%
@@ -5787,7 +5794,6 @@ print(paste("BaseStats_Player for Monte Carlo has been exported to:", team_outpu
 # START ==== Create .rds version of all files ====
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 
-
 folders <- c(
   "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/1. BaseStats_Team",
   "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/2. BaseStats_Player",
@@ -5814,7 +5820,7 @@ for (folder in folders) {
   
   for (f in csv_files) {
     tryCatch({
-      dat <- read_csv(f, show_col_progress = FALSE, col_types = cols())
+      dat <- read.csv(f, stringsAsFactors = FALSE)
       rds_path <- sub("\\.csv$", ".rds", f, ignore.case = TRUE)
       saveRDS(dat, rds_path)
       total <- total + 1
@@ -5831,4 +5837,3 @@ message("\nDone! Converted ", total, " files.")
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # END ==== Create .rds version of all files ====
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-

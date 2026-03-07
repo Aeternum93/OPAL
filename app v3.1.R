@@ -7,40 +7,35 @@ library(base64enc)
 # DATA LOADING
 # ════════════════════════════════════════════════════════════════════════════════
 
-player_data <- read.csv(
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/2. BaseStats_Player/BaseStats_Player_MC_2025_2026.csv",
-  stringsAsFactors = FALSE
+player_data <- readRDS(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/2. BaseStats_Player/BaseStats_Player_MC_2025_2026.rds"
 )
 
-team_data <- read.csv(
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/1. BaseStats_Team/BaseStats_Team_MC_2025_2026.csv",
-  stringsAsFactors = FALSE
+team_data <- readRDS(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/1. BaseStats_Team/BaseStats_Team_MC_2025_2026.rds"
 )
 names(team_data) <- gsub("^T_", "", names(team_data))
 
-schedule_data <- read.csv(
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/10. NBA Schedule/nba_schedule_2025_2026.csv",
-  stringsAsFactors = FALSE
+schedule_data <- readRDS(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/10. NBA Schedule/nba_schedule_2025_2026.rds"
 )
 schedule_data$game_date <- as.Date(schedule_data$game_date)
 
 ROT_PATH <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/12. Player Rotations/"
-
-rot_5m  <- read.csv(paste0(ROT_PATH, "pm_nba_player_rotations_5M_2025_2026.csv"),  stringsAsFactors=FALSE)
-rot_10m <- read.csv(paste0(ROT_PATH, "pm_nba_player_rotations_10M_2025_2026.csv"), stringsAsFactors=FALSE)
-
+rot_5m  <- readRDS(paste0(ROT_PATH, "pm_nba_player_rotations_5M_2025_2026.rds"))
+rot_10m <- readRDS(paste0(ROT_PATH, "pm_nba_player_rotations_10M_2025_2026.rds"))
 rot_5m$game_date  <- as.Date(as.character(rot_5m$game_date))
 rot_10m$GAME_DATE <- as.Date(as.character(rot_10m$GAME_DATE))
 
 ODDS_PATH <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/11. Player Enriched Odds/"
-player_odds <- read.csv(paste0(ODDS_PATH, "nba_player_odds_enrich_2025_2026.csv"), stringsAsFactors=FALSE)
+player_odds <- readRDS(paste0(ODDS_PATH, "nba_player_odds_enrich_2025_2026.rds"))
 player_odds$GAME_DATE <- dplyr::coalesce(
   as.Date(as.character(player_odds$GAME_DATE_CTR), format="%m/%d/%Y"),
   as.Date(as.character(player_odds$GAME_DATE_CTR), format="%Y-%m-%d")
 )
 
 INJ_PATH <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/9. Historical Injuries (RapidAPI)/"
-injury_data <- read.csv(paste0(INJ_PATH, "Injury_Database_2025_2026.csv"), stringsAsFactors=FALSE)
+injury_data <- readRDS(paste0(INJ_PATH, "Injury_Database_2025_2026.rds"))
 injury_data$date <- as.Date(as.character(injury_data$date))
 
 WWW_PATH <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/NBA R Scripts/NBA Scripts/www/"
@@ -51,30 +46,18 @@ sb_logos <- list(
   BMGM = base64enc::dataURI(file=paste0(WWW_PATH,"BETMGM.png"),  mime="image/png")
 )
 
-##############################################################################
-# EDIT 1: ADD NEW DATA LOADS
-# Location: After the line that ends with:
-#   BMGM = base64enc::dataURI(file=paste0(WWW_PATH,"BETMGM.png"),  mime="image/png")
-# )
-# Paste this IMMEDIATELY AFTER that closing parenthesis:
-##############################################################################
-
-standings_data <- read.csv(
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/8. Leauge Standings/nba_league standings.csv",
-  stringsAsFactors = FALSE
+standings_data <- readRDS(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/8. Leauge Standings/nba_league standings.rds"
 )
 
-historical_odds <- read.csv(
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/8. Historical Odds (Odds API)/nba_historical_odds_2025_2026.csv",
-  stringsAsFactors = FALSE
+historical_odds <- readRDS(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/8. Historical Odds (Odds API)/nba_historical_odds_2025_2026.rds"
 )
 historical_odds$commence_date_est <- as.Date(as.character(historical_odds$commence_date_est))
 
-
-
 # ── Play-by-Play data ──
 PBP_PATH <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/7. MC PBP Data/"
-pbp_data <- read.csv(paste0(PBP_PATH, "pm_nbapbp_2025_2026.csv"), stringsAsFactors=FALSE)
+pbp_data <- readRDS(paste0(PBP_PATH, "pm_nbapbp_2025_2026.rds"))
 pbp_data$game_date <- as.Date(as.character(pbp_data$game_date))
 
 # Classify play types for shot chart filtering
@@ -1145,6 +1128,72 @@ body.dark-mode .gc-mini-court-wrap { box-shadow:0 2px 12px rgba(0,0,0,.3); }
 /* Clickable headshot in play cards */
 .gc-play-hs-clickable { cursor:pointer; transition:border-color .15s,box-shadow .15s; }
 .gc-play-hs-clickable:hover { border-color:var(--border-light); box-shadow:0 0 0 3px rgba(90,154,90,.4); }
+/* ── BET SLIP TRAY ── */
+#bet-slip-tray {
+  position:fixed; top:var(--header-height); right:0; bottom:0;
+  width:0; overflow:hidden; transition:width .25s ease;
+  border-left:0px solid var(--border); background:var(--bg-sidebar);
+  z-index:998; display:flex; flex-direction:column;
+}
+#bet-slip-tray.open { width:360px; border-left-width:1px; }
+.bs-header { padding:16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.bs-title { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:18px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-primary); }
+.bs-close { background:transparent; border:none; cursor:pointer; color:var(--text-muted); font-size:18px; padding:4px 8px; border-radius:4px; transition:background .12s; }
+.bs-close:hover { background:var(--border); color:var(--text-primary); }
+.bs-count { font-size:12px; font-family:'Share Tech Mono',monospace; color:var(--text-muted); background:var(--bg-base); border:1px solid var(--border); border-radius:10px; padding:1px 8px; margin-left:8px; }
+
+/* Bet type toggle */
+.bs-type-toggle { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; }
+.bs-type-btn { flex:1; padding:10px; font-size:13px; font-family:'Rajdhani',sans-serif; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); cursor:pointer; border:none; background:transparent; border-bottom:2px solid transparent; transition:color .15s,border-color .15s; }
+.bs-type-btn:hover { color:var(--text-secondary); }
+.bs-type-btn.active { color:var(--text-primary); border-bottom-color:var(--text-primary); }
+
+/* Selections list */
+.bs-selections { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+.bs-selections::-webkit-scrollbar { width:3px; }
+.bs-selections::-webkit-scrollbar-thumb { background:var(--border-light); border-radius:2px; }
+.bs-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:120px; gap:8px; opacity:.4; }
+.bs-empty p { font-family:'Rajdhani',sans-serif; font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); }
+
+/* Selection card */
+.bs-sel-card { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:6px; position:relative; }
+.bs-sel-header { display:flex; align-items:center; justify-content:space-between; }
+.bs-sel-name { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:15px; color:var(--text-primary); letter-spacing:.04em; }
+.bs-sel-remove { background:transparent; border:none; cursor:pointer; color:var(--text-muted); font-size:14px; padding:2px 6px; border-radius:3px; transition:background .12s,color .12s; }
+.bs-sel-remove:hover { background:var(--border); color:#9a4a4a; }
+.bs-sel-type { font-size:11px; font-family:'Share Tech Mono',monospace; color:var(--text-muted); letter-spacing:.06em; text-transform:uppercase; }
+.bs-sel-odds { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:16px; color:var(--text-primary); }
+.bs-sel-odds.positive { color:#5a9a5a; }
+.bs-sel-line { font-size:12px; color:var(--text-secondary); font-family:'Share Tech Mono',monospace; }
+.bs-sel-game { font-size:10px; color:var(--text-muted); font-family:'Share Tech Mono',monospace; }
+
+/* Wager section */
+.bs-wager-section { padding:12px 16px; border-top:1px solid var(--border); flex-shrink:0; display:flex; flex-direction:column; gap:10px; }
+.bs-wager-row { display:flex; align-items:center; gap:10px; }
+.bs-wager-label { font-size:10px; font-family:'Share Tech Mono',monospace; letter-spacing:.1em; color:var(--text-muted); text-transform:uppercase; width:60px; }
+.bs-wager-input { flex:1; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700; padding:8px 12px; text-align:right; }
+.bs-wager-input:focus { outline:none; border-color:var(--border-light); }
+.bs-payout-row { display:flex; justify-content:space-between; align-items:center; }
+.bs-payout-label { font-size:10px; font-family:'Share Tech Mono',monospace; letter-spacing:.1em; color:var(--text-muted); text-transform:uppercase; }
+.bs-payout-val { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:20px; color:#5a9a5a; }
+.bs-parlay-odds { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:16px; color:var(--text-primary); }
+.bs-kelly-hint { font-size:11px; font-family:'Share Tech Mono',monospace; color:#5a9a5a; letter-spacing:.06em; }
+
+/* Action buttons */
+.bs-actions { padding:12px 16px; border-top:1px solid var(--border); flex-shrink:0; display:flex; flex-direction:column; gap:8px; }
+.bs-fd-btn { display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; background:#1a3a6a; border:1px solid #2a5a9a; border-radius:8px; cursor:pointer; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:15px; letter-spacing:.06em; color:#fff; text-transform:uppercase; transition:background .15s; }
+.bs-fd-btn:hover { background:#2a4a7a; }
+.bs-fd-btn img { height:20px; object-fit:contain; }
+.bs-log-btn { display:flex; align-items:center; justify-content:center; gap:6px; padding:10px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-family:'Rajdhani',sans-serif; font-weight:600; font-size:13px; letter-spacing:.06em; color:var(--text-secondary); text-transform:uppercase; transition:background .12s,border-color .12s; }
+.bs-log-btn:hover { background:var(--bg-card-hover); border-color:var(--border-light); }
+.bs-log-btn.success { background:#0e1a0e; border-color:#2a4a2a; color:#7aba7a; }
+.bs-clear-link { text-align:center; font-size:11px; font-family:'Share Tech Mono',monospace; color:var(--text-muted); cursor:pointer; padding:4px; transition:color .12s; }
+.bs-clear-link:hover { color:#9a4a4a; }
+
+/* Clickable odds boxes */
+.odds-clickable { cursor:pointer !important; transition:border-color .15s,box-shadow .15s,background .15s !important; }
+.odds-clickable:hover { border-color:var(--border-light) !important; box-shadow:0 0 0 2px rgba(26,58,106,.3) !important; }
+.odds-clickable.in-slip { border-color:#2a5a9a !important; background:rgba(26,58,106,.1) !important; box-shadow:0 0 0 2px rgba(26,58,106,.3) !important; }
 "
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -1187,6 +1236,23 @@ Shiny.addCustomMessageHandler('setToolTab', function(data) {
 document.addEventListener('keydown', function(e) {
   if(e.key === 'Escape') {
     Shiny.setInputValue('gc_player_filter_clear', Math.random(), {priority: 'event'});
+  }
+});
+function openBetSlip() {
+  var tray = document.getElementById('bet-slip-tray');
+  if(tray) tray.classList.add('open');
+}
+function closeBetSlip() {
+  var tray = document.getElementById('bet-slip-tray');
+  if(tray) tray.classList.remove('open');
+}
+Shiny.addCustomMessageHandler('toggleBetSlip', function(data) {
+  if(data.open) openBetSlip(); else closeBetSlip();
+});
+Shiny.addCustomMessageHandler('betSlipLogged', function(data) {
+  var btn = document.getElementById('bs-log-btn');
+  if(btn) { btn.classList.add('success'); btn.textContent = '\\u2713 Logged to Bet History';
+    setTimeout(function(){ btn.classList.remove('success'); btn.textContent = 'Log to Bet History'; }, 2000);
   }
 });
 "
@@ -1252,6 +1318,18 @@ get_away_home <- function(t_rows) {
   list(away = away_row, home = home_row)
 }
 
+bs_onclick <- function(team_or_player, bet_type, line, odds, game_id="", game_info="") {
+  clean <- function(x) gsub("['\"]", "", as.character(x))
+  tp  <- clean(team_or_player)
+  bt  <- clean(bet_type)
+  ln  <- if(is.na(line) || line == "") "" else as.character(line)
+  od  <- if(is.na(odds) || odds == "") "" else as.character(odds)
+  gid <- clean(game_id)
+  gi  <- clean(game_info)
+  val <- paste(tp, bt, ln, od, gid, gi, sep="|")
+  sprintf("Shiny.setInputValue('bs_add_sel','%s',{priority:'event'})", val)
+}
+
 # ════════════════════════════════════════════════════════════════════════════════
 # UI
 # ════════════════════════════════════════════════════════════════════════════════
@@ -1285,8 +1363,7 @@ ui <- tagList(
   
   tags$div(id = "app-body",
            
-           # ── Left sidebar — nav items ──
-           # TO ADD A NEW SIDEBAR ITEM: add a new nav_section block with nav_item()
+           # ── Left sidebar ──
            tags$aside(id = "opal-sidebar",
                       tags$div(class="nav-section", nav_item("home","Home")),
                       tags$div(class="nav-section", nav_item("prediction","Prediction")),
@@ -1302,6 +1379,18 @@ ui <- tagList(
                               tags$span(id="main-subtitle", textOutput("main_subtitle", inline=TRUE))
                      ),
                      tags$div(id = "main-content", uiOutput("main_panel"))
+           ),
+           
+           # ── Bet Slip Tray ──
+           tags$div(id = "bet-slip-tray",
+                    tags$div(class="bs-header",
+                             tags$div(style="display:flex;align-items:center;",
+                                      tags$span(class="bs-title", "Bet Slip"),
+                                      tags$span(class="bs-count", id="bs-count-badge", "0")
+                             ),
+                             tags$button(class="bs-close", onclick="Shiny.setInputValue('bs_close_tray',Math.random())", "\u00D7")
+                    ),
+                    uiOutput("bet_slip_tray_ui")
            )
   )
 )
@@ -1395,6 +1484,306 @@ server <- function(input, output, session) {
   
   observeEvent(input$gc_player_filter_clear, {
     gc_player_filter(NULL)
+  })
+  
+  # ── Bet Slip state ──
+  bet_slip <- reactiveVal(list())      # list of selection objects
+  bs_mode  <- reactiveVal("straight")  # "straight" or "parlay"
+  bs_wager <- reactiveVal(0)
+  bs_open  <- reactiveVal(FALSE)
+  
+  # Add selection to slip
+  observeEvent(input$bs_add_sel, {
+    sel_str <- input$bs_add_sel
+    if(is.null(sel_str) || sel_str == "") return()
+    
+    # Parse pipe-delimited string: team_or_player|bet_type|line|odds|game_id|game_info
+    parts <- strsplit(sel_str, "\\|")[[1]]
+    if(length(parts) < 4) return()
+    
+    parsed <- list(
+      team_or_player = parts[1],
+      bet_type       = parts[2],
+      line           = if(length(parts) >= 3) parts[3] else "",
+      odds           = if(length(parts) >= 4) parts[4] else "",
+      game_id        = if(length(parts) >= 5) parts[5] else "",
+      game_info      = if(length(parts) >= 6) parts[6] else ""
+    )
+    
+    current <- bet_slip()
+    # Unique key for dedup/toggle
+    key <- paste(parsed$team_or_player, parsed$bet_type, parsed$line, parsed$odds, sep="_")
+    existing_keys <- sapply(current, function(s) paste(s$team_or_player, s$bet_type, s$line, s$odds, sep="_"))
+    
+    if(key %in% existing_keys) {
+      # Toggle off — remove from slip
+      current <- current[existing_keys != key]
+    } else {
+      # Add to slip
+      parsed$key <- key
+      current <- c(current, list(parsed))
+    }
+    
+    bet_slip(current)
+    if(length(current) > 0 && !bs_open()) {
+      bs_open(TRUE)
+      session$sendCustomMessage("toggleBetSlip", list(open=TRUE))
+    }
+    if(length(current) == 0) {
+      bs_open(FALSE)
+      session$sendCustomMessage("toggleBetSlip", list(open=FALSE))
+    }
+  })
+  
+  # Remove single selection
+  observeEvent(input$bs_remove_sel, {
+    idx <- as.integer(input$bs_remove_sel)
+    current <- bet_slip()
+    if(idx >= 1 && idx <= length(current)) {
+      current[[idx]] <- NULL
+      bet_slip(current)
+      if(length(current) == 0) {
+        bs_open(FALSE)
+        session$sendCustomMessage("toggleBetSlip", list(open=FALSE))
+      }
+    }
+  })
+  
+  # Clear all
+  observeEvent(input$bs_clear_all, {
+    bet_slip(list())
+    bs_open(FALSE)
+    session$sendCustomMessage("toggleBetSlip", list(open=FALSE))
+  })
+  
+  # Toggle tray
+  observeEvent(input$bs_toggle_tray, {
+    bs_open(!bs_open())
+    session$sendCustomMessage("toggleBetSlip", list(open=bs_open()))
+  })
+  
+  # Close tray
+  observeEvent(input$bs_close_tray, {
+    bs_open(FALSE)
+    session$sendCustomMessage("toggleBetSlip", list(open=FALSE))
+  })
+  
+  # Mode toggle
+  observeEvent(input$bs_mode_click, { bs_mode(input$bs_mode_click) })
+  
+  # Wager input
+  observeEvent(input$bs_wager_input, {
+    v <- suppressWarnings(as.numeric(input$bs_wager_input))
+    if(!is.na(v)) bs_wager(v)
+  })
+  
+  # ── Payout helpers ──
+  calc_decimal_odds <- function(american) {
+    v <- suppressWarnings(as.numeric(american))
+    if(is.na(v)) return(1)
+    if(v > 0) 1 + v/100 else 1 + 100/abs(v)
+  }
+  
+  calc_payout <- function(selections, wager, mode) {
+    if(length(selections) == 0 || wager <= 0) return(list(payout=0, profit=0, parlay_odds=NA))
+    if(mode == "straight") {
+      # For straight bets, show payout for first selection only
+      dec <- calc_decimal_odds(selections[[1]]$odds)
+      payout <- round(wager * dec, 2)
+      profit <- round(payout - wager, 2)
+      return(list(payout=payout, profit=profit, parlay_odds=NA))
+    } else {
+      # Parlay: multiply all decimal odds
+      total_dec <- 1
+      for(s in selections) total_dec <- total_dec * calc_decimal_odds(s$odds)
+      payout <- round(wager * total_dec, 2)
+      profit <- round(payout - wager, 2)
+      # Convert back to American
+      if(total_dec >= 2) parlay_american <- paste0("+", round((total_dec-1)*100))
+      else parlay_american <- as.character(round(-100/(total_dec-1)))
+      return(list(payout=payout, profit=profit, parlay_odds=parlay_american))
+    }
+  }
+  
+  # ── Log to Bet History ──
+  observeEvent(input$bs_log_bets, {
+    selections <- bet_slip()
+    wager <- bs_wager()
+    mode <- bs_mode()
+    if(length(selections) == 0 || wager <= 0) return()
+    
+    df <- bets_rv()
+    
+    if(mode == "parlay") {
+      # Single parlay entry
+      pay <- calc_payout(selections, wager, "parlay")
+      legs <- paste(sapply(selections, function(s) paste(s$team_or_player, s$bet_type, s$line)), collapse=" | ")
+      new_row <- data.frame(
+        bet_id=paste0("BET_", format(Sys.time(),"%Y%m%d%H%M%S")),
+        date=as.character(Sys.Date()),
+        session_id=as.character(Sys.Date()),
+        game_id=if(!is.null(selections[[1]]$game_id)) selections[[1]]$game_id else "",
+        bet_type=paste0("Parlay (",length(selections)," legs)"),
+        team_or_player=legs,
+        line=NA,
+        odds=as.numeric(gsub("\\+","",pay$parlay_odds)),
+        stake=wager,
+        kelly_stake=NA,
+        result="Pending",
+        profit_loss=NA,
+        bankroll_after=NA,
+        notes=paste("Parlay:", legs),
+        stringsAsFactors=FALSE
+      )
+      df <- dplyr::bind_rows(df, new_row)
+    } else {
+      # Individual straight bets
+      for(s in selections) {
+        new_row <- data.frame(
+          bet_id=paste0("BET_", format(Sys.time(),"%Y%m%d%H%M%S"), "_", sample(1000:9999,1)),
+          date=as.character(Sys.Date()),
+          session_id=as.character(Sys.Date()),
+          game_id=if(!is.null(s$game_id)) s$game_id else "",
+          bet_type=s$bet_type,
+          team_or_player=s$team_or_player,
+          line=suppressWarnings(as.numeric(s$line)),
+          odds=suppressWarnings(as.numeric(s$odds)),
+          stake=wager,
+          kelly_stake=NA,
+          result="Pending",
+          profit_loss=NA,
+          bankroll_after=NA,
+          notes=paste("From bet slip:", s$team_or_player, s$bet_type),
+          stringsAsFactors=FALSE
+        )
+        df <- dplyr::bind_rows(df, new_row)
+      }
+    }
+    
+    # Recalculate bankroll
+    df <- df %>% arrange(date, bet_id)
+    running <- STARTING_BANKROLL
+    for(i in seq_len(nrow(df))) {
+      pl <- suppressWarnings(as.numeric(df$profit_loss[i]))
+      if(!is.na(pl)) running <- running + pl
+      df$bankroll_after[i] <- round(running, 2)
+    }
+    save_bets(df); bets_rv(df)
+    
+    # Confirm
+    session$sendCustomMessage("betSlipLogged", list())
+  })
+  
+  # ── FanDuel link ──
+  observeEvent(input$bs_open_fd, {
+    # Nothing server-side needed — JS handles the window.open
+  })
+  
+  
+  output$bet_slip_tray_ui <- renderUI({
+    selections <- bet_slip()
+    mode <- bs_mode()
+    wager <- bs_wager()
+    n <- length(selections)
+    
+    pay <- calc_payout(selections, wager, mode)
+    
+    fmt_am <- function(v) {
+      v <- suppressWarnings(as.numeric(v))
+      if(is.na(v)) return("\u2014")
+      if(v > 0) paste0("+", v) else as.character(v)
+    }
+    
+    tagList(
+      # Mode toggle
+      tags$div(class="bs-type-toggle",
+               tags$button(class=paste("bs-type-btn", if(mode=="straight") "active" else ""),
+                           onclick="Shiny.setInputValue('bs_mode_click','straight',{priority:'event'})", "Straight bets"),
+               tags$button(class=paste("bs-type-btn", if(mode=="parlay") "active" else ""),
+                           onclick="Shiny.setInputValue('bs_mode_click','parlay',{priority:'event'})", "Parlay")
+      ),
+      
+      # Selections
+      tags$div(class="bs-selections",
+               if(n == 0) {
+                 tags$div(class="bs-empty", tags$p("Click any odds to add selections"))
+               } else {
+                 tagList(lapply(seq_len(n), function(i) {
+                   s <- selections[[i]]
+                   odds_val <- suppressWarnings(as.numeric(s$odds))
+                   odds_cls <- if(!is.na(odds_val) && odds_val > 0) "bs-sel-odds positive" else "bs-sel-odds"
+                   tags$div(class="bs-sel-card",
+                            tags$div(class="bs-sel-header",
+                                     tags$span(class="bs-sel-name", s$team_or_player),
+                                     tags$button(class="bs-sel-remove",
+                                                 onclick=sprintf("Shiny.setInputValue('bs_remove_sel','%d',{priority:'event'})", i), "\u00D7")
+                            ),
+                            tags$div(style="display:flex;align-items:center;justify-content:space-between;",
+                                     tags$div(
+                                       tags$div(class="bs-sel-type", s$bet_type),
+                                       if(!is.null(s$line) && s$line != "" && !is.na(s$line))
+                                         tags$div(class="bs-sel-line", s$line)
+                                     ),
+                                     tags$span(class=odds_cls, fmt_am(s$odds))
+                            ),
+                            if(!is.null(s$game_info) && s$game_info != "")
+                              tags$div(class="bs-sel-game", s$game_info)
+                   )
+                 }))
+               }
+      ),
+      
+      # Wager section
+      if(n > 0) tags$div(class="bs-wager-section",
+                         # Parlay combined odds
+                         if(mode == "parlay" && n >= 2 && !is.na(pay$parlay_odds)) {
+                           tags$div(class="bs-payout-row",
+                                    tags$span(class="bs-payout-label", sprintf("%d Leg Parlay", n)),
+                                    tags$span(class="bs-parlay-odds", pay$parlay_odds)
+                           )
+                         },
+                         # Wager input
+                         tags$div(class="bs-wager-row",
+                                  tags$span(class="bs-wager-label", "Wager"),
+                                  tags$div(style="position:relative;flex:1;",
+                                           tags$span(style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--text-muted);", "$"),
+                                           tags$input(type="number", class="bs-wager-input", id="bs_wager_val",
+                                                      value=if(wager>0) wager else "",
+                                                      placeholder="0",
+                                                      style="padding-left:24px;",
+                                                      oninput="Shiny.setInputValue('bs_wager_input',this.value,{priority:'event'})")
+                                  )
+                         ),
+                         # To Win
+                         tags$div(class="bs-payout-row",
+                                  tags$span(class="bs-payout-label", "To Win"),
+                                  tags$span(class="bs-payout-val",
+                                            if(pay$profit > 0) sprintf("$%s", formatC(pay$profit, format="f", digits=2, big.mark=",")) else "\u2014")
+                         )
+      ),
+      
+      # Actions
+      if(n > 0) tags$div(class="bs-actions",
+                         # Place on FanDuel
+                         tags$button(class="bs-fd-btn",
+                                     onclick="window.open('https://sportsbook.fanduel.com/navigation/nba','_blank')",
+                                     tags$img(src=sb_logos$FD),
+                                     "Place on FanDuel"
+                         ),
+                         # Log to Bet History
+                         tags$button(class="bs-log-btn", id="bs-log-btn",
+                                     onclick="Shiny.setInputValue('bs_log_bets',Math.random(),{priority:'event'})",
+                                     "Log to Bet History"
+                         ),
+                         # Clear all
+                         tags$div(class="bs-clear-link",
+                                  onclick="Shiny.setInputValue('bs_clear_all',Math.random(),{priority:'event'})",
+                                  "\uD83D\uDDD1 Remove all selections")
+      ),
+      
+      # Update count badge via JS
+      tags$script(HTML(sprintf("document.getElementById('bs-count-badge').textContent='%d';", n)))
+    )
   })
   
   # ── Navigation observers ──
@@ -3558,16 +3947,31 @@ server <- function(input, output, session) {
       
       # Sportsbook cells
       sb_tds <- paste(sapply(sbs, function(sb) {
-        lo_col  <- paste0(pfx,"_",sb$key,"_LINE_O")
-        oo_col  <- paste0(pfx,"_",sb$key,"_ODDS_O")
-        lu_col  <- paste0(pfx,"_",sb$key,"_LINE_U")
-        ou_col  <- paste0(pfx,"_",sb$key,"_ODDS_U")
+        lo_col <- paste0(pfx,"_",sb$key,"_LINE_O")
+        oo_col <- paste0(pfx,"_",sb$key,"_ODDS_O")
+        lu_col <- paste0(pfx,"_",sb$key,"_LINE_U")
+        ou_col <- paste0(pfx,"_",sb$key,"_ODDS_U")
         get_col <- function(col) if(col %in% names(r)) r[[col]] else NA
-        sprintf(
-          "<td style='border-left:1px solid var(--border);'>%s</td><td>%s</td><td>%s</td><td>%s</td>",
-          fmt_val(get_col(lo_col)), fmt_odds(get_col(oo_col)),
-          fmt_val(get_col(lu_col)), fmt_odds(get_col(ou_col))
-        )
+        
+        lo_v <- get_col(lo_col); oo_v <- get_col(oo_col)
+        lu_v <- get_col(lu_col); ou_v <- get_col(ou_col)
+        
+        prop_name <- if(pfx %in% names(prop_labels)) prop_labels[pfx] else pfx
+        p_name <- safe_str(r, "PLAYER", "")
+        game_str <- paste(safe_str(r,"TEAM",""), "vs", safe_str(r,"OPP",""))
+        
+        # Over line cell — clickable
+        o_onclick <- if(!is.na(lo_v) && !is.na(oo_v))
+          sprintf(" class='odds-clickable' onclick=\"%s\"",
+                  bs_onclick(p_name, paste("Over", prop_name), lo_v, oo_v, "", game_str)) else ""
+        # Under line cell — clickable
+        u_onclick <- if(!is.na(lu_v) && !is.na(ou_v))
+          sprintf(" class='odds-clickable' onclick=\"%s\"",
+                  bs_onclick(p_name, paste("Under", prop_name), lu_v, ou_v, "", game_str)) else ""
+        
+        sprintf("<td style='border-left:1px solid var(--border);'%s>%s</td><td>%s</td><td%s>%s</td><td>%s</td>",
+                o_onclick, fmt_val(lo_v), fmt_odds(oo_v),
+                u_onclick, fmt_val(lu_v), fmt_odds(ou_v))
       }), collapse="")
       
       # Actuals - use safe column access
@@ -3700,27 +4104,31 @@ server <- function(input, output, session) {
         }
       }
       
+      
       # Build team row
-      make_team_row <- function(logo, name, abv, sp, ml, pts, won, is_away) {
+      make_team_row <- function(logo, name, abv, sp, ml, pts, won, is_away, game_info_str) {
         logo_html <- if(nchar(logo) > 0) sprintf("<img src='%s' style='width:32px;height:32px;object-fit:contain;margin-right:8px;'/>", logo) else ""
         prefix <- if(is_away) "<span style='color:var(--text-muted);font-size:12px;margin-right:4px;'>@</span>" else ""
         name_html <- sprintf("<div style='display:flex;align-items:center;flex:1;min-width:180px;'>%s%s<span style='font-family:Calibri,sans-serif;font-size:17px;font-weight:600;color:var(--text-primary);'>%s</span></div>", prefix, logo_html, name)
         
         sp_line <- fmt_spread(sp$line)
         sp_odds <- fmt_odds(sp$odds)
-        sp_html <- if(nchar(sp_line) > 0) sprintf("<div style='display:flex;flex-direction:column;align-items:center;min-width:80px;background:var(--bg-base);border:1px solid var(--border);border-radius:6px;padding:4px 10px;'><span style='font-family:Rajdhani,sans-serif;font-weight:700;font-size:16px;color:var(--text-primary);'>%s</span><span style='font-size:12px;color:var(--text-muted);font-family:Share Tech Mono,monospace;'>%s</span></div>", sp_line, sp_odds) else "<div style='min-width:80px;text-align:center;color:var(--text-muted);'>\u2014</div>"
+        sp_oc <- bs_onclick(abv, "Spread", sp$line, sp$odds, "", game_info_str)
+        sp_html <- if(nchar(sp_line) > 0) sprintf("<div class='odds-clickable' style='display:flex;flex-direction:column;align-items:center;min-width:80px;background:var(--bg-base);border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;' onclick=\"%s\"><span style='font-family:Rajdhani,sans-serif;font-weight:700;font-size:16px;color:var(--text-primary);'>%s</span><span style='font-size:12px;color:var(--text-muted);font-family:Share Tech Mono,monospace;'>%s</span></div>", sp_oc, sp_line, sp_odds) else "<div style='min-width:80px;text-align:center;color:var(--text-muted);'>\u2014</div>"
         
         ml_val <- fmt_odds(ml$odds)
         ml_color <- { v <- suppressWarnings(as.numeric(ml$odds)); if(!is.na(v) && v > 0) "color:#5a9a5a;" else "color:var(--text-primary);" }
-        ml_html <- if(nchar(ml_val) > 0) sprintf("<div style='display:flex;flex-direction:column;align-items:center;min-width:70px;background:var(--bg-base);border:1px solid var(--border);border-radius:6px;padding:4px 10px;'><span style='font-family:Rajdhani,sans-serif;font-weight:700;font-size:16px;%s'>%s</span></div>", ml_color, ml_val) else "<div style='min-width:70px;text-align:center;color:var(--text-muted);'>\u2014</div>"
+        ml_oc <- bs_onclick(abv, "Moneyline", "", ml$odds, "", game_info_str)
+        ml_html <- if(nchar(ml_val) > 0) sprintf("<div class='odds-clickable' style='display:flex;flex-direction:column;align-items:center;min-width:70px;background:var(--bg-base);border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;' onclick=\"%s\"><span style='font-family:Rajdhani,sans-serif;font-weight:700;font-size:16px;%s'>%s</span></div>", ml_oc, ml_color, ml_val) else "<div style='min-width:70px;text-align:center;color:var(--text-muted);'>\u2014</div>"
         
         pts_html <- if(!is.na(pts)) sprintf("<span style='font-family:Rajdhani,sans-serif;font-weight:700;font-size:20px;min-width:36px;text-align:right;%s'>%s</span>", if(won) "color:#7aba7a;" else "color:var(--text-secondary);", as.integer(pts)) else "<span style='min-width:36px;text-align:right;color:var(--text-muted);'>\u2014</span>"
         
         sprintf("<div style='display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border);'>%s%s%s%s</div>", name_html, sp_html, ml_html, pts_html)
       }
       
-      away_row_html <- make_team_row(away_logo, away_name, away_abv, dk_sp_away, dk_ml_away, away_pts, away_won, TRUE)
-      home_row_html <- make_team_row(home_logo, home_name, home_abv, dk_sp_home, dk_ml_home, home_pts, home_won, FALSE)
+      game_info_str <- paste(away_abv, "@", home_abv)
+      away_row_html <- make_team_row(away_logo, away_name, away_abv, dk_sp_away, dk_ml_away, away_pts, away_won, TRUE, game_info_str)
+      home_row_html <- make_team_row(home_logo, home_name, home_abv, dk_sp_home, dk_ml_home, home_pts, home_won, FALSE, game_info_str)
       
       # Total row
       total_str <- if(!is.na(total_line)) as.character(round(total_line, 1)) else "\u2014"

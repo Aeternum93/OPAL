@@ -101,8 +101,8 @@ scripts <- list(
     "11. Create BaseStats_Team_MC from pm_nbapbp file.R",
   "12. Create BaseStats_Player_MC from pm_nbapbp file" =
     "12. Create BaseStats_Player_MC from pm_nbapbp file.R",
-  "13. Injury Data Aggregation (In-Season)" =
-    "13. Injury Data Aggregation (In-Season).R",
+  "13. NBA Injury Data Aggregation (In-Season)" =
+    "13. NBA API Injury Data Aggregation (In-Season).R",
   "14. AURELIUS MC (In-Season)" =
     "14. AURELIUS MC (In-Season).R",
   "15. AVITUS LOGREG (In-Season)" =
@@ -136,8 +136,8 @@ batches <- list(
     "11. Create BaseStats_Team_MC from pm_nbapbp file",
     "12. Create BaseStats_Player_MC from pm_nbapbp file"
   ),
-  "Batch 6: Injury Data Aggregation (In-Season)"     = c(
-    "13. Injury Data Aggregation (In-Season)"
+  "Batch 6: NBA Injury Data Aggregation (In-Season)"     = c(
+    "13. NBA Injury Data Aggregation (In-Season)"
   )
 )
 

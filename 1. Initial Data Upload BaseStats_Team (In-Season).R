@@ -777,12 +777,29 @@ rm(nba, team_game_log_data, team_game_log)
 nba_team_box_filtered <- nba_team_box_filtered %>%
   mutate(CONCAT_ID = paste0(team, "-", home_away_sym, "-", opp, "-", game_date))
 
-# 3.14 Dynamically update BaseStats_Team data frame name using formatted_date
+# 3.14 Primary join on CONCAT_ID
 nba_team_box_filtered <- nba_team_box_filtered %>%
   left_join(
     id_mapping %>% select(MATCHUP_DATE, nba_game_id, nba_team_id),
     by = c("CONCAT_ID" = "MATCHUP_DATE")
   )
+
+# 3.14a Fallback join on opponent_concat_id for flipped rows still missing IDs
+if (any(is.na(nba_team_box_filtered$nba_game_id))) {
+  missing_mask <- is.na(nba_team_box_filtered$nba_game_id)
+  
+  fallback <- nba_team_box_filtered[missing_mask, ] %>%
+    select(-nba_game_id, -nba_team_id) %>%
+    left_join(
+      id_mapping %>% select(MATCHUP_DATE, nba_game_id, nba_team_id),
+      by = c("opponent_concat_id" = "MATCHUP_DATE")
+    )
+  
+  nba_team_box_filtered$nba_game_id[missing_mask] <- fallback$nba_game_id
+  nba_team_box_filtered$nba_team_id[missing_mask] <- fallback$nba_team_id
+  
+  message("Fallback join filled ", sum(!is.na(fallback$nba_game_id)), " of ", sum(missing_mask), " missing rows.")
+}
 
 # === INSERTED: 3.14b Playoffs fallback for missing nba_game_id ===
 if (any(is.na(nba_team_box_filtered$nba_game_id))) {

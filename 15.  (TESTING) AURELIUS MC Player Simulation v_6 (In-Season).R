@@ -227,6 +227,10 @@ player_odds_enrich_df <- fread(player_odds_enrich_file, colClasses = "character"
 
 delta_v2 <- fread("C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/12. Player Rotations/player_impact_assessment_delta_2025_2026.csv")
 
+# Load the odds file
+odds_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/8. Historical Odds (Odds API)"
+odds_raw <- fread(file.path(odds_dir, "nba_historical_odds_2025_2026.csv"), 
+                  colClasses = "character", encoding = "UTF-8")
 
 # Remove games with no player minutes (postponed/cancelled)
 valid_game_ids <- BaseStats_Player_MC %>%
@@ -247,7 +251,38 @@ BaseStats_Team_MC <- BaseStats_Team_MC %>%
 #   - mode = "backtest" : does NOT auto-load schedule; you will call load_schedule_for_date()
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 
+# What markets are in here?
+cat("Markets:\n")
+print(table(odds_raw$market))
 
+cat("\nBookmakers:\n")
+print(table(odds_raw$bookmaker))
+
+# FanDuel spread sample
+cat("\nFanDuel spread sample:\n")
+odds_raw %>%
+  filter(bookmaker == "fanduel", market == "spreads") %>%
+  select(home_team, away_team, commence_date_est, outcome_team, 
+         spread_or_total, odds, espn_team_id_home, espn_team_id_away) %>%
+  head(10) %>%
+  print()
+
+# FanDuel totals sample
+cat("\nFanDuel totals sample:\n")
+odds_raw %>%
+  filter(bookmaker == "fanduel", market == "totals") %>%
+  select(home_team, away_team, commence_date_est, outcome_team,
+         spread_or_total, odds) %>%
+  head(10) %>%
+  print()
+
+# Check if there's a moneyline market
+cat("\nFanDuel h2h/moneyline sample:\n")
+odds_raw %>%
+  filter(bookmaker == "fanduel", market == "h2h") %>%
+  select(home_team, away_team, commence_date_est, outcome_team, odds) %>%
+  head(10) %>%
+  print()
 
 # 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
 # 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
@@ -901,6 +936,40 @@ if (exists("mc_results_summary")) {
             "mc_results_summary not yet built — run after simulation")
 }
 
+
+# Players with minutes but no shooting stats
+mins_no_stats <- BaseStats_Player_MC %>%
+  mutate(MINS = as.numeric(MINS_CGS),
+         FGA2 = as.numeric(`2PTA_CGS`),
+         FGA3 = as.numeric(`3PTA_CGS`),
+         FTA  = as.numeric(FTA_CGS)) %>%
+  filter(MINS > 0, is.na(FGA2) & is.na(FGA3) & is.na(FTA)) %>%
+  distinct(ESPN_PLAYER_ID, ESPN_TEAM_ID, PLAYER_NAME)
+
+if (nrow(mins_no_stats) > 0) {
+  log_check("S2", "Mins without stats", "WARN",
+            paste0(nrow(mins_no_stats), " players have MINS > 0 but no shooting data"))
+} else {
+  log_check("S2", "Mins without stats", "INFO", "All players with minutes have shooting data ✓")
+}
+
+# Players with shooting stats but no minutes
+stats_no_mins <- BaseStats_Player_MC %>%
+  mutate(MINS = as.numeric(MINS_CGS),
+         FGA2 = as.numeric(`2PTA_CGS`),
+         FGA3 = as.numeric(`3PTA_CGS`),
+         FTA  = as.numeric(FTA_CGS)) %>%
+  filter((MINS == 0 | is.na(MINS)) & (!is.na(FGA2) | !is.na(FGA3) | !is.na(FTA))) %>%
+  distinct(ESPN_PLAYER_ID, ESPN_TEAM_ID, PLAYER_NAME)
+
+if (nrow(stats_no_mins) > 0) {
+  log_check("S2", "Stats without mins", "WARN",
+            paste0(nrow(stats_no_mins), " players have shooting data but MINS = 0 or NA"))
+} else {
+  log_check("S2", "Stats without mins", "INFO", "All players with stats have minutes ✓")
+}
+
+
 # ==========================================================================================================
 # SUMMARY
 # ==========================================================================================================
@@ -941,11 +1010,115 @@ if (cleanse_passed) {
   cat("View full log with: View(cleanse_log)\n\n")
 }
 
-if (!cleanse_passed) {
-  stop("❌ Data cleanse failed — review cleanse_log before proceeding. Run View(cleanse_log) for details.")
+# ==========================================================================================================
+# CLEANSE SUMMARY POPUP (Interactive)
+# ==========================================================================================================
+
+if (interactive()) {
+  
+  library(shiny)
+  library(DT)
+  
+  cleanse_decision <- NULL
+  
+  app <- shinyApp(
+    ui = fluidPage(
+      tags$head(tags$style(HTML("
+        body { background-color: #1a1a2e; color: #e0e0e0; font-family: 'Consolas', monospace; padding: 20px; }
+        h2 { color: #00d4ff; }
+        h3 { color: #ffcc00; margin-top: 20px; }
+        .btn-continue { background-color: #00c853; color: white; font-size: 18px; padding: 12px 40px; border: none; border-radius: 6px; margin-right: 15px; }
+        .btn-continue:hover { background-color: #00e676; color: white; }
+        .btn-stop { background-color: #ff1744; color: white; font-size: 18px; padding: 12px 40px; border: none; border-radius: 6px; }
+        .btn-stop:hover { background-color: #ff5252; color: white; }
+        .summary-box { background-color: #16213e; border-radius: 8px; padding: 15px; margin: 10px 0; display: inline-block; margin-right: 20px; text-align: center; }
+        .summary-box .count { font-size: 36px; font-weight: bold; }
+        .info-count { color: #4fc3f7; }
+        .warn-count { color: #ffcc00; }
+        .fail-count { color: #ff1744; }
+      "))),
+      
+      h2("AURELIUS Data Cleanse Results"),
+      
+      div(style = "display: flex; margin-bottom: 20px;",
+          div(class = "summary-box",
+              div(class = "count info-count", textOutput("n_info_txt", inline = TRUE)),
+              div("INFO")),
+          div(class = "summary-box",
+              div(class = "count warn-count", textOutput("n_warn_txt", inline = TRUE)),
+              div("WARN")),
+          div(class = "summary-box",
+              div(class = "count fail-count", textOutput("n_fail_txt", inline = TRUE)),
+              div("FAIL"))
+      ),
+      
+      h3("Full Cleanse Log"),
+      DTOutput("cleanse_table"),
+      
+      br(),
+      div(style = "text-align: center; margin-top: 20px;",
+          actionButton("btn_continue", "Continue", class = "btn-continue"),
+          actionButton("btn_stop", "Stop", class = "btn-stop")
+      )
+    ),
+    
+    server = function(input, output, session) {
+      
+      output$n_info_txt <- renderText(sum(cleanse_log$level == "INFO"))
+      output$n_warn_txt <- renderText(sum(cleanse_log$level == "WARN"))
+      output$n_fail_txt <- renderText(sum(cleanse_log$level == "FAIL"))
+      
+      output$cleanse_table <- renderDT({
+        datatable(
+          cleanse_log,
+          options = list(
+            pageLength = 50,
+            dom = 'ftip',
+            order = list(list(2, 'desc'))
+          ),
+          rownames = FALSE
+        ) %>%
+          formatStyle(
+            'level',
+            backgroundColor = styleEqual(
+              c('INFO', 'WARN', 'FAIL'),
+              c('#1b3a2a', '#3a3a1b', '#3a1b1b')
+            ),
+            color = styleEqual(
+              c('INFO', 'WARN', 'FAIL'),
+              c('#4fc3f7', '#ffcc00', '#ff1744')
+            ),
+            fontWeight = 'bold'
+          )
+      })
+      
+      observeEvent(input$btn_continue, {
+        cleanse_decision <<- "continue"
+        stopApp()
+      })
+      
+      observeEvent(input$btn_stop, {
+        cleanse_decision <<- "stop"
+        stopApp()
+      })
+    }
+  )
+  
+  runApp(app, launch.browser = TRUE)
+  
+  if (is.null(cleanse_decision) || cleanse_decision == "stop") {
+    stop("Cleanse stopped by user. Review cleanse_log before proceeding.")
+  } else {
+    cat("✅ Cleanse approved. Continuing...\n\n")
+  }
+  
 } else {
-  readline("✅ Cleanse passed. Press ENTER to continue...")
+  # Non-interactive fallback
+  if (!cleanse_passed) {
+    stop("Data cleanse failed — review cleanse_log before proceeding.")
+  }
 }
+
 
 # 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊
 # 💊💊💊 END: Data Cleanse & Diagnostic Layer v2
@@ -1003,25 +1176,25 @@ mode <- "backtest"   # Options: "production", "backtest", "calibration", "resear
 # -----------------------------
 if (mode == "production") {
   # Live predictions for today's slate
-  as_of_date         <- as.Date("2026-03-03")
+  as_of_date         <- as.Date("2026-03-05")
   load_backtest_data <- FALSE  # Don't load historical rosters (faster)
   load_player_odds   <- TRUE   # Load current market lines
   
 } else if (mode == "backtest") {
   # Historical validation on specific date
-  as_of_date         <- as.Date("2026-03-03")  # ← Set backtest date here
+  as_of_date         <- as.Date("2026-03-05")  # ← Set backtest date here
   load_backtest_data <- TRUE   # Load all rosters < as_of_date
   load_player_odds   <- FALSE  # Historical odds not needed for validation
   
 } else if (mode == "calibration") {
   # Tune variance parameters against historical games
-  as_of_date         <- as.Date("2026-03-03")  # ← Set calibration cutoff
+  as_of_date         <- as.Date("2026-03-05")  # ← Set calibration cutoff
   load_backtest_data <- TRUE   # Need historical data
   load_player_odds   <- FALSE  # Don't need odds for calibration
   
 } else if (mode == "research") {
   # Model development sandbox - load everything
-  as_of_date         <- as.Date("2026-03-03")
+  as_of_date         <- as.Date("2026-03-05")
   load_backtest_data <- TRUE   # Load all available history
   load_player_odds   <- TRUE   # Load all available data
   
@@ -1570,13 +1743,13 @@ suppressWarnings({
   library(dplyr)
   library(tibble)
   library(purrr)
+  library(tidyr)
   library(hoopR)
 })
 
 # -----------------------------
 # 0) Standardize / bridge
 # -----------------------------
-# [Keep all your existing standardization code]
 BaseStats_Player_MC <- BaseStats_Player_MC %>%
   mutate(
     NBA_PLAYER_ID  = as.character(NBA_PLAYER_ID),
@@ -1603,10 +1776,48 @@ bridge_unique <- BaseStats_Player_MC %>%
   select(NBA_PLAYER_ID, ESPN_PLAYER_ID, ESPN_TEAM_ID) %>%
   distinct(NBA_PLAYER_ID, ESPN_TEAM_ID, .keep_all = TRUE)
 
+# ----------------------------------------------------------
+# Build forward-filled injury status
+# Runs once before the per-date loop.
+# Carries OUT status forward day-by-day until a return
+# record (available/questionable) appears.
+# Safety net: actual minutes cross-reference in builder
+# removes any player who played despite being filled as OUT.
+# ----------------------------------------------------------
+cat("🩺 Building forward-filled injury status...\n")
+
+injury_filled <- injury_data %>%
+  mutate(
+    ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID),
+    ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+    date           = as.Date(date),
+    status         = tolower(as.character(status))
+  ) %>%
+  select(ESPN_TEAM_ID, ESPN_PLAYER_ID, date, status, reason) %>%  # add reason here
+  filter(
+    !is.na(ESPN_TEAM_ID),   ESPN_TEAM_ID   != "",
+    !is.na(ESPN_PLAYER_ID), ESPN_PLAYER_ID != "",
+    !is.na(date),
+    !grepl("G League", reason, ignore.case = TRUE)
+  ) %>%
+  select(-reason) %>%  # drop reason after filtering
+  distinct() %>%
+  group_by(ESPN_TEAM_ID, ESPN_PLAYER_ID, date) %>%
+  arrange(desc(date)) %>%
+  slice(1) %>%
+  ungroup() %>%
+  arrange(ESPN_TEAM_ID, ESPN_PLAYER_ID, date) %>%
+  group_by(ESPN_TEAM_ID, ESPN_PLAYER_ID) %>%
+  tidyr::complete(date = seq(min(date), max(date), by = "day")) %>%
+  tidyr::fill(status, .direction = "down") %>%
+  ungroup() %>%
+  filter(status == "out")
+
+cat("✅ injury_filled built |", nrow(injury_filled), "OUT player-date records\n\n")
+
 # -----------------------------
 # 1) Roster cache
 # -----------------------------
-# [Keep your existing cache code]
 .roster_cache <- new.env(parent = emptyenv())
 
 get_team_roster_cached <- function(nba_team_id, season_token2) {
@@ -1615,7 +1826,6 @@ get_team_roster_cached <- function(nba_team_id, season_token2) {
     return(get(key, envir = .roster_cache))
   }
   
-  # Retry up to 3 times with increasing delay
   raw <- NULL
   for (attempt in 1:3) {
     tryCatch({
@@ -1623,7 +1833,7 @@ get_team_roster_cached <- function(nba_team_id, season_token2) {
       break
     }, error = function(e) {
       message("Attempt ", attempt, " failed for team ", nba_team_id, ": ", e$message)
-      Sys.sleep(attempt * 2)  # 2s, 4s, 6s backoff
+      Sys.sleep(attempt * 2)
     })
   }
   
@@ -1641,7 +1851,6 @@ get_team_roster_cached <- function(nba_team_id, season_token2) {
 # -----------------------------
 # 2) Core builder
 # -----------------------------
-# [Keep your existing build_availability_for_date function - no changes]
 build_availability_for_date <- function(schedule_df, game_date, date_key) {
   
   game_date <- as.Date(game_date)
@@ -1669,9 +1878,19 @@ build_availability_for_date <- function(schedule_df, game_date, date_key) {
   }) %>%
     left_join(bridge_unique, by = c("NBA_PLAYER_ID", "ESPN_TEAM_ID"))
   
-  inj_out <- injury_data %>%
-    filter(game_date_dt == game_date, status == "out") %>%
+  # Use forward-filled injury status
+  inj_out <- injury_filled %>%
+    filter(date == game_date) %>%
     distinct(ESPN_TEAM_ID, ESPN_PLAYER_ID)
+  
+  # Safety net — remove anyone who actually played
+  actually_played <- BaseStats_Player_MC %>%
+    mutate(GAME_DATE = as.Date(GAME_DATE)) %>%
+    filter(GAME_DATE == game_date, as.numeric(MINS_CGS) > 0) %>%
+    distinct(ESPN_TEAM_ID, ESPN_PLAYER_ID)
+  
+  inj_out <- inj_out %>%
+    anti_join(actually_played, by = c("ESPN_TEAM_ID", "ESPN_PLAYER_ID"))
   
   roster_pool <- roster_pool %>%
     mutate(
@@ -1743,7 +1962,7 @@ if (nrow(sched_today) == 0) {
   roster_out_today    <- today_avail$roster_out
   injury_team_summary_today_df <- today_avail$team_audit
   
-  cat("✅ TODAY:", nrow(roster_active_today), "active players,", 
+  cat("✅ TODAY:", nrow(roster_active_today), "active players,",
       nrow(roster_out_today), "out\n")
 }
 
@@ -2002,9 +2221,16 @@ message(
 #   usage_weight_Q1-Q4  — player's baseline usage share per quarter (for sim usage bump)
 # ==========================================================================================================
 
+# ==========================================================================================================
+# MINUTES BASELINE PARAMETER BUILDER v2
+# ==========================================================================================================
+
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # 🏀🏀🏀 START: Minutes BASELINE PARAMETER BUILDER v2 (NO SIMULATION)
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+
+library(parallel)
+library(pbapply)
 
 stopifnot(
   exists("BaseStats_Player_MC"),
@@ -2018,53 +2244,13 @@ key_to_date <- function(k) {
   suppressWarnings(as.Date(gsub("[^0-9]", "", k), "%Y%m%d"))
 }
 
-
-library(parallel)
-library(pbapply)
-
-# Set up cluster with 4 cores
-cl <- makeCluster(4)
-
-# Export everything the function needs to each worker
-clusterExport(cl, c(
-  "build_minutes_params_one_date",
-  "BaseStats_Player_MC",
-  "delta_lookup",
-  "roster_pool_backtest_by_date",
-  "roster_out_backtest_by_date",
-  "num0",
-  "quarters",
-  "key_to_date"
-))
-
-clusterEvalQ(cl, {
-  library(dplyr)
-  library(tidyr)
-})
-
-# Replace the lapply with pblapply
-player_minutes_params_backtest <- dplyr::bind_rows(
-  pblapply(bt_keys, function(kk) {
-    build_minutes_params_one_date(
-      proj_date   = key_to_date(kk),
-      roster_pool = roster_pool_backtest_by_date[[kk]],
-      roster_out  = roster_out_backtest_by_date[[kk]]
-    )
-  }, cl = cl)
-)
-
-# Always stop the cluster when done
-stopCluster(cl)
-
 # ----------------------------------------------------------
 # Pre-process delta_v2 once outside the per-date loop
-# for fast lookups inside build_minutes_params_one_date.
-# Keyed by ESPN_TEAM_ID + GAME_DATE for join efficiency.
 # ----------------------------------------------------------
 delta_lookup <- delta_v2 %>%
   mutate(
-    ESPN_TEAM_ID = as.character(ESPN_TEAM_ID),
-    GAME_DATE    = as.Date(GAME_DATE),
+    ESPN_TEAM_ID       = as.character(ESPN_TEAM_ID),
+    GAME_DATE          = as.Date(GAME_DATE),
     OUT_PLAYER_ID      = as.character(OUT_PLAYER_ID),
     AFFECTED_PLAYER_ID = as.character(AFFECTED_PLAYER_ID)
   ) %>%
@@ -2186,18 +2372,7 @@ build_minutes_params_one_date <- function(
   
   # ----------------------------------------------------------
   # E) Injury absorption using empirical deltas from delta_v2
-  #
-  # For each OUT player on this team/date, look up DELTA_MINS_Qx
-  # for each affected player and add it to their mins_mean_Qx.
-  # Multiple players out = stack their deltas additively.
-  #
-  # Fallback: if no delta entry exists for an OUT player,
-  # fall back to proportional absorption for that player only.
-  #
-  # After all deltas applied, safety-clamp to quarter cap (60 mins).
   # ----------------------------------------------------------
-  
-  # Identify OUT players on this team/date
   out_player_ids <- if (!is.null(roster_out) && nrow(roster_out) > 0) {
     roster_out %>%
       mutate(ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID),
@@ -2209,70 +2384,82 @@ build_minutes_params_one_date <- function(
   
   reg_quarters <- c("Q1","Q2","Q3","Q4")
   
+  # *** FIX: Initialize usage_weight columns BEFORE the loop ***
+  for (q in reg_quarters) {
+    ucol <- paste0("usage_weight_", q)
+    df[[ucol]] <- NA_real_
+  }
+  
   if (!is.null(out_player_ids) && nrow(out_player_ids) > 0) {
     
-    # Pull deltas for this date from pre-processed lookup
+    # Pull full delta history — no date filter, pattern-based lookup
     date_deltas <- delta_lookup %>%
-      filter(GAME_DATE == proj_date) %>%
-      mutate(ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID),
+      mutate(ESPN_TEAM_ID       = as.character(ESPN_TEAM_ID),
              AFFECTED_PLAYER_ID = as.character(AFFECTED_PLAYER_ID),
              OUT_PLAYER_ID      = as.character(OUT_PLAYER_ID))
     
-    # Process each OUT player
     for (i in seq_len(nrow(out_player_ids))) {
       
       out_tid <- out_player_ids$ESPN_TEAM_ID[i]
       out_pid <- out_player_ids$ESPN_PLAYER_ID[i]
       
-      # Deltas for this specific OUT player on this team
       player_deltas <- date_deltas %>%
-        filter(ESPN_TEAM_ID == out_tid, OUT_PLAYER_ID == out_pid)
+        filter(ESPN_TEAM_ID == out_tid, OUT_PLAYER_ID == out_pid) %>%
+        group_by(AFFECTED_PLAYER_ID) %>%
+        summarise(
+          DELTA_MINS_Q1 = mean(DELTA_MINS_Q1, na.rm = TRUE),
+          DELTA_MINS_Q2 = mean(DELTA_MINS_Q2, na.rm = TRUE),
+          DELTA_MINS_Q3 = mean(DELTA_MINS_Q3, na.rm = TRUE),
+          DELTA_MINS_Q4 = mean(DELTA_MINS_Q4, na.rm = TRUE),
+          BASE_USAGE_Q1 = mean(BASE_USAGE_Q1, na.rm = TRUE),
+          BASE_USAGE_Q2 = mean(BASE_USAGE_Q2, na.rm = TRUE),
+          BASE_USAGE_Q3 = mean(BASE_USAGE_Q3, na.rm = TRUE),
+          BASE_USAGE_Q4 = mean(BASE_USAGE_Q4, na.rm = TRUE),
+          .groups = "drop"
+        )
       
       if (nrow(player_deltas) > 0) {
         
-        # --- Delta-based absorption ---
-        # Join deltas onto df by AFFECTED_PLAYER_ID
-        # Find this block in Step E and replace the left_join:
+        # *** FIX: Use suffixed join to avoid column name collisions ***
         df <- df %>%
           left_join(
             player_deltas %>%
-              select(AFFECTED_PLAYER_ID,
-                     DELTA_MINS_Q1, DELTA_MINS_Q2,
-                     DELTA_MINS_Q3, DELTA_MINS_Q4,
-                     BASE_USAGE_Q1, BASE_USAGE_Q2,
-                     BASE_USAGE_Q3, BASE_USAGE_Q4) %>%
-              rename(ESPN_PLAYER_ID = AFFECTED_PLAYER_ID),
-            by = "ESPN_PLAYER_ID"   # <-- remove ESPN_TEAM_ID from join key
+              rename(ESPN_PLAYER_ID = AFFECTED_PLAYER_ID) %>%
+              rename_with(~paste0(., "_new"), starts_with("DELTA_MINS_")) %>%
+              rename_with(~paste0(., "_new"), starts_with("BASE_USAGE_")),
+            by = "ESPN_PLAYER_ID"
           ) %>%
           mutate(
-            # Apply minute deltas to active players only
-            # Zero out deltas for inactive players (they're already out)
+            # *** FIX: ACCUMULATE minute deltas (additive across OUT players) ***
             mins_mean_Q1 = ifelse(
-              is_active == 1 & !is.na(DELTA_MINS_Q1),
-              pmax(0, mins_mean_Q1 + DELTA_MINS_Q1), mins_mean_Q1),
+              is_active == 1 & !is.na(DELTA_MINS_Q1_new),
+              pmax(0, mins_mean_Q1 + DELTA_MINS_Q1_new), mins_mean_Q1),
             mins_mean_Q2 = ifelse(
-              is_active == 1 & !is.na(DELTA_MINS_Q2),
-              pmax(0, mins_mean_Q2 + DELTA_MINS_Q2), mins_mean_Q2),
+              is_active == 1 & !is.na(DELTA_MINS_Q2_new),
+              pmax(0, mins_mean_Q2 + DELTA_MINS_Q2_new), mins_mean_Q2),
             mins_mean_Q3 = ifelse(
-              is_active == 1 & !is.na(DELTA_MINS_Q3),
-              pmax(0, mins_mean_Q3 + DELTA_MINS_Q3), mins_mean_Q3),
+              is_active == 1 & !is.na(DELTA_MINS_Q3_new),
+              pmax(0, mins_mean_Q3 + DELTA_MINS_Q3_new), mins_mean_Q3),
             mins_mean_Q4 = ifelse(
-              is_active == 1 & !is.na(DELTA_MINS_Q4),
-              pmax(0, mins_mean_Q4 + DELTA_MINS_Q4), mins_mean_Q4),
+              is_active == 1 & !is.na(DELTA_MINS_Q4_new),
+              pmax(0, mins_mean_Q4 + DELTA_MINS_Q4_new), mins_mean_Q4),
             
-            # Attach usage weights — take max across OUT players if multiple
-            # (will be overwritten per loop iteration; last one wins for now)
-            usage_weight_Q1 = ifelse(!is.na(BASE_USAGE_Q1), BASE_USAGE_Q1, NA_real_),
-            usage_weight_Q2 = ifelse(!is.na(BASE_USAGE_Q2), BASE_USAGE_Q2, NA_real_),
-            usage_weight_Q3 = ifelse(!is.na(BASE_USAGE_Q3), BASE_USAGE_Q3, NA_real_),
-            usage_weight_Q4 = ifelse(!is.na(BASE_USAGE_Q4), BASE_USAGE_Q4, NA_real_)
+            # *** FIX: COALESCE usage weights — keep existing, fill new ***
+            # If a player already has a usage weight from a previous OUT player,
+            # keep it. Only set it if it was NA before.
+            # Usage weights represent the player's baseline share — they don't
+            # change based on HOW MANY teammates are out, they just need to exist.
+            usage_weight_Q1 = coalesce(usage_weight_Q1, BASE_USAGE_Q1_new),
+            usage_weight_Q2 = coalesce(usage_weight_Q2, BASE_USAGE_Q2_new),
+            usage_weight_Q3 = coalesce(usage_weight_Q3, BASE_USAGE_Q3_new),
+            usage_weight_Q4 = coalesce(usage_weight_Q4, BASE_USAGE_Q4_new)
           ) %>%
-          select(-starts_with("DELTA_MINS_"), -starts_with("BASE_USAGE_"))
+          # Clean up suffixed columns for next iteration
+          select(-ends_with("_new"))
         
       } else {
         
-        # --- Fallback: proportional absorption for this OUT player ---
-        # Used when delta_v2 has no entry (e.g. player was never injured before)
+        # Proportional fallback — no delta entry for this OUT player
         for (q in reg_quarters) {
           col <- paste0("mins_mean_", q)
           if (!col %in% names(df)) next
@@ -2283,9 +2470,9 @@ build_minutes_params_one_date <- function(
               active_total      = sum(.data[[col]] * is_active, na.rm = TRUE),
               injured_mins      = sum(.data[[col]] * (ESPN_PLAYER_ID == out_pid), na.rm = TRUE),
               absorption_weight = case_when(
-                is_active == 0  ~ 0,
+                is_active == 0    ~ 0,
                 active_total <= 0 ~ 1 / pmax(sum(is_active), 1),
-                TRUE ~ .data[[col]] / active_total
+                TRUE              ~ .data[[col]] / active_total
               ),
               !!col := case_when(
                 is_active == 0      ~ 0,
@@ -2295,6 +2482,27 @@ build_minutes_params_one_date <- function(
               )
             ) %>%
             select(-active_total, -injured_mins, -absorption_weight) %>%
+            ungroup()
+        }
+        
+        # *** FIX: Also set proportional usage weights in fallback ***
+        # If no delta entry exists, assign proportional usage based on minutes share
+        for (q in reg_quarters) {
+          mcol <- paste0("mins_mean_", q)
+          ucol <- paste0("usage_weight_", q)
+          if (!mcol %in% names(df)) next
+          
+          df <- df %>%
+            group_by(ESPN_TEAM_ID) %>%
+            mutate(
+              team_mins = sum(.data[[mcol]] * is_active, na.rm = TRUE),
+              !!ucol := ifelse(
+                is_active == 1 & is.na(.data[[ucol]]) & team_mins > 0,
+                .data[[mcol]] / team_mins,
+                .data[[ucol]]
+              )
+            ) %>%
+            select(-team_mins) %>%
             ungroup()
         }
       }
@@ -2307,23 +2515,10 @@ build_minutes_params_one_date <- function(
         ))
     }
     
-    # Initialize usage_weight columns if not yet created (no delta entries at all)
-    for (q in reg_quarters) {
-      ucol <- paste0("usage_weight_", q)
-      if (!ucol %in% names(df)) df[[ucol]] <- NA_real_
-    }
-    
-  } else {
-    
-    # No injuries — attach NA usage weights (sim uses equal distribution fallback)
-    for (q in reg_quarters) {
-      df[[paste0("usage_weight_", q)]] <- NA_real_
-    }
   }
   
   # ----------------------------------------------------------
   # F) Safety clamp: normalize active players to quarter cap
-  #    Q1-Q4 cap = 60 mins, Q5-Q6 cap = 25 mins
   # ----------------------------------------------------------
   for (q in quarters) {
     col <- paste0("mins_mean_", q)
@@ -2336,10 +2531,10 @@ build_minutes_params_one_date <- function(
       mutate(
         team_total = sum(.data[[col]] * is_active, na.rm = TRUE),
         !!col := case_when(
-          is_active == 0  ~ 0,
-          team_total <= 0 ~ .data[[col]],
-          team_total > cap ~ .data[[col]] * (cap / team_total),
-          TRUE ~ .data[[col]]
+          is_active == 0    ~ 0,
+          team_total <= 0   ~ .data[[col]],
+          team_total > cap  ~ .data[[col]] * (cap / team_total),
+          TRUE              ~ .data[[col]]
         )
       ) %>%
       select(-team_total) %>%
@@ -2384,15 +2579,34 @@ if (exists("roster_pool_backtest_by_date") && length(roster_pool_backtest_by_dat
   bt_dates <- key_to_date(bt_keys)
   bt_keys  <- bt_keys[!is.na(bt_dates)]
   
+  # Cluster setup — after function, delta_lookup, and bt_keys are all defined
+  cl <- makeCluster(4)
+  clusterExport(cl, c(
+    "build_minutes_params_one_date",
+    "BaseStats_Player_MC",
+    "delta_lookup",
+    "roster_pool_backtest_by_date",
+    "roster_out_backtest_by_date",
+    "num0",
+    "quarters",
+    "key_to_date"
+  ))
+  clusterEvalQ(cl, {
+    library(dplyr)
+    library(tidyr)
+  })
+  
   player_minutes_params_backtest <- dplyr::bind_rows(
-    lapply(bt_keys, function(kk) {
+    pblapply(bt_keys, function(kk) {
       build_minutes_params_one_date(
         proj_date   = key_to_date(kk),
         roster_pool = roster_pool_backtest_by_date[[kk]],
         roster_out  = roster_out_backtest_by_date[[kk]]
       )
-    })
+    }, cl = cl)
   )
+  
+  stopCluster(cl)
   
   message(
     "✅ Minutes baseline params built | BACKTEST | dates=", length(bt_keys),
@@ -2464,27 +2678,25 @@ player_minutes_params_backtest <- player_minutes_params_backtest %>%
 # 🏀🏀🏀 END: Minutes BASELINE PARAMETER BUILDER v2
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 
-
-# Check if inflation is concentrated in specific teams or players
-delta_v2 %>%
-  mutate(
-    ESPN_TEAM_ID  = as.character(ESPN_TEAM_ID),
-    OUT_PLAYER_ID = as.character(OUT_PLAYER_ID),
-    GAME_DATE     = as.Date(GAME_DATE)
-  ) %>%
-  group_by(ESPN_GAME_ID, ESPN_TEAM_ID, OUT_PLAYER_ID) %>%
+player_minutes_params_backtest %>%
   summarise(
-    total_delta = sum(DELTA_MINS_Q1 + DELTA_MINS_Q2 + 
-                        DELTA_MINS_Q3 + DELTA_MINS_Q4, na.rm = TRUE),
-    n_affected  = n(),
+    total_rows    = n(),
+    with_usage_Q1 = sum(!is.na(usage_weight_Q1)),
+    pct_populated = round(mean(!is.na(usage_weight_Q1)) * 100, 1)
+  )
+
+player_minutes_params_backtest %>%
+  group_by(GAME_DATE, ESPN_TEAM_ID) %>%
+  summarise(
+    has_usage = any(!is.na(usage_weight_Q1)),
     .groups = "drop"
   ) %>%
   summarise(
-    mean_delta    = round(mean(total_delta), 2),
-    median_delta  = round(median(total_delta), 2),
-    mean_affected = round(mean(n_affected), 1),
-    max_affected  = max(n_affected)
+    dates_with_injuries = sum(has_usage),
+    dates_without       = sum(!has_usage),
+    pct_with_injuries   = round(mean(has_usage) * 100, 1)
   )
+
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # ======================================
@@ -4665,15 +4877,15 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
 # 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
 
 # --------------------------------------------------
-# Home Court Adjustment Parameters (Conservative)
+# Home Court Adjustment Parameters
 # --------------------------------------------------
 HCA <- list(
-  fg2_mult = 1.015,   # +1.5% on 2PT shooting
-  fg3_mult = 1.020,   # +2.0% on 3PT shooting
-  ft_mult  = 1.010,   # +1.0% on FT shooting
-  fta_mult = 1.050,   # +5% more FT attempts (referee bias)
-  mins_mult = 1.010   # +1% minutes (unused for now)
-  # TODO: Add tov_mult, oreb_mult when rest/travel features are added
+  fg2_mult  = 1.020,   # +2.0% on 2PT shooting (was 1.5%)
+  fg3_mult  = 1.025,   # +2.5% on 3PT shooting (was 2.0%)
+  ft_mult   = 1.010,   # +1.0% on FT shooting (unchanged)
+  fta_mult  = 1.060,   # +6% more FT attempts (was 5%)
+  tov_mult  = 0.970,   # -3% turnovers at home (NEW)
+  oreb_mult = 1.020    # +2% offensive rebounds at home (NEW)
 )
 
 # --------------------------------------------------
@@ -4689,11 +4901,13 @@ if (exists("team_offense_adjusted_q") && nrow(team_offense_adjusted_q) > 0) {
       by = "game_id"
     ) %>%
     mutate(
-      is_home          = ESPN_TEAM_ID == home_team_id,
-      fg2_pct_adjusted = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
-      fg3_pct_adjusted = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
-      ft_pct_adjusted  = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
-      fta_per_fga_adjusted = ifelse(is_home, fta_per_fga_adjusted * HCA$fta_mult, fta_per_fga_adjusted)
+      is_home              = ESPN_TEAM_ID == home_team_id,
+      fg2_pct_adjusted     = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
+      fg3_pct_adjusted     = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
+      ft_pct_adjusted      = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
+      fta_per_fga_adjusted = ifelse(is_home, fta_per_fga_adjusted * HCA$fta_mult, fta_per_fga_adjusted),
+      tov_per_poss_adjusted  = ifelse(is_home, tov_per_poss_adjusted  * HCA$tov_mult,  tov_per_poss_adjusted),
+      oreb_per_poss_adjusted = ifelse(is_home, oreb_per_poss_adjusted * HCA$oreb_mult, oreb_per_poss_adjusted)
     ) %>%
     select(-is_home, -home_team_id)
   
@@ -4713,17 +4927,18 @@ if (exists("team_offense_adjusted_q_today") && nrow(team_offense_adjusted_q_toda
       by = "game_id"
     ) %>%
     mutate(
-      is_home          = ESPN_TEAM_ID == home_team_id,
-      fg2_pct_adjusted = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
-      fg3_pct_adjusted = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
-      ft_pct_adjusted  = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
-      fta_per_fga_adjusted = ifelse(is_home, fta_per_fga_adjusted * HCA$fta_mult, fta_per_fga_adjusted)
+      is_home              = ESPN_TEAM_ID == home_team_id,
+      fg2_pct_adjusted     = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
+      fg3_pct_adjusted     = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
+      ft_pct_adjusted      = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
+      fta_per_fga_adjusted = ifelse(is_home, fta_per_fga_adjusted * HCA$fta_mult, fta_per_fga_adjusted),
+      tov_per_poss_adjusted  = ifelse(is_home, tov_per_poss_adjusted  * HCA$tov_mult,  tov_per_poss_adjusted),
+      oreb_per_poss_adjusted = ifelse(is_home, oreb_per_poss_adjusted * HCA$oreb_mult, oreb_per_poss_adjusted)
     ) %>%
     select(-is_home, -home_team_id)
   
   message("✅ Home court advantage applied to TODAY team offense profiles")
 }
-
 
 # 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
 # 🏠🏠🏠 END: Home Court Advantage Adjustments
@@ -8802,15 +9017,15 @@ simulate_quarter_offense_player <- function(
     for (idx in seq_len(n_fga)) {
       p <- shooter_idx[idx]
       
-      is_three <- runif(1) < p3_vec[p]
+      is_three <- runif(1) < num0(p3_vec[p], 0.35)
       
       if (is_three) {
-        made <- runif(1) < fg3_vec[p]
+        made <- runif(1) < num0(fg3_vec[p], 0.36)
         pts  <- if (made) 3L else 0L
         acc_fga3[p] <- acc_fga3[p] + 1L
         acc_fgm3[p] <- acc_fgm3[p] + as.integer(made)
       } else {
-        made <- runif(1) < fg2_vec[p]
+        made <- runif(1) < num0(fg2_vec[p], 0.52)
         pts  <- if (made) 2L else 0L
       }
       
@@ -10064,7 +10279,28 @@ summary(error_model)
 # 🎲🎲🎲 END: MC Simulation Reviewer
 # 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
 
+# Actual HCA in your dataset
+hca_actual <- nba_games_canon_season %>%
+  filter(as.Date(game_date) < as.Date(as_of_date)) %>%
+  summarise(
+    n_games = n(),
+    home_wins = sum(home_winner, na.rm = TRUE),
+    home_win_pct = mean(home_winner, na.rm = TRUE),
+    home_pts_mean = mean(home_score, na.rm = TRUE),
+    away_pts_mean = mean(away_score, na.rm = TRUE),
+    home_margin_mean = mean(home_score - away_score, na.rm = TRUE)
+  )
+print(hca_actual)
 
+# What does the sim predict for HCA?
+sim_hca <- mc_results_summary %>%
+  summarise(
+    sim_home_win_pct = mean(home_win_prob, na.rm = TRUE),
+    sim_home_pts = mean(home_pts_mean, na.rm = TRUE),
+    sim_away_pts = mean(away_pts_mean, na.rm = TRUE),
+    sim_margin = mean(spread_mean, na.rm = TRUE)
+  )
+print(sim_hca)
 
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
@@ -10192,3 +10428,470 @@ cat("✅ Platt calibration model saved\n\n")
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
 # 🧬🧬🧬 END: Platt Scaling Calibration
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+
+
+
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+#
+#
+#      .oooooo.         .o8        .o8                ooooo           o8o                                    
+#     d8P'  `Y8b       "888       "888                `888'           `"'                                    
+#    888      888   .oooo888   .oooo888   .oooo.o       888          oooo  ooo. .oo.    .ooooo.   .oooo.o    
+#    888      888  d88' `888  d88' `888  d88(  "8       888          `888  `888P"Y88b  d88' `88b d88(  "8    
+#    888      888  888   888  888   888  `"Y88b.        888           888   888   888  888ooo888 `"Y88b.     
+#    `88b    d88'  888   888  888   888  o.  )88b       888       o   888   888   888  888    .o o.  )88b    
+#     `Y8bood8P'   `Y8bod88P" `Y8bod88P" 8""888P'     o888ooooood8  o888o o888o o888o `Y8bod8P' 8""888P'    
+#
+#
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+# ==========================================================================================================
+# ODDS LINES INTEGRATION
+# ----------------------------------------------------------------------------------------------------------
+# This section loads historical FanDuel odds (moneylines, spreads, totals) and joins them to the
+# backtest validation data to enable edge/EV calculation.
+#
+# APPROACH:
+#   1. Filter to FanDuel only (sharpest retail book)
+#   2. Take the LAST snapshot before game time per game/market (closing line)
+#   3. Pivot to one row per game with home/away moneyline, spread, and total
+#   4. Convert American odds to implied probabilities and decimal odds
+#   5. Join to mc_backtest_validation for edge analysis
+#   6. Calculate EV for model picks vs closing lines
+#
+# OUTPUT:
+#   odds_game_level     — one row per game with closing FanDuel lines
+#   mc_backtest_validation — enriched with odds + edge columns
+#   edge_summary        — summary of model edge by confidence bucket
+# ==========================================================================================================
+
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+# 💰💰💰 START: Odds Lines Integration
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(data.table)
+  library(tibble)
+})
+
+cat("💰 Loading and processing odds data...\n\n")
+
+# --------------------------------------------------
+# STEP 1: Load odds data
+# --------------------------------------------------
+odds_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/8. Historical Odds (Odds API)"
+odds_raw <- fread(file.path(odds_dir, paste0("nba_historical_odds_", season_token, ".csv")),
+                  colClasses = "character", encoding = "UTF-8")
+
+cat("  Raw odds rows:", nrow(odds_raw), "\n")
+
+# --------------------------------------------------
+# STEP 2: Filter to FanDuel only + clean up types
+# --------------------------------------------------
+odds_fd <- odds_raw %>%
+  filter(bookmaker == "fanduel") %>%
+  mutate(
+    espn_team_id_home = as.character(espn_team_id_home),
+    espn_team_id_away = as.character(espn_team_id_away),
+    spread_or_total   = as.numeric(spread_or_total),
+    odds              = as.numeric(odds),
+    commence_date_est = as.Date(commence_date_est),
+    snapshot_dt       = as.POSIXct(snapshot_datetime_utc, tz = "UTC")
+  ) %>%
+  filter(!is.na(odds), !is.na(commence_date_est))
+
+cat("  FanDuel odds rows:", nrow(odds_fd), "\n")
+
+# --------------------------------------------------
+# STEP 3: Get closing lines (last snapshot per game/market/outcome)
+# --------------------------------------------------
+# Create a unique game key from home + away + date
+odds_fd <- odds_fd %>%
+  mutate(game_key = paste0(espn_team_id_home, "_", espn_team_id_away, "_", commence_date_est))
+
+# Take the last snapshot per game/market/outcome_team
+odds_closing <- odds_fd %>%
+  group_by(game_key, market, outcome_team) %>%
+  arrange(desc(snapshot_dt)) %>%
+  slice(1) %>%
+  ungroup()
+
+cat("  Closing line rows:", nrow(odds_closing), "\n\n")
+
+# --------------------------------------------------
+# STEP 4: Helper — Convert American odds to implied probability
+# --------------------------------------------------
+american_to_implied <- function(odds) {
+  odds <- as.numeric(odds)
+  ifelse(
+    is.na(odds), NA_real_,
+    ifelse(
+      odds > 0,
+      100 / (odds + 100),    # Underdog: +150 → 100/250 = 0.40
+      abs(odds) / (abs(odds) + 100)  # Favorite: -200 → 200/300 = 0.667
+    )
+  )
+}
+
+# Helper — Convert American odds to decimal odds (for EV calculation)
+american_to_decimal <- function(odds) {
+  odds <- as.numeric(odds)
+  ifelse(
+    is.na(odds), NA_real_,
+    ifelse(
+      odds > 0,
+      (odds / 100) + 1,      # +150 → 2.50
+      (100 / abs(odds)) + 1  # -200 → 1.50
+    )
+  )
+}
+
+# --------------------------------------------------
+# STEP 5: Pivot moneylines to one row per game
+# --------------------------------------------------
+cat("  Building game-level moneyline lines...\n")
+
+ml_home <- odds_closing %>%
+  filter(market == "h2h") %>%
+  mutate(is_home_outcome = (outcome_team == home_team)) %>%
+  filter(is_home_outcome) %>%
+  transmute(
+    game_key,
+    espn_team_id_home,
+    espn_team_id_away,
+    commence_date_est,
+    home_ml_odds     = odds,
+    home_ml_implied  = american_to_implied(odds),
+    home_ml_decimal  = american_to_decimal(odds)
+  )
+
+ml_away <- odds_closing %>%
+  filter(market == "h2h") %>%
+  mutate(is_away_outcome = (outcome_team == away_team)) %>%
+  filter(is_away_outcome) %>%
+  transmute(
+    game_key,
+    away_ml_odds     = odds,
+    away_ml_implied  = american_to_implied(odds),
+    away_ml_decimal  = american_to_decimal(odds)
+  )
+
+ml_game <- ml_home %>%
+  left_join(ml_away, by = "game_key") %>%
+  mutate(
+    # Remove vig to get fair probabilities
+    total_implied    = home_ml_implied + away_ml_implied,
+    home_ml_fair     = home_ml_implied / total_implied,
+    away_ml_fair     = away_ml_implied / total_implied
+  )
+
+cat("  Moneyline games:", nrow(ml_game), "\n")
+
+# --------------------------------------------------
+# STEP 6: Pivot spreads to one row per game (home perspective)
+# --------------------------------------------------
+cat("  Building game-level spread lines...\n")
+
+spread_home <- odds_closing %>%
+  filter(market == "spreads") %>%
+  mutate(is_home_outcome = (outcome_team == home_team)) %>%
+  filter(is_home_outcome) %>%
+  transmute(
+    game_key,
+    home_spread      = spread_or_total,
+    home_spread_odds = odds
+  )
+
+spread_game <- spread_home %>%
+  distinct(game_key, .keep_all = TRUE)
+
+cat("  Spread games:", nrow(spread_game), "\n")
+
+# --------------------------------------------------
+# STEP 7: Pivot totals to one row per game
+# --------------------------------------------------
+cat("  Building game-level total lines...\n")
+
+totals_over <- odds_closing %>%
+  filter(market == "totals", outcome_team == "Over") %>%
+  transmute(
+    game_key,
+    total_line     = spread_or_total,
+    over_odds      = odds,
+    over_decimal   = american_to_decimal(odds)
+  ) %>%
+  distinct(game_key, .keep_all = TRUE)
+
+totals_under <- odds_closing %>%
+  filter(market == "totals", outcome_team == "Under") %>%
+  transmute(
+    game_key,
+    under_odds     = odds,
+    under_decimal  = american_to_decimal(odds)
+  ) %>%
+  distinct(game_key, .keep_all = TRUE)
+
+totals_game <- totals_over %>%
+  left_join(totals_under, by = "game_key")
+
+cat("  Totals games:", nrow(totals_game), "\n\n")
+
+# --------------------------------------------------
+# STEP 8: Combine all markets into one game-level table
+# --------------------------------------------------
+odds_game_level <- ml_game %>%
+  left_join(spread_game, by = "game_key") %>%
+  left_join(totals_game, by = "game_key")
+
+cat("  Combined odds_game_level:", nrow(odds_game_level), "games\n")
+cat("  Columns:", paste(names(odds_game_level), collapse = ", "), "\n\n")
+
+# --------------------------------------------------
+# STEP 9: Join odds to mc_backtest_validation
+# --------------------------------------------------
+cat("  Joining odds to backtest validation...\n")
+
+# Build matching game key in validation data
+mc_backtest_validation <- mc_backtest_validation %>%
+  mutate(
+    game_date_clean = as.Date(game_date),
+    odds_game_key   = paste0(home_team_id, "_", away_team_id, "_", game_date_clean)
+  )
+
+# Join
+mc_backtest_validation <- mc_backtest_validation %>%
+  left_join(
+    odds_game_level %>%
+      select(
+        game_key,
+        home_ml_odds, away_ml_odds,
+        home_ml_implied, away_ml_implied,
+        home_ml_fair, away_ml_fair,
+        home_ml_decimal, away_ml_decimal,
+        home_spread, home_spread_odds,
+        total_line, over_odds, under_odds
+      ),
+    by = c("odds_game_key" = "game_key")
+  )
+
+n_with_odds <- sum(!is.na(mc_backtest_validation$home_ml_odds))
+cat("  Games with odds joined:", n_with_odds, "of", nrow(mc_backtest_validation), "\n")
+cat("  Match rate:", round(n_with_odds / nrow(mc_backtest_validation) * 100, 1), "%\n\n")
+
+# --------------------------------------------------
+# STEP 10: Calculate edge and EV
+# --------------------------------------------------
+cat("  Calculating edge and expected value...\n\n")
+
+mc_backtest_validation <- mc_backtest_validation %>%
+  mutate(
+    # Model's calibrated probability vs market's fair probability
+    home_edge = home_win_prob_calibrated - home_ml_fair,
+    away_edge = (1 - home_win_prob_calibrated) - away_ml_fair,
+    
+    # Which side does the model prefer?
+    model_pick = ifelse(home_win_prob_calibrated > 0.5, "home", "away"),
+    
+    # Model's edge on its preferred side
+    model_edge = ifelse(
+      model_pick == "home",
+      home_edge,
+      away_edge
+    ),
+    
+    # Decimal odds for the model's pick
+    model_pick_decimal = ifelse(
+      model_pick == "home",
+      home_ml_decimal,
+      away_ml_decimal
+    ),
+    
+    # Expected Value: (prob × payout) - (1 - prob) × stake
+    # EV = (model_prob × decimal_odds) - 1
+    model_prob = ifelse(
+      model_pick == "home",
+      home_win_prob_calibrated,
+      1 - home_win_prob_calibrated
+    ),
+    
+    model_ev = (model_prob * model_pick_decimal) - 1,
+    
+    # Did the model's pick actually win?
+    model_pick_won = ifelse(
+      model_pick == "home",
+      actual_winner == "home",
+      actual_winner == "away"
+    ),
+    
+    # Actual profit/loss on $100 bet (flat betting)
+    actual_pnl = ifelse(
+      model_pick_won,
+      (model_pick_decimal - 1) * 100,  # Won: profit = (decimal - 1) × stake
+      -100                              # Lost: lose stake
+    ),
+    
+    # Edge buckets for analysis
+    edge_bucket = case_when(
+      is.na(model_edge) ~ NA_character_,
+      model_edge < -0.05 ~ "Negative (<-5%)",
+      model_edge < 0     ~ "Slight negative (-5% to 0%)",
+      model_edge < 0.03  ~ "No edge (0% to 3%)",
+      model_edge < 0.05  ~ "Small edge (3% to 5%)",
+      model_edge < 0.10  ~ "Medium edge (5% to 10%)",
+      TRUE               ~ "Large edge (>10%)"
+    )
+  )
+
+# --------------------------------------------------
+# STEP 11: Edge summary by bucket
+# --------------------------------------------------
+edge_summary <- mc_backtest_validation %>%
+  filter(!is.na(model_edge)) %>%
+  group_by(edge_bucket) %>%
+  summarise(
+    n_games     = n(),
+    mean_edge   = round(mean(model_edge, na.rm = TRUE) * 100, 2),
+    win_rate    = round(mean(model_pick_won, na.rm = TRUE) * 100, 1),
+    mean_ev     = round(mean(model_ev, na.rm = TRUE) * 100, 2),
+    total_pnl   = round(sum(actual_pnl, na.rm = TRUE)),
+    roi_pct     = round(sum(actual_pnl, na.rm = TRUE) / (n() * 100) * 100, 2),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(mean_edge))
+
+# --------------------------------------------------
+# STEP 12: Overall betting performance
+# --------------------------------------------------
+overall_betting <- mc_backtest_validation %>%
+  filter(!is.na(model_edge)) %>%
+  summarise(
+    total_games     = n(),
+    games_bet       = n(),
+    model_win_rate  = round(mean(model_pick_won, na.rm = TRUE) * 100, 1),
+    mean_edge       = round(mean(model_edge, na.rm = TRUE) * 100, 2),
+    mean_ev         = round(mean(model_ev, na.rm = TRUE) * 100, 2),
+    total_pnl       = round(sum(actual_pnl, na.rm = TRUE)),
+    total_wagered   = n() * 100,
+    roi_pct         = round(sum(actual_pnl, na.rm = TRUE) / (n() * 100) * 100, 2)
+  )
+
+# Positive edge only
+positive_edge_betting <- mc_backtest_validation %>%
+  filter(!is.na(model_edge), model_edge > 0) %>%
+  summarise(
+    games_bet       = n(),
+    model_win_rate  = round(mean(model_pick_won, na.rm = TRUE) * 100, 1),
+    mean_edge       = round(mean(model_edge, na.rm = TRUE) * 100, 2),
+    mean_ev         = round(mean(model_ev, na.rm = TRUE) * 100, 2),
+    total_pnl       = round(sum(actual_pnl, na.rm = TRUE)),
+    total_wagered   = n() * 100,
+    roi_pct         = round(sum(actual_pnl, na.rm = TRUE) / (n() * 100) * 100, 2)
+  )
+
+# Large edge only (>5%)
+large_edge_betting <- mc_backtest_validation %>%
+  filter(!is.na(model_edge), model_edge > 0.05) %>%
+  summarise(
+    games_bet       = n(),
+    model_win_rate  = round(mean(model_pick_won, na.rm = TRUE) * 100, 1),
+    mean_edge       = round(mean(model_edge, na.rm = TRUE) * 100, 2),
+    mean_ev         = round(mean(model_ev, na.rm = TRUE) * 100, 2),
+    total_pnl       = round(sum(actual_pnl, na.rm = TRUE)),
+    total_wagered   = n() * 100,
+    roi_pct         = round(sum(actual_pnl, na.rm = TRUE) / (n() * 100) * 100, 2)
+  )
+
+# --------------------------------------------------
+# STEP 13: Model vs Market comparison
+# --------------------------------------------------
+model_vs_market <- mc_backtest_validation %>%
+  filter(!is.na(home_ml_fair)) %>%
+  mutate(
+    market_correct = ifelse(
+      home_ml_fair > 0.5,
+      actual_winner == "home",
+      actual_winner == "away"
+    )
+  ) %>%
+  summarise(
+    model_accuracy  = round(mean(correct_pick, na.rm = TRUE) * 100, 1),
+    market_accuracy = round(mean(market_correct, na.rm = TRUE) * 100, 1),
+    model_edge_vs_market = round(
+      mean(correct_pick, na.rm = TRUE) * 100 - mean(market_correct, na.rm = TRUE) * 100, 1
+    )
+  )
+
+# --------------------------------------------------
+# STEP 14: Print results
+# --------------------------------------------------
+cat("=", rep("=", 70), "\n", sep = "")
+cat("💰 ODDS INTEGRATION COMPLETE\n")
+cat("=", rep("=", 70), "\n\n", sep = "")
+
+cat("📊 OVERALL BETTING PERFORMANCE (All Games with Odds):\n")
+print(as.data.frame(overall_betting))
+
+cat("\n📊 POSITIVE EDGE ONLY (Model Edge > 0%):\n")
+print(as.data.frame(positive_edge_betting))
+
+cat("\n📊 LARGE EDGE ONLY (Model Edge > 5%):\n")
+print(as.data.frame(large_edge_betting))
+
+cat("\n📊 EDGE SUMMARY BY BUCKET:\n")
+print(as.data.frame(edge_summary))
+
+cat("\n📊 MODEL vs MARKET ACCURACY:\n")
+print(as.data.frame(model_vs_market))
+
+cat("\n📊 SPREAD ANALYSIS:\n")
+mc_backtest_validation %>%
+  filter(!is.na(home_spread)) %>%
+  mutate(
+    sim_spread     = spread_mean,
+    spread_diff    = sim_spread - as.numeric(home_spread),
+    model_covers   = case_when(
+      spread_diff > 0 & (home_pts_mean - away_pts_mean) > as.numeric(home_spread) ~ TRUE,
+      spread_diff < 0 & (away_pts_mean - home_pts_mean) > abs(as.numeric(home_spread)) ~ TRUE,
+      TRUE ~ FALSE
+    )
+  ) %>%
+  summarise(
+    n_games = n(),
+    mean_sim_spread = round(mean(sim_spread, na.rm = TRUE), 1),
+    mean_book_spread = round(mean(as.numeric(home_spread), na.rm = TRUE), 1),
+    mean_spread_diff = round(mean(spread_diff, na.rm = TRUE), 1),
+    cor_sim_vs_book = round(cor(sim_spread, as.numeric(home_spread), use = "complete.obs"), 3)
+  ) %>%
+  print()
+
+cat("\n📊 TOTAL ANALYSIS:\n")
+mc_backtest_validation %>%
+  filter(!is.na(total_line)) %>%
+  mutate(
+    sim_total   = home_pts_mean + away_pts_mean,
+    actual_total = actual_home_pts + actual_away_pts,
+    total_diff  = sim_total - as.numeric(total_line)
+  ) %>%
+  summarise(
+    n_games = n(),
+    mean_sim_total = round(mean(sim_total, na.rm = TRUE), 1),
+    mean_book_total = round(mean(as.numeric(total_line), na.rm = TRUE), 1),
+    mean_total_diff = round(mean(total_diff, na.rm = TRUE), 1),
+    cor_sim_vs_book = round(cor(sim_total, as.numeric(total_line), use = "complete.obs"), 3)
+  ) %>%
+  print()
+
+cat("\nOUTPUT OBJECTS:\n")
+cat("  odds_game_level          — one row per game with closing FanDuel lines\n")
+cat("  mc_backtest_validation   — enriched with odds + edge + EV columns\n")
+cat("  edge_summary             — edge analysis by confidence bucket\n")
+cat("  overall_betting          — flat betting P&L across all games\n")
+cat("  positive_edge_betting    — P&L on positive edge games only\n")
+cat("  large_edge_betting       — P&L on large edge (>5%) games only\n")
+cat("  model_vs_market          — model accuracy vs FanDuel market accuracy\n\n")
+
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+# 💰💰💰 END: Odds Lines Integration
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
