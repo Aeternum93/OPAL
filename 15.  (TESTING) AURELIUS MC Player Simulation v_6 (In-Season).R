@@ -1176,25 +1176,25 @@ mode <- "backtest"   # Options: "production", "backtest", "calibration", "resear
 # -----------------------------
 if (mode == "production") {
   # Live predictions for today's slate
-  as_of_date         <- as.Date("2026-03-05")
+  as_of_date         <- as.Date("2026-03-06")
   load_backtest_data <- FALSE  # Don't load historical rosters (faster)
   load_player_odds   <- TRUE   # Load current market lines
   
 } else if (mode == "backtest") {
   # Historical validation on specific date
-  as_of_date         <- as.Date("2026-03-05")  # ← Set backtest date here
+  as_of_date         <- as.Date("2026-03-06")  # ← Set backtest date here
   load_backtest_data <- TRUE   # Load all rosters < as_of_date
   load_player_odds   <- FALSE  # Historical odds not needed for validation
   
 } else if (mode == "calibration") {
   # Tune variance parameters against historical games
-  as_of_date         <- as.Date("2026-03-05")  # ← Set calibration cutoff
+  as_of_date         <- as.Date("2026-03-06")  # ← Set calibration cutoff
   load_backtest_data <- TRUE   # Need historical data
   load_player_odds   <- FALSE  # Don't need odds for calibration
   
 } else if (mode == "research") {
   # Model development sandbox - load everything
-  as_of_date         <- as.Date("2026-03-05")
+  as_of_date         <- as.Date("2026-03-06")
   load_backtest_data <- TRUE   # Load all available history
   load_player_odds   <- TRUE   # Load all available data
   
@@ -10653,11 +10653,63 @@ cat("  Columns:", paste(names(odds_game_level), collapse = ", "), "\n\n")
 # --------------------------------------------------
 cat("  Joining odds to backtest validation...\n")
 
-# Build matching game key in validation data
+# Crosswalk: full team name → your 1-30 ID
+team_name_to_id <- tribble(
+  ~team_full_name,            ~your_id,
+  "Atlanta Hawks",            "1",
+  "Boston Celtics",           "2",
+  "New Orleans Pelicans",     "3",
+  "Chicago Bulls",            "4",
+  "Cleveland Cavaliers",      "5",
+  "Dallas Mavericks",         "6",
+  "Denver Nuggets",           "7",
+  "Detroit Pistons",          "8",
+  "Golden State Warriors",    "9",
+  "Houston Rockets",          "10",
+  "Indiana Pacers",           "11",
+  "Los Angeles Clippers",     "12",
+  "Los Angeles Lakers",       "13",
+  "Miami Heat",               "14",
+  "Milwaukee Bucks",          "15",
+  "Minnesota Timberwolves",   "16",
+  "Brooklyn Nets",            "17",
+  "New York Knicks",          "18",
+  "Orlando Magic",            "19",
+  "Philadelphia 76ers",       "20",
+  "Phoenix Suns",             "21",
+  "Portland Trail Blazers",   "22",
+  "Sacramento Kings",         "23",
+  "San Antonio Spurs",        "24",
+  "Oklahoma City Thunder",    "25",
+  "Utah Jazz",                "26",
+  "Washington Wizards",       "27",
+  "Toronto Raptors",          "28",
+  "Memphis Grizzlies",        "29",
+  "Charlotte Hornets",        "30"
+)
+
+# Map odds ESPN IDs → full names → your IDs (home)
+home_id_map <- odds_team_map %>%
+  left_join(team_name_to_id, by = "team_full_name") %>%
+  transmute(espn_team_id_home = odds_espn_id, your_home_id = your_id)
+
+# Map odds ESPN IDs → full names → your IDs (away)
+away_id_map <- odds_team_map %>%
+  left_join(team_name_to_id, by = "team_full_name") %>%
+  transmute(espn_team_id_away = odds_espn_id, your_away_id = your_id)
+
+# Remap odds_game_level to your IDs
+odds_game_level <- odds_game_level %>%
+  left_join(home_id_map, by = "espn_team_id_home") %>%
+  left_join(away_id_map, by = "espn_team_id_away") %>%
+  mutate(
+    corrected_game_key = paste0(your_home_id, "_", your_away_id, "_", commence_date_est)
+  )
+
+# Build matching key in validation data
 mc_backtest_validation <- mc_backtest_validation %>%
   mutate(
-    game_date_clean = as.Date(game_date),
-    odds_game_key   = paste0(home_team_id, "_", away_team_id, "_", game_date_clean)
+    odds_game_key = paste0(home_team_id, "_", away_team_id, "_", as.Date(game_date))
   )
 
 # Join
@@ -10665,7 +10717,7 @@ mc_backtest_validation <- mc_backtest_validation %>%
   left_join(
     odds_game_level %>%
       select(
-        game_key,
+        corrected_game_key,
         home_ml_odds, away_ml_odds,
         home_ml_implied, away_ml_implied,
         home_ml_fair, away_ml_fair,
@@ -10673,7 +10725,7 @@ mc_backtest_validation <- mc_backtest_validation %>%
         home_spread, home_spread_odds,
         total_line, over_odds, under_odds
       ),
-    by = c("odds_game_key" = "game_key")
+    by = c("odds_game_key" = "corrected_game_key")
   )
 
 n_with_odds <- sum(!is.na(mc_backtest_validation$home_ml_odds))
@@ -10895,3 +10947,54 @@ cat("  model_vs_market          — model accuracy vs FanDuel market accuracy\n\
 # 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
 # 💰💰💰 END: Odds Lines Integration
 # 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+
+
+
+# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
+# SAVE RUN OUTPUTS
+# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
+
+cat("💾 Saving run outputs...\n\n")
+
+pred_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/team_predictions"
+timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+
+save_rds <- function(obj, name) {
+  path <- file.path(pred_dir, paste0(name, "_", timestamp, ".rds"))
+  saveRDS(obj, path)
+  cat("  ✅", name, "→", basename(path), "\n")
+}
+
+# Core simulation outputs
+save_rds(mc_results_summary,       "mc_results_summary")
+save_rds(mc_backtest_validation,   "mc_backtest_validation")
+save_rds(mc_sims_backtest_q,       "mc_sims_backtest_q")
+save_rds(mc_results_quarters,      "mc_results_quarters")
+save_rds(mc_calibration,           "mc_calibration")
+save_rds(mc_player_props,          "mc_player_props")
+
+# Odds & edge analysis
+if (exists("odds_game_level"))        save_rds(odds_game_level,        "odds_game_level")
+if (exists("edge_summary"))           save_rds(edge_summary,           "edge_summary")
+
+# Calibration model
+if (exists("platt_model_full"))       save_rds(platt_model_full,       "platt_model_full")
+
+# Key profiles (for debugging / audit)
+save_rds(player_minutes_params_backtest, "player_minutes_params_backtest")
+save_rds(player_projections_backtest,    "player_projections_backtest")
+
+# Config snapshot
+run_config <- list(
+  as_of_date = as_of_date,
+  mode       = mode,
+  n_sims     = 500,
+  MC_CONFIG  = MC_CONFIG,
+  MC_VAR     = MC_VAR,
+  HCA        = HCA,
+  timestamp  = Sys.time()
+)
+save_rds(run_config, "run_config")
+
+cat("\n💾 All outputs saved to:", pred_dir, "\n")
+cat("   Timestamp:", timestamp, "\n\n")

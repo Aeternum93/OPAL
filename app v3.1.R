@@ -1194,6 +1194,44 @@ body.dark-mode .gc-mini-court-wrap { box-shadow:0 2px 12px rgba(0,0,0,.3); }
 .odds-clickable { cursor:pointer !important; transition:border-color .15s,box-shadow .15s,background .15s !important; }
 .odds-clickable:hover { border-color:var(--border-light) !important; box-shadow:0 0 0 2px rgba(26,58,106,.3) !important; }
 .odds-clickable.in-slip { border-color:#2a5a9a !important; background:rgba(26,58,106,.1) !important; box-shadow:0 0 0 2px rgba(26,58,106,.3) !important; }
+/* ── Fav & Dog Analysis Table ── */
+table.fd-table { width:100%; border-collapse:collapse; font-family:'Share Tech Mono',monospace; font-size:15px; }
+table.fd-table thead th { padding:8px 10px; text-align:center; font-size:12px; font-family:'Share Tech Mono',monospace; letter-spacing:.06em; color:var(--text-muted); border-bottom:2px solid var(--border); font-weight:400; white-space:nowrap; position:sticky; top:0; background:var(--bg-card); z-index:2; text-transform:uppercase; }
+table.fd-table thead th:nth-child(1), table.fd-table thead th:nth-child(2) { text-align:left; }
+table.fd-table tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+table.fd-table tbody tr:hover { background:var(--bg-card-hover); }
+table.fd-table tbody td { padding:7px 10px; color:var(--text-secondary); text-align:center; white-space:nowrap; }
+table.fd-table tbody td:nth-child(2) { text-align:left; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:16px; color:var(--text-primary); }
+table.fd-table tbody tr:nth-child(even) { background:var(--bg-card); }
+body.dark-mode table.fd-table tbody tr:nth-child(even) { background:#1c1c22; }
+table.fd-table thead th { background:#1a1a1e !important; color:#aaa !important; }
+body:not(.dark-mode) table.fd-table thead th { background:#d8d8dc !important; color:#555 !important; }
+.fd-table .fd-logo { width:28px; height:28px; object-fit:contain; vertical-align:middle; }
+
+/* Group headers for underdog / favorite sections */
+table.fd-table thead th.fd-grp-u { border-bottom-color:#c8a020; color:#c8a020 !important; }
+table.fd-table thead th.fd-grp-f { border-bottom-color:#5a7aaa; color:#5a7aaa !important; }
+table.fd-table thead th.fd-grp-g { border-bottom-color:#7a7a8a; color:#7a7a8a !important; }
+
+/* Conditional formatting for percentages */
+.fd-pct-1 { background:#1a472a !important; color:#7aba7a !important; font-weight:700; }
+.fd-pct-2 { background:#1e3e22 !important; color:#6aaa5a !important; }
+.fd-pct-3 { background:#2a3a1e !important; color:#8a9a4a !important; }
+.fd-pct-4 { background:#3a3a1a !important; color:#aaaa3a !important; }
+.fd-pct-5 { background:#3a3a1a !important; color:#bba830 !important; }
+.fd-pct-6 { background:#3a2e1a !important; color:#bb8830 !important; }
+.fd-pct-7 { background:#3a241a !important; color:#aa6a3a !important; }
+.fd-pct-8 { background:#3a1a1a !important; color:#aa4a4a !important; }
+.fd-pct-9 { background:#471a1a !important; color:#ba4a4a !important; font-weight:700; }
+body:not(.dark-mode) .fd-pct-1 { background:#b8ecc4 !important; color:#1a5a2a !important; }
+body:not(.dark-mode) .fd-pct-2 { background:#c8ecbc !important; color:#2a6a2a !important; }
+body:not(.dark-mode) .fd-pct-3 { background:#dce8b0 !important; color:#5a6a2a !important; }
+body:not(.dark-mode) .fd-pct-4 { background:#ece8a8 !important; color:#7a7a1a !important; }
+body:not(.dark-mode) .fd-pct-5 { background:#ece0a0 !important; color:#8a7a1a !important; }
+body:not(.dark-mode) .fd-pct-6 { background:#ecd4a0 !important; color:#8a5a1a !important; }
+body:not(.dark-mode) .fd-pct-7 { background:#ecc4a0 !important; color:#8a4a1a !important; }
+body:not(.dark-mode) .fd-pct-8 { background:#ecacac !important; color:#7a2a1a !important; }
+body:not(.dark-mode) .fd-pct-9 { background:#ec9c9c !important; color:#7a1a1a !important; }
 "
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -3755,6 +3793,8 @@ server <- function(input, output, session) {
                                     onclick="Shiny.setInputValue('po_tab_click','player',{priority:'event'})", "Player Odds"),
                         tags$button(class=paste("po-tab", if(tab=="team") "active" else ""),
                                     onclick="Shiny.setInputValue('po_tab_click','team',{priority:'event'})", "Team Odds")
+                        ,tags$button(class=paste("po-tab", if(tab=="favdog") "active" else ""),
+                                     onclick="Shiny.setInputValue('po_tab_click','favdog',{priority:'event'})", "Fav & Dog Analysis")
                ),
                
                # Filter bar
@@ -3815,7 +3855,8 @@ server <- function(input, output, session) {
                # Content
                tags$div(class="po-content",
                         if(tab=="player") uiOutput("po_player_table_ui")
-                        else              uiOutput("po_team_cards_ui")
+                        else if(tab=="team") uiOutput("po_team_cards_ui")
+                        else if(tab=="favdog") uiOutput("po_favdog_ui")
                )
       ),
       # JS filter function + Escape hotkey
@@ -4175,6 +4216,126 @@ server <- function(input, output, session) {
     )
     
     tagList(banner, HTML(cards_html))
+  })
+  
+  
+  output$po_favdog_ui <- renderUI({
+    # Aggregate per team
+    fd <- team_data %>%
+      group_by(TEAM) %>%
+      summarise(
+        games   = n(),
+        dog_w   = sum(as.numeric(dog_win), na.rm=TRUE),
+        dog_l   = sum(as.numeric(dog_loss), na.rm=TRUE),
+        fav_w   = sum(as.numeric(fav_win), na.rm=TRUE),
+        fav_l   = sum(as.numeric(fav_loss), na.rm=TRUE),
+        .groups = "drop"
+      ) %>%
+      mutate(
+        u_sum   = dog_w + dog_l,
+        f_sum   = fav_w + fav_l,
+        u_won_pct  = ifelse(u_sum > 0, round(dog_w / u_sum * 100, 1), NA),
+        u_loss_pct = ifelse(u_sum > 0, round(dog_l / u_sum * 100, 1), NA),
+        f_won_pct  = ifelse(f_sum > 0, round(fav_w / f_sum * 100, 1), NA),
+        f_loss_pct = ifelse(f_sum > 0, round(fav_l / f_sum * 100, 1), NA)
+      ) %>%
+      arrange(TEAM)
+    
+    if(nrow(fd) == 0) return(tags$div(class="pr-placeholder", tags$p("No data available")))
+    
+    # Conditional formatting helper — assigns class based on percentile rank
+    # higher_is_better: TRUE = high values get green, FALSE = high values get red
+    fd_pct_class <- function(val, all_vals, higher_is_better=TRUE) {
+      if(is.na(val)) return("")
+      vals <- all_vals[!is.na(all_vals)]
+      n <- length(vals)
+      if(n <= 1) return("fd-pct-5")
+      rnk <- if(higher_is_better) rank(-all_vals, ties.method="average", na.last=TRUE)[match(val, all_vals)][1]
+      else rank(all_vals, ties.method="average", na.last=TRUE)[match(val, all_vals)][1]
+      pct <- (rnk - 1) / (n - 1)
+      if(pct <= 0.11) "fd-pct-1" else if(pct <= 0.22) "fd-pct-2" else if(pct <= 0.33) "fd-pct-3"
+      else if(pct <= 0.44) "fd-pct-4" else if(pct <= 0.56) "fd-pct-5"
+      else if(pct <= 0.67) "fd-pct-6" else if(pct <= 0.78) "fd-pct-7"
+      else if(pct <= 0.89) "fd-pct-8" else "fd-pct-9"
+    }
+    
+    # Precompute all values for ranking
+    all_u_won_pct  <- fd$u_won_pct
+    all_u_loss_pct <- fd$u_loss_pct
+    all_f_won_pct  <- fd$f_won_pct
+    all_f_loss_pct <- fd$f_loss_pct
+    
+    # Build rows
+    rows_html <- paste(sapply(seq_len(nrow(fd)), function(i) {
+      r <- fd[i,]
+      team_abv <- as.character(r$TEAM)
+      
+      # Logo
+      logo_url <- NBA_TEAMS$logo[NBA_TEAMS$abv == team_abv]
+      logo_html <- if(length(logo_url) > 0 && nchar(logo_url) > 0)
+        sprintf("<img class='fd-logo' src='%s'/>", logo_url) else ""
+      
+      # Conditional classes for percentage columns
+      uw_cls <- fd_pct_class(r$u_won_pct, all_u_won_pct, higher_is_better=TRUE)
+      ul_cls <- fd_pct_class(r$u_loss_pct, all_u_loss_pct, higher_is_better=FALSE)
+      fw_cls <- fd_pct_class(r$f_won_pct, all_f_won_pct, higher_is_better=TRUE)
+      fl_cls <- fd_pct_class(r$f_loss_pct, all_f_loss_pct, higher_is_better=FALSE)
+      
+      fmt_pct <- function(v) if(is.na(v)) "\u2014" else paste0(v, "%")
+      
+      sprintf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td class='%s'>%s</td><td class='%s'>%s</td><td>%s</td><td>%s</td><td>%s</td><td class='%s'>%s</td><td class='%s'>%s</td></tr>",
+              logo_html, team_abv,
+              as.integer(r$games),
+              as.integer(r$u_sum), as.integer(r$dog_w), as.integer(r$dog_l),
+              as.integer(r$f_sum),
+              uw_cls, fmt_pct(r$u_won_pct),
+              ul_cls, fmt_pct(r$u_loss_pct),
+              as.integer(r$f_sum),
+              as.integer(r$fav_w), as.integer(r$fav_l),
+              fw_cls, fmt_pct(r$f_won_pct),
+              fl_cls, fmt_pct(r$f_loss_pct))
+    }), collapse="")
+    
+    # Header with group rows
+    header_html <- sprintf(
+      "<thead><tr><th class='fd-grp-g' colspan='3'></th><th class='fd-grp-u' colspan='6'>UNDERDOG</th><th class='fd-grp-f' colspan='5'>FAVORITE</th></tr><tr><th></th><th>Team</th><th class='fd-grp-g'>Games</th><th class='fd-grp-u'>uSUM</th><th class='fd-grp-u'>uWon</th><th class='fd-grp-u'>uLoss</th><th class='fd-grp-u'>fSUM</th><th class='fd-grp-u'>uWon%%</th><th class='fd-grp-u'>uLoss%%</th><th class='fd-grp-f'>fSUM</th><th class='fd-grp-f'>fWon</th><th class='fd-grp-f'>fLoss</th><th class='fd-grp-f'>fWon%%</th><th class='fd-grp-f'>fLoss%%</th></tr></thead>"
+    )
+    
+    # Summary banner
+    total_dog_games <- sum(fd$u_sum, na.rm=TRUE)
+    total_dog_wins  <- sum(fd$dog_w, na.rm=TRUE)
+    total_fav_games <- sum(fd$f_sum, na.rm=TRUE)
+    total_fav_wins  <- sum(fd$fav_w, na.rm=TRUE)
+    dog_win_pct <- if(total_dog_games > 0) round(total_dog_wins / total_dog_games * 100, 1) else 0
+    fav_win_pct <- if(total_fav_games > 0) round(total_fav_wins / total_fav_games * 100, 1) else 0
+    
+    tagList(
+      # Banner stats
+      tags$div(class="to-banner",
+               tags$div(class="to-banner-stat",
+                        tags$div(class="to-banner-val", total_dog_games),
+                        tags$div(class="to-banner-lbl", "Underdog Games")),
+               tags$div(class="to-banner-stat",
+                        tags$div(class="to-banner-val", total_dog_wins),
+                        tags$div(class="to-banner-lbl", "Dog Wins")),
+               tags$div(class="to-banner-stat",
+                        tags$div(class="to-banner-val", paste0(dog_win_pct, "%")),
+                        tags$div(class="to-banner-lbl", "Dog Win Rate")),
+               tags$div(class="to-banner-stat",
+                        tags$div(class="to-banner-val", total_fav_games),
+                        tags$div(class="to-banner-lbl", "Favorite Games")),
+               tags$div(class="to-banner-stat",
+                        tags$div(class="to-banner-val", total_fav_wins),
+                        tags$div(class="to-banner-lbl", "Fav Wins")),
+               tags$div(class="to-banner-stat",
+                        tags$div(class="to-banner-val", paste0(fav_win_pct, "%")),
+                        tags$div(class="to-banner-lbl", "Fav Win Rate"))
+      ),
+      # Table
+      tags$div(style="overflow-x:auto; border:1px solid var(--border); border-radius:8px; background:var(--bg-card); margin-top:12px;",
+               HTML(sprintf("<table class='fd-table'>%s<tbody>%s</tbody></table>", header_html, rows_html))
+      )
+    )
   })
   
   # ═══════════════════════════════════════════════════════════════════════════════
