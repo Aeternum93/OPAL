@@ -251,38 +251,79 @@ BaseStats_Team_MC <- BaseStats_Team_MC %>%
 #   - mode = "backtest" : does NOT auto-load schedule; you will call load_schedule_for_date()
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 
-# What markets are in here?
-cat("Markets:\n")
-print(table(odds_raw$market))
+library(data.table)
+library(dplyr)
 
-cat("\nBookmakers:\n")
-print(table(odds_raw$bookmaker))
+# Load the two source files
+player_rotations <- fread(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/12. Player Rotations/pm_nba_player_level_rotations_2025_2026.csv", 
+  colClasses = "character"
+)
 
-# FanDuel spread sample
-cat("\nFanDuel spread sample:\n")
-odds_raw %>%
-  filter(bookmaker == "fanduel", market == "spreads") %>%
-  select(home_team, away_team, commence_date_est, outcome_team, 
-         spread_or_total, odds, espn_team_id_home, espn_team_id_away) %>%
-  head(10) %>%
-  print()
+BaseStats_Player_MC <- fread(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/2. BaseStats_Player/BaseStats_Player_MC_2025_2026.csv", 
+  colClasses = "character"
+)
 
-# FanDuel totals sample
-cat("\nFanDuel totals sample:\n")
-odds_raw %>%
-  filter(bookmaker == "fanduel", market == "totals") %>%
-  select(home_team, away_team, commence_date_est, outcome_team,
-         spread_or_total, odds) %>%
-  head(10) %>%
-  print()
+# Deduplicate rotations to one row per player-game
+rot_deduped <- player_rotations %>%
+  distinct(ESPN_GAME_ID, ESPN_TEAM_ID, PLAYER_ID, .keep_all = TRUE)
 
-# Check if there's a moneyline market
-cat("\nFanDuel h2h/moneyline sample:\n")
-odds_raw %>%
-  filter(bookmaker == "fanduel", market == "h2h") %>%
-  select(home_team, away_team, commence_date_est, outcome_team, odds) %>%
-  head(10) %>%
-  print()
+# Find the correct scaling factor (total game minutes)
+comparison <- rot_deduped %>%
+  mutate(
+    rot_seconds_total = as.numeric(PLAYER_LINEUP_IN_Q1) + 
+      as.numeric(PLAYER_LINEUP_IN_Q2) + 
+      as.numeric(PLAYER_LINEUP_IN_Q3) + 
+      as.numeric(PLAYER_LINEUP_IN_Q4)
+  ) %>%
+  select(ESPN_GAME_ID, PLAYER_ID, rot_seconds_total) %>%
+  inner_join(
+    BaseStats_Player_MC %>%
+      transmute(
+        ESPN_GAME_ID = ESPN_GAME_ID,
+        PLAYER_ID = ESPN_PLAYER_ID,
+        bs_mins = as.numeric(MINS_CGS)
+      ),
+    by = c("ESPN_GAME_ID", "PLAYER_ID")
+  ) %>%
+  filter(bs_mins > 5)
+
+# What does dividing by 60 give us?
+cat("If we divide by 60:", round(mean(comparison$rot_seconds_total / 60, na.rm = TRUE), 2), 
+    "vs BS:", round(mean(comparison$bs_mins, na.rm = TRUE), 2), "\n")
+
+# Find empirical scaling factor
+scale_factor <- mean(comparison$rot_seconds_total / comparison$bs_mins, na.rm = TRUE)
+cat("Empirical scale factor:", round(scale_factor, 4), "\n")
+cat("If we divide by", round(scale_factor, 2), "instead of 60:", 
+    round(mean(comparison$rot_seconds_total / scale_factor, na.rm = TRUE), 2), 
+    "vs BS:", round(mean(comparison$bs_mins, na.rm = TRUE), 2), "\n\n")
+
+# Per-quarter scale factors
+for (q in 1:4) {
+  rot_col <- paste0("PLAYER_LINEUP_IN_Q", q)
+  bs_col <- paste0("MINS_Q", q)
+  
+  if (bs_col %in% names(BaseStats_Player_MC)) {
+    q_comp <- rot_deduped %>%
+      mutate(rot_q = as.numeric(.data[[rot_col]])) %>%
+      select(ESPN_GAME_ID, PLAYER_ID, rot_q) %>%
+      inner_join(
+        BaseStats_Player_MC %>%
+          transmute(
+            ESPN_GAME_ID = ESPN_GAME_ID,
+            PLAYER_ID = ESPN_PLAYER_ID,
+            bs_q = as.numeric(.data[[bs_col]])
+          ),
+        by = c("ESPN_GAME_ID", "PLAYER_ID")
+      ) %>%
+      filter(bs_q > 1)
+    
+    q_scale <- mean(q_comp$rot_q / q_comp$bs_q, na.rm = TRUE)
+    cat("Q", q, "scale factor:", round(q_scale, 2), "\n")
+  }
+}
 
 # 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
 # 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
@@ -332,6 +373,10 @@ suppressWarnings({
   library(dplyr)
   library(data.table)
 })
+
+
+BaseStats_Player_MC <- as_tibble(BaseStats_Player_MC)
+BaseStats_Team_MC <- as_tibble(BaseStats_Team_MC)
 
 # --------------------------------------------------
 # Logging infrastructure
@@ -2209,30 +2254,77 @@ message(
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # ==========================================================================================================
-# MINUTES BASELINE PARAMETER BUILDER v2
+# MINUTES BASELINE PARAMETER BUILDER v3 (ROTATION-AWARE)
 # ----------------------------------------------------------------------------------------------------------
-# Changes from v1:
-#   - Step E replaced: injury absorption now uses empirically measured per-player minute deltas
-#     from player_impact_assessment_delta (delta_v2) instead of generic proportional redistribution.
-#   - Usage weights (BASE_USAGE_Qx) attached to output for zero-sum usage bump logic in sim.
-#   - Fallback to proportional absorption when delta_v2 has no entry for a given OUT player.
+# Changes from v2:
+#   - Step A now pulls from rotation_mins_player (derived from player_rotations) instead of
+#     BaseStats_Player_MC MINS_Q* columns. This gives more precise quarter-level minutes that
+#     naturally capture starter vs bench patterns and quarter-specific rotation behavior.
+#   - rotation_mins_player preprocessor added before the builder.
+#   - Step E uses coalesce fix from v2 (usage weight accumulation, not overwrite).
+#   - All other steps unchanged from v2.
 #
-# Output columns added vs v1:
-#   usage_weight_Q1-Q4  — player's baseline usage share per quarter (for sim usage bump)
+# REQUIRES:
+#   - player_rotations (loaded in Section 0)
+#   - delta_v2 / delta_lookup
+#   - BaseStats_Player_MC (still used for ESPN_GAME_ID join at bottom)
+#   - roster_pool/roster_out by-date lists
+#
+# Output columns:
+#   mins_mean_Q1-Q6, mins_sd_Q1-Q6  — rotation-derived quarter minute expectations
+#   usage_weight_Q1-Q4              — player's baseline usage share per quarter
 # ==========================================================================================================
 
-# ==========================================================================================================
-# MINUTES BASELINE PARAMETER BUILDER v2
-# ==========================================================================================================
+# 🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄
+# ROTATION-AWARE MINUTES PREPROCESSOR
+# Converts player_rotations into a clean per-player-per-game
+# quarter minutes table (in actual minutes, not seconds)
+# 🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄
+
+cat("🔄 Building rotation-aware player minutes...\n")
+
+# Empirical scale factors (rotation seconds → BaseStats minutes)
+ROT_SCALE_Q1 <- 62.19
+ROT_SCALE_Q2 <- 61.55
+ROT_SCALE_Q3 <- 61.39
+ROT_SCALE_Q4 <- 60.07
+ROT_SCALE_OT <- 60.00  # OT stays at 60 (not enough data to calibrate)
+
+rotation_mins_player <- player_rotations %>%
+  distinct(ESPN_GAME_ID, ESPN_TEAM_ID, PLAYER_ID, .keep_all = TRUE) %>%
+  transmute(
+    ESPN_GAME_ID   = as.character(ESPN_GAME_ID),
+    ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID),
+    ESPN_PLAYER_ID = as.character(PLAYER_ID),
+    GAME_DATE      = as.Date(GAME_DATE),
+    STARTER_STATUS = as.character(STARTER_STATUS),
+    
+    MINS_Q1 = as.numeric(PLAYER_LINEUP_IN_Q1) / ROT_SCALE_Q1,
+    MINS_Q2 = as.numeric(PLAYER_LINEUP_IN_Q2) / ROT_SCALE_Q2,
+    MINS_Q3 = as.numeric(PLAYER_LINEUP_IN_Q3) / ROT_SCALE_Q3,
+    MINS_Q4 = as.numeric(PLAYER_LINEUP_IN_Q4) / ROT_SCALE_Q4,
+    MINS_Q5 = as.numeric(PLAYER_LINEUP_IN_Q5) / ROT_SCALE_OT,
+    MINS_Q6 = as.numeric(PLAYER_LINEUP_IN_Q6) / ROT_SCALE_OT,
+    MINS_CGS = MINS_Q1 + MINS_Q2 + MINS_Q3 + MINS_Q4 + MINS_Q5 + MINS_Q6
+  ) %>%
+  filter(!is.na(ESPN_PLAYER_ID), ESPN_PLAYER_ID != "")
+
+rotation_mins_player <- as_tibble(rotation_mins_player)
+
+cat("✅ rotation_mins_player built |", nrow(rotation_mins_player), "player-game rows\n")
+cat("   Games:", n_distinct(rotation_mins_player$ESPN_GAME_ID), "\n")
+cat("   Players:", n_distinct(rotation_mins_player$ESPN_PLAYER_ID), "\n\n")
+
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-# 🏀🏀🏀 START: Minutes BASELINE PARAMETER BUILDER v2 (NO SIMULATION)
-# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+# 🏀🏀🏀 START: Minutes BASELINE PARAMETER BUILDER v3 (ROTATION-AWARE)
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 
 library(parallel)
 library(pbapply)
 
 stopifnot(
+  exists("rotation_mins_player"),
   exists("BaseStats_Player_MC"),
   exists("num0"),
   exists("delta_v2")
@@ -2276,22 +2368,20 @@ build_minutes_params_one_date <- function(
   date_key  <- format(proj_date, "%Y%m%d")
   
   # ----------------------------------------------------------
-  # A) Historical per-quarter minute params (LEAKAGE-SAFE)
+  # A) Historical per-quarter minute params (ROTATION-AWARE, LEAKAGE-SAFE)
+  #    NOW USES rotation_mins_player instead of BaseStats_Player_MC
   # ----------------------------------------------------------
   build_q_params <- function(q) {
     col <- paste0("MINS_", q)
-    if (!col %in% names(BaseStats_Player_MC)) return(NULL)
+    if (!col %in% names(rotation_mins_player)) return(NULL)
     
-    BaseStats_Player_MC %>%
-      dplyr::mutate(
-        GAME_DATE = as.Date(GAME_DATE),
-        val       = num0(.data[[col]], NA_real_)
-      ) %>%
+    rotation_mins_player %>%
       dplyr::filter(GAME_DATE < proj_date) %>%
       dplyr::arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
       dplyr::group_by(ESPN_PLAYER_ID) %>%
       dplyr::slice_tail(n = n_games_back) %>%
       dplyr::mutate(
+        val        = .data[[col]],
         days_ago   = as.numeric(as.Date(proj_date) - GAME_DATE),
         rec_weight = exp(-0.1 * days_ago)
       ) %>%
@@ -2372,6 +2462,7 @@ build_minutes_params_one_date <- function(
   
   # ----------------------------------------------------------
   # E) Injury absorption using empirical deltas from delta_v2
+  #    (coalesce fix from v2 — accumulates, doesn't overwrite)
   # ----------------------------------------------------------
   out_player_ids <- if (!is.null(roster_out) && nrow(roster_out) > 0) {
     roster_out %>%
@@ -2384,7 +2475,7 @@ build_minutes_params_one_date <- function(
   
   reg_quarters <- c("Q1","Q2","Q3","Q4")
   
-  # *** FIX: Initialize usage_weight columns BEFORE the loop ***
+  # Initialize usage_weight columns BEFORE the loop
   for (q in reg_quarters) {
     ucol <- paste0("usage_weight_", q)
     df[[ucol]] <- NA_real_
@@ -2392,7 +2483,6 @@ build_minutes_params_one_date <- function(
   
   if (!is.null(out_player_ids) && nrow(out_player_ids) > 0) {
     
-    # Pull full delta history — no date filter, pattern-based lookup
     date_deltas <- delta_lookup %>%
       mutate(ESPN_TEAM_ID       = as.character(ESPN_TEAM_ID),
              AFFECTED_PLAYER_ID = as.character(AFFECTED_PLAYER_ID),
@@ -2420,7 +2510,6 @@ build_minutes_params_one_date <- function(
       
       if (nrow(player_deltas) > 0) {
         
-        # *** FIX: Use suffixed join to avoid column name collisions ***
         df <- df %>%
           left_join(
             player_deltas %>%
@@ -2430,7 +2519,6 @@ build_minutes_params_one_date <- function(
             by = "ESPN_PLAYER_ID"
           ) %>%
           mutate(
-            # *** FIX: ACCUMULATE minute deltas (additive across OUT players) ***
             mins_mean_Q1 = ifelse(
               is_active == 1 & !is.na(DELTA_MINS_Q1_new),
               pmax(0, mins_mean_Q1 + DELTA_MINS_Q1_new), mins_mean_Q1),
@@ -2444,22 +2532,15 @@ build_minutes_params_one_date <- function(
               is_active == 1 & !is.na(DELTA_MINS_Q4_new),
               pmax(0, mins_mean_Q4 + DELTA_MINS_Q4_new), mins_mean_Q4),
             
-            # *** FIX: COALESCE usage weights — keep existing, fill new ***
-            # If a player already has a usage weight from a previous OUT player,
-            # keep it. Only set it if it was NA before.
-            # Usage weights represent the player's baseline share — they don't
-            # change based on HOW MANY teammates are out, they just need to exist.
             usage_weight_Q1 = coalesce(usage_weight_Q1, BASE_USAGE_Q1_new),
             usage_weight_Q2 = coalesce(usage_weight_Q2, BASE_USAGE_Q2_new),
             usage_weight_Q3 = coalesce(usage_weight_Q3, BASE_USAGE_Q3_new),
             usage_weight_Q4 = coalesce(usage_weight_Q4, BASE_USAGE_Q4_new)
           ) %>%
-          # Clean up suffixed columns for next iteration
           select(-ends_with("_new"))
         
       } else {
         
-        # Proportional fallback — no delta entry for this OUT player
         for (q in reg_quarters) {
           col <- paste0("mins_mean_", q)
           if (!col %in% names(df)) next
@@ -2485,8 +2566,6 @@ build_minutes_params_one_date <- function(
             ungroup()
         }
         
-        # *** FIX: Also set proportional usage weights in fallback ***
-        # If no delta entry exists, assign proportional usage based on minutes share
         for (q in reg_quarters) {
           mcol <- paste0("mins_mean_", q)
           ucol <- paste0("usage_weight_", q)
@@ -2507,7 +2586,6 @@ build_minutes_params_one_date <- function(
         }
       }
       
-      # Zero out the OUT player's minutes
       df <- df %>%
         mutate(across(
           starts_with("mins_mean_"),
@@ -2573,16 +2651,16 @@ if (exists("roster_pool_today") && nrow(roster_pool_today) > 0) {
 # ============================================================
 if (exists("roster_pool_backtest_by_date") && length(roster_pool_backtest_by_date) > 0) {
   
-  cat("📊 Building BACKTEST minutes parameters...\n")
+  cat("📊 Building BACKTEST minutes parameters (rotation-aware)...\n")
   
   bt_keys  <- names(roster_pool_backtest_by_date)
   bt_dates <- key_to_date(bt_keys)
   bt_keys  <- bt_keys[!is.na(bt_dates)]
   
-  # Cluster setup — after function, delta_lookup, and bt_keys are all defined
-  cl <- makeCluster(4)
+  cl <- makeCluster(5)
   clusterExport(cl, c(
     "build_minutes_params_one_date",
+    "rotation_mins_player",
     "BaseStats_Player_MC",
     "delta_lookup",
     "roster_pool_backtest_by_date",
@@ -2609,7 +2687,7 @@ if (exists("roster_pool_backtest_by_date") && length(roster_pool_backtest_by_dat
   stopCluster(cl)
   
   message(
-    "✅ Minutes baseline params built | BACKTEST | dates=", length(bt_keys),
+    "✅ Minutes baseline params built (ROTATION) | BACKTEST | dates=", length(bt_keys),
     " | rows=", nrow(player_minutes_params_backtest)
   )
   
@@ -2674,28 +2752,30 @@ player_minutes_params_backtest <- player_minutes_params_backtest %>%
     by = c("GAME_DATE", "ESPN_TEAM_ID")
   )
 
-# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-# 🏀🏀🏀 END: Minutes BASELINE PARAMETER BUILDER v2
-# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+player_minutes_params_backtest %>%
+  filter(is_active == 1) %>%
+  group_by(date_key, ESPN_TEAM_ID) %>%
+  summarise(total_Q1 = sum(mins_mean_Q1, na.rm = TRUE), .groups = "drop") %>%
+  summarise(mean_Q1 = mean(total_Q1), max_Q1 = max(total_Q1))
+
 
 player_minutes_params_backtest %>%
+  filter(is_active == 1) %>%
+  group_by(date_key, ESPN_TEAM_ID) %>%
+  summarise(total_Q1 = sum(mins_mean_Q1, na.rm = TRUE), .groups = "drop") %>%
   summarise(
-    total_rows    = n(),
-    with_usage_Q1 = sum(!is.na(usage_weight_Q1)),
-    pct_populated = round(mean(!is.na(usage_weight_Q1)) * 100, 1)
+    mean = round(mean(total_Q1), 2),
+    median = round(median(total_Q1), 2),
+    min = round(min(total_Q1), 2),
+    max = round(max(total_Q1), 2),
+    pct_under_58 = round(mean(total_Q1 < 58) * 100, 1),
+    pct_under_55 = round(mean(total_Q1 < 55) * 100, 1)
   )
 
-player_minutes_params_backtest %>%
-  group_by(GAME_DATE, ESPN_TEAM_ID) %>%
-  summarise(
-    has_usage = any(!is.na(usage_weight_Q1)),
-    .groups = "drop"
-  ) %>%
-  summarise(
-    dates_with_injuries = sum(has_usage),
-    dates_without       = sum(!has_usage),
-    pct_with_injuries   = round(mean(has_usage) * 100, 1)
-  )
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+# 🏀🏀🏀 END: Minutes BASELINE PARAMETER BUILDER v3 (ROTATION-AWARE)
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+
 
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
@@ -10504,6 +10584,12 @@ odds_fd <- odds_raw %>%
 
 cat("  FanDuel odds rows:", nrow(odds_fd), "\n")
 
+# Build team name mapping from odds data
+odds_team_map <- odds_fd %>%
+  select(espn_team_id_home, home_team) %>%
+  distinct() %>%
+  rename(odds_espn_id = espn_team_id_home, team_full_name = home_team)
+
 # --------------------------------------------------
 # STEP 3: Get closing lines (last snapshot per game/market/outcome)
 # --------------------------------------------------
@@ -10950,9 +11036,9 @@ cat("  model_vs_market          — model accuracy vs FanDuel market accuracy\n\
 
 
 
-# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
-# SAVE RUN OUTPUTS
-# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
+# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
+# START SAVE RUN OUTPUTS
+# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
 
 cat("💾 Saving run outputs...\n\n")
 
@@ -10998,3 +11084,7 @@ save_rds(run_config, "run_config")
 
 cat("\n💾 All outputs saved to:", pred_dir, "\n")
 cat("   Timestamp:", timestamp, "\n\n")
+
+# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
+# END SAVE RUN OUTPUTS
+# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾

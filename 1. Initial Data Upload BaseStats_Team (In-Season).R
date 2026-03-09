@@ -566,13 +566,20 @@ if (file.exists(team_output_path) && file.info(team_output_path)$size > 0) {
 nba_team_box <- load_nba_team_box()
 nba_team_box$game_date <- as.Date(nba_team_box$game_date)
 
+# 2.3 Load team box
+nba_team_box <- load_nba_team_box()
+nba_team_box$game_date <- as.Date(nba_team_box$game_date)
+
+# 2.3a Remove All-Star / non-standard games (team names like WORLD, STARS, etc.)
+nba_team_box <- nba_team_box %>%
+  filter(nchar(team_abbreviation) <= 3)
+
 # ---------------- Core branching ----------------
 
 if (nrow(BaseStats_Team) == 0) {
   # =============================
   # First run — build full dataset
   # =============================
-  message("BaseStats_Team is blank — skipping date check and building full dataset.")
   build_src <- nba_team_box
 } else {
   # =============================
@@ -682,7 +689,11 @@ if (exists("opponent_rebound_mapping")) rm(opponent_rebound_mapping)
 rm(opponent_rebound_mapping, build_src, built, opp_map, nba_team_box)
 ##### 2. ***END*** ---------------------------------------------------------------
 
-nba_team_box_filtered <- nba_team_box_filtered %>% dplyr::group_by(game_id) %>%
+# Use whichever game ID column exists
+gid_col <- if ("game_id" %in% names(nba_team_box_filtered)) "game_id" else "espn_game_id"
+
+nba_team_box_filtered <- nba_team_box_filtered %>%
+  dplyr::group_by(.data[[gid_col]]) %>%
   dplyr::mutate(opp_logo = team_logo[match(opp, team)]) %>%
   dplyr::ungroup()
 

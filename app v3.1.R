@@ -92,35 +92,29 @@ nba_logo_b64  <- tryCatch(base64enc::dataURI(file = paste0(WWW_PATH, "nba-logo-b
 OPAL_css <- "
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500&display=swap');
 
- :root {
-   --bg-base:        #f0f0f2;
-   --bg-sidebar:     #e4e4e8;
-   --bg-panel:       #eaeaee;
-   --bg-card:        #ffffff;
-   --bg-card-hover:  #f5f5f8;
-   --bg-header:      #e4e4e8;
-   --border:         #d0d0d8;
-   --border-light:   #c0c0c8;
-   --text-primary:   #1a1a1e;
-   --text-secondary: #4a4a58;
-   --text-muted:     #8a8a98;
-   --sidebar-width:  220px;
-   --sidebar-col:    56px;
-   --header-height:  48px;
- }
- body.dark-mode {
-   --bg-base:        #0a0a0b;
-   --bg-sidebar:     #111114;
-   --bg-panel:       #0e0e10;
-   --bg-card:        #161619;
-   --bg-card-hover:  #1c1c20;
-   --bg-header:      #111114;
-   --border:         #222228;
-   --border-light:   #2a2a32;
-   --text-primary:   #e8e8ec;
-   --text-secondary: #7a7a8a;
-   --text-muted:     #4a4a58;
- }
+:root {
+  --bg-base:        #0a0a0b;
+  --bg-sidebar:     #0e0e12;
+  --bg-panel:       #0c0c0f;
+  --bg-card:        #141418;
+  --bg-card-hover:  #1c1c22;
+  --bg-header:      #0e0e12;
+  --border:         #222230;
+  --border-light:   #2e2e3a;
+  --text-primary:   #e8e4e0;
+  --text-secondary: #8a8498;
+  --text-muted:     #4a4858;
+  --accent:         #d4a574;
+  --accent-dim:     #a07a50;
+  --accent-glow:    rgba(212, 165, 116, 0.15);
+  --accent-lavender:#8a7ab8;
+  --accent-coral:   #c48a6a;
+  --positive:       #7aba7a;
+  --negative:       #aa4a4a;
+  --sidebar-width:  220px;
+  --sidebar-col:    56px;
+  --header-height:  48px;
+}
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body, .shiny-bound-input { height: 100%; }
@@ -804,7 +798,7 @@ table.boxscore td { padding: 8px 12px; }
  .leader-block { background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden; }
  .leader-block-title { padding:8px 12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-primary);border-bottom:1px solid var(--border); }
  .leader-block-row { display:flex;align-items:center;padding:6px 12px;gap:8px;border-bottom:1px solid rgba(0,0,0,.05);transition:background .1s; }
- body.dark-mode .leader-block-row { border-bottom-color:rgba(255,255,255,.04); }
+ .leader-block-row { border-bottom-color: rgba(255,255,255,.04); }
  .leader-block-row:hover { background:var(--bg-card-hover); }
  .leader-rank { font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;width:20px;text-align:center; }
  .leader-rank-1 { color:#c8a020; } .leader-rank-2 { color:#8a8a8a; } .leader-rank-3 { color:#a06830; }
@@ -825,14 +819,14 @@ table.pr-table tbody tr:nth-child(even),
 table.bv-bet-table tbody tr:nth-child(even) {
   background: var(--bg-card);
 }
-body.dark-mode table.slate-table tbody tr:nth-child(even),
-body.dark-mode table.conf-table tbody tr:nth-child(even),
-body.dark-mode table.gamelog tbody tr:nth-child(even),
-body.dark-mode table.boxscore tbody tr:nth-child(even),
-body.dark-mode table.quarter-table tbody tr:nth-child(even),
-body.dark-mode table.po-table tbody tr:nth-child(even),
-body.dark-mode table.pr-table tbody tr:nth-child(even),
-body.dark-mode table.bv-bet-table tbody tr:nth-child(even) {
+table.slate-table tbody tr:nth-child(even),
+table.conf-table tbody tr:nth-child(even),
+table.gamelog tbody tr:nth-child(even),
+table.boxscore tbody tr:nth-child(even),
+table.quarter-table tbody tr:nth-child(even),
+table.po-table tbody tr:nth-child(even),
+table.pr-table tbody tr:nth-child(even),
+table.bv-bet-table tbody tr:nth-child(even) {
   background: #1c1c22;
 }
 
@@ -983,7 +977,7 @@ table.po-table tbody td { font-size: 17px; padding: 10px 12px !important; }
 .sc-filter-select { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; color:var(--text-secondary); font-family:'Calibri',sans-serif; font-size:12px; padding:6px 10px; cursor:pointer; min-width:120px; }
 .sc-filter-select:focus { outline:none; border-color:var(--border-light); }
 .sc-court-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
-body.dark-mode .sc-court-wrap { box-shadow:0 2px 12px rgba(0,0,0,.3); }
+.sc-court-wrap { box-shadow: 0 2px 12px rgba(0,0,0,.3); }
 .sc-court-svg { width:100%; height:auto; display:block; }
 .sc-key { display:flex; align-items:center; justify-content:center; gap:20px; padding:10px 0 0; font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text-muted); }
 .sc-key-item { display:flex; align-items:center; gap:6px; }
@@ -993,7 +987,6 @@ body.dark-mode .sc-court-wrap { box-shadow:0 2px 12px rgba(0,0,0,.3); }
 
 /* Team Stats comparison bars */
 .sc-stats-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
-body.dark-mode .sc-stats-card { box-shadow:0 2px 12px rgba(0,0,0,.3); }
 .sc-stats-title { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:15px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-primary); margin-bottom:14px; }
 .sc-stat-row { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
 .sc-stat-away { flex:1; text-align:right; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:15px; color:var(--text-primary); }
@@ -1006,7 +999,6 @@ body.dark-mode .sc-stats-card { box-shadow:0 2px 12px rgba(0,0,0,.3); }
 
 /* On-court lineup */
 .sc-oncourt { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); margin-top:16px; }
-body.dark-mode .sc-oncourt { box-shadow:0 2px 12px rgba(0,0,0,.3); }
 .sc-oncourt-title { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:14px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-primary); margin-bottom:10px; }
 .sc-lineup-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.04); }
 .sc-lineup-player { display:flex; flex-direction:column; align-items:center; gap:3px; width:56px; }
@@ -1034,7 +1026,6 @@ body:not(.dark-mode) .mini-cal-day.selected { background:#d0ecd0 !important; bor
 /* ── GAMECAST ── */
 .gc-layout { display:flex; flex-direction:column; gap:16px; }
 .gc-scoreboard { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px 24px; display:flex; align-items:center; justify-content:center; gap:24px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
-body.dark-mode .gc-scoreboard { box-shadow:0 2px 12px rgba(0,0,0,.3); }
 .gc-team-block { display:flex; align-items:center; gap:10px; flex:1; }
 .gc-team-block.away { justify-content:flex-end; }
 .gc-team-block.home { justify-content:flex-start; }
@@ -1056,7 +1047,6 @@ body:not(.dark-mode) .gc-qtr-btn.active { background:#d0ecd0; border-color:#4a8a
 .gc-feed::-webkit-scrollbar { width:4px; }
 .gc-feed::-webkit-scrollbar-thumb { background:var(--border-light); border-radius:2px; }
 .gc-play-card { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:12px 16px; display:flex; align-items:flex-start; gap:12px; transition:background .1s; box-shadow:0 1px 4px rgba(0,0,0,.05); }
-body.dark-mode .gc-play-card { box-shadow:0 1px 6px rgba(0,0,0,.2); }
 .gc-play-card:hover { background:var(--bg-card-hover); }
 .gc-play-card.scoring { border-left:3px solid #5a9a5a; }
 .gc-play-hs { width:36px; height:36px; border-radius:50%; object-fit:cover; object-position:top; border:2px solid var(--border); flex-shrink:0; margin-top:2px; }
@@ -1116,7 +1106,6 @@ body:not(.dark-mode) .gcal-team-btn.active { background:#d0ecd0; border-color:#4
 
 /* ── GameCast mini court ── */
 .gc-mini-court-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); margin-bottom:12px; }
-body.dark-mode .gc-mini-court-wrap { box-shadow:0 2px 12px rgba(0,0,0,.3); }
 .gc-mini-court-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
 .gc-mini-court-title { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:18px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-primary); }
 .gc-mini-court-filter { display:flex; align-items:center; gap:8px; font-size:14px; font-family:'Share Tech Mono',monospace; color:var(--text-muted); }
@@ -1203,7 +1192,6 @@ table.fd-table tbody tr:hover { background:var(--bg-card-hover); }
 table.fd-table tbody td { padding:7px 10px; color:var(--text-secondary); text-align:center; white-space:nowrap; }
 table.fd-table tbody td:nth-child(2) { text-align:left; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:16px; color:var(--text-primary); }
 table.fd-table tbody tr:nth-child(even) { background:var(--bg-card); }
-body.dark-mode table.fd-table tbody tr:nth-child(even) { background:#1c1c22; }
 table.fd-table thead th { background:#1a1a1e !important; color:#aaa !important; }
 body:not(.dark-mode) table.fd-table thead th { background:#d8d8dc !important; color:#555 !important; }
 .fd-table .fd-logo { width:28px; height:28px; object-fit:contain; vertical-align:middle; }
@@ -1232,6 +1220,178 @@ body:not(.dark-mode) .fd-pct-6 { background:#ecd4a0 !important; color:#8a5a1a !i
 body:not(.dark-mode) .fd-pct-7 { background:#ecc4a0 !important; color:#8a4a1a !important; }
 body:not(.dark-mode) .fd-pct-8 { background:#ecacac !important; color:#7a2a1a !important; }
 body:not(.dark-mode) .fd-pct-9 { background:#ec9c9c !important; color:#7a1a1a !important; }
+/* ── Fav & Dog Analysis Table ── */
+table.fd-table { width:100%; border-collapse:collapse; font-family:'Share Tech Mono',monospace; font-size:15px; }
+table.fd-table thead th { padding:8px 10px; text-align:center; font-size:12px; font-family:'Share Tech Mono',monospace; letter-spacing:.06em; color:var(--text-muted); border-bottom:2px solid var(--border); font-weight:400; white-space:nowrap; position:sticky; top:0; background:var(--bg-card); z-index:2; text-transform:uppercase; }
+table.fd-table thead th:nth-child(1), table.fd-table thead th:nth-child(2) { text-align:left; }
+table.fd-table tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+table.fd-table tbody tr:hover { background:var(--bg-card-hover); }
+table.fd-table tbody td { padding:7px 10px; color:var(--text-secondary); text-align:center; white-space:nowrap; }
+table.fd-table tbody td:nth-child(2) { text-align:left; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:16px; color:var(--text-primary); }
+table.fd-table tbody tr:nth-child(even) { background:var(--bg-card); }
+table.fd-table thead th { background:#1a1a1e !important; color:#aaa !important; }
+body:not(.dark-mode) table.fd-table thead th { background:#d8d8dc !important; color:#555 !important; }
+.fd-table .fd-logo { width:28px; height:28px; object-fit:contain; vertical-align:middle; }
+table.fd-table thead th.fd-grp-u { border-bottom-color:#c8a020; color:#c8a020 !important; }
+table.fd-table thead th.fd-grp-f { border-bottom-color:#5a7aaa; color:#5a7aaa !important; }
+table.fd-table thead th.fd-grp-g { border-bottom-color:#7a7a8a; color:#7a7a8a !important; }
+.fd-pct-1 { background:#1a472a !important; color:#7aba7a !important; font-weight:700; }
+.fd-pct-2 { background:#1e3e22 !important; color:#6aaa5a !important; }
+.fd-pct-3 { background:#2a3a1e !important; color:#8a9a4a !important; }
+.fd-pct-4 { background:#3a3a1a !important; color:#aaaa3a !important; }
+.fd-pct-5 { background:#3a3a1a !important; color:#bba830 !important; }
+.fd-pct-6 { background:#3a2e1a !important; color:#bb8830 !important; }
+.fd-pct-7 { background:#3a241a !important; color:#aa6a3a !important; }
+.fd-pct-8 { background:#3a1a1a !important; color:#aa4a4a !important; }
+.fd-pct-9 { background:#471a1a !important; color:#ba4a4a !important; font-weight:700; }
+body:not(.dark-mode) .fd-pct-1 { background:#b8ecc4 !important; color:#1a5a2a !important; }
+body:not(.dark-mode) .fd-pct-2 { background:#c8ecbc !important; color:#2a6a2a !important; }
+body:not(.dark-mode) .fd-pct-3 { background:#dce8b0 !important; color:#5a6a2a !important; }
+body:not(.dark-mode) .fd-pct-4 { background:#ece8a8 !important; color:#7a7a1a !important; }
+body:not(.dark-mode) .fd-pct-5 { background:#ece0a0 !important; color:#8a7a1a !important; }
+body:not(.dark-mode) .fd-pct-6 { background:#ecd4a0 !important; color:#8a5a1a !important; }
+body:not(.dark-mode) .fd-pct-7 { background:#ecc4a0 !important; color:#8a4a1a !important; }
+body:not(.dark-mode) .fd-pct-8 { background:#ecacac !important; color:#7a2a1a !important; }
+body:not(.dark-mode) .fd-pct-9 { background:#ec9c9c !important; color:#7a1a1a !important; }
+.fd-slate-section { margin-top:28px; }
+.fd-section-title { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:20px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-primary); margin-bottom:14px; }
+.fd-section-sub { font-size:12px; font-family:'Share Tech Mono',monospace; color:var(--text-muted); letter-spacing:.04em; margin-bottom:16px; }
+.fd-slate-cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; margin-bottom:20px; }
+.fd-slate-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.fd-slate-card-title { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:16px; letter-spacing:.06em; color:var(--text-primary); margin-bottom:10px; text-transform:uppercase; }
+.fd-slate-card-title .fd-slate-count { font-size:12px; font-family:'Share Tech Mono',monospace; color:var(--text-muted); font-weight:400; margin-left:6px; }
+.fd-slate-stat-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+.fd-slate-stat-row:last-child { border-bottom:none; }
+.fd-slate-stat-label { font-size:12px; font-family:'Share Tech Mono',monospace; color:var(--text-muted); letter-spacing:.06em; }
+.fd-slate-stat-val { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:18px; color:var(--text-primary); }
+.fd-slate-stat-val.dog-color { color:#c8a020; }
+.fd-slate-stat-val.fav-color { color:#5a7aaa; }
+.fd-slate-bar { height:6px; border-radius:3px; overflow:hidden; display:flex; gap:1px; margin-top:4px; }
+.fd-slate-bar-dog { background:#c8a020; height:100%; border-radius:3px 0 0 3px; }
+.fd-slate-bar-fav { background:#5a7aaa; height:100%; border-radius:0 3px 3px 0; }
+table.fd-slate-table { width:100%; border-collapse:collapse; font-family:'Share Tech Mono',monospace; font-size:14px; }
+table.fd-slate-table thead th { padding:8px 10px; text-align:center; font-size:11px; letter-spacing:.06em; color:var(--text-muted); border-bottom:2px solid var(--border); font-weight:400; text-transform:uppercase; background:var(--bg-card); }
+table.fd-slate-table thead th:first-child { text-align:left; }
+table.fd-slate-table tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+table.fd-slate-table tbody tr:hover { background:var(--bg-card-hover); }
+table.fd-slate-table tbody td { padding:7px 10px; color:var(--text-secondary); text-align:center; }
+table.fd-slate-table tbody td:first-child { text-align:left; font-family:'Rajdhani',sans-serif; font-weight:700; color:var(--text-primary); font-size:15px; }
+table.fd-slate-table tbody tr:nth-child(even) { background:var(--bg-card); }
+table.fd-slate-table thead th { background:#1a1a1e !important; color:#aaa !important; }
+body:not(.dark-mode) table.fd-slate-table thead th { background:#d8d8dc !important; color:#555 !important; }
+/* ── OPAL THEME ACCENTS ── */
+
+/* Active sidebar indicator — amber instead of grey */
+.nav-item.active::before { background: var(--accent) !important; }
+.nav-item.active .nav-label { color: var(--accent) !important; }
+.nav-item.active .nav-icon { border-color: var(--accent-dim) !important; background: rgba(212,165,116,.08) !important; }
+
+/* Header logo text glow */
+.logo-text { color: var(--accent) !important; text-shadow: 0 0 20px rgba(212,165,116,.2); }
+
+/* Card hover glow — warm amber */
+.opal-card:hover { border-color: rgba(212,165,116,.3) !important; box-shadow: 0 2px 12px var(--accent-glow) !important; }
+
+/* Tab active states — amber underline */
+.player-tab.active, .game-tab.active, .po-tab.active, .pr-tab.active, .tool-tab.active {
+  color: var(--accent) !important;
+  border-bottom-color: var(--accent) !important;
+}
+
+/* Stat values — warm white */
+.stat-val, .bv-stat-val, .to-banner-val, .leader-pavg { color: var(--text-primary) !important; }
+
+/* Positive values — keep green */
+.bv-stat-val.positive, .bet-result-W, .bv-cal-pnl.pos { color: var(--positive) !important; }
+.bv-stat-val.negative, .bet-result-L, .bv-cal-pnl.neg { color: var(--negative) !important; }
+
+/* Buttons — amber accent for primary actions */
+.bv-action-btn.primary { border-color: var(--accent-dim) !important; color: var(--accent) !important; }
+.bv-action-btn.primary:hover { background: rgba(212,165,116,.08) !important; border-color: var(--accent) !important; }
+
+/* Active filter pills — amber */
+.po-stat-btn.active, .pr-man-btn.active {
+  background: rgba(212,165,116,.1) !important;
+  border-color: var(--accent-dim) !important;
+  color: var(--accent) !important;
+}
+
+/* Bet slip tray — amber accents */
+.bs-fd-btn { background: #1a2a4a !important; border-color: #2a4a7a !important; }
+.bs-fd-btn:hover { background: #2a3a5a !important; }
+
+/* Table headers — dark with warm tint */
+table.slate-table thead th,
+table.conf-table thead th,
+table.fd-table thead th,
+table.fd-slate-table thead th {
+  background: #12121a !important;
+  color: #7a7888 !important;
+}
+
+/* Score/winner highlights — keep green */
+.to-game-score.winner { color: var(--positive) !important; }
+
+/* Section titles — warm */
+.home-section-title { color: var(--text-primary) !important; }
+#main-title { color: var(--accent) !important; }
+
+/* Scrollbar */
+#main-content::-webkit-scrollbar-thumb { background: var(--accent-dim) !important; }
+#main-content::-webkit-scrollbar-thumb:hover { background: var(--accent) !important; }
+
+/* Player hero gradient — warmer */
+.player-hero {
+  background: linear-gradient(to right, #0a0a0e 60%, #161418) !important;
+}
+.scoreboard-hero {
+  background: linear-gradient(to right, #0a0a0e, #141218, #0a0a0e) !important;
+}
+
+/* Subtle ambient glow on cards (like the opal shine) */
+.opal-card::after {
+  background: linear-gradient(135deg, rgba(212,165,116,.03) 0%, transparent 60%) !important;
+}
+
+/* Search placeholder — warm border on focus */
+.search-placeholder:focus-within { border-color: var(--accent-dim) !important; }
+
+/* Selectize inputs — warm focus */
+.selectize-input.focus { border-color: var(--accent-dim) !important; }
+
+/* Winner dots — green stays */
+.player-status-dot, .winner-dot, .pane-winner-dot { background: var(--positive) !important; }
+
+/* Calendar today highlight — amber */
+.cal-cell.today { background: rgba(212,165,116,.06) !important; }
+.cal-cell.today .cal-date-num { background: var(--accent-dim) !important; color: #fff !important; }
+
+/* Mini calendar selected — amber */
+.mini-cal-day.selected { background: rgba(212,165,116,.15) !important; border-color: var(--accent-dim) !important; color: var(--accent) !important; }
+
+/* GameCast quarter buttons active — amber */
+.gc-qtr-btn.active { background: rgba(212,165,116,.1) !important; border-color: var(--accent-dim) !important; color: var(--accent) !important; }
+
+/* Game Calendar team button active — amber */
+.gcal-team-btn.active { background: rgba(212,165,116,.1) !important; border-color: var(--accent-dim) !important; }
+
+/* Scoring play card left border — amber instead of green */
+.gc-play-card.scoring { border-left-color: var(--accent) !important; }
+
+/* Injury status — keep red/orange/yellow functional colors */
+
+/* Fav & Dog — keep gold/blue for dog/fav distinction */
+
+/* Player Rotations tray toggle — amber */
+.pr-tray-toggle { background: var(--accent) !important; color: #0a0a0b !important; }
+.pr-tray-toggle:hover { background: #e0b584 !important; }
+
+/* Bet slip odds clickable hover — amber glow */
+.odds-clickable:hover { box-shadow: 0 0 0 2px rgba(212,165,116,.3) !important; }
+.odds-clickable.in-slip { border-color: var(--accent-dim) !important; background: rgba(212,165,116,.08) !important; }
+
+/* Dark toggle button — remove or restyle */
+.dark-toggle { display: none !important; }
 "
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -1240,11 +1400,10 @@ body:not(.dark-mode) .fd-pct-9 { background:#ec9c9c !important; color:#7a1a1a !i
 
 OPAL_js <- "
 function toggleSidebar() { document.body.classList.toggle('collapsed'); }
-function toggleDarkMode() {
-  document.body.classList.toggle('dark-mode');
-  var btn = document.getElementById('dark-mode-label');
-  if(btn) btn.textContent = document.body.classList.contains('dark-mode') ? 'Light' : 'Dark';
-}
+document.addEventListener('DOMContentLoaded', function() {
+  document.body.classList.add('dark-mode');
+});
+
 var navHistory=['home'], navIndex=0;
 function pushNav(id){ navHistory=navHistory.slice(0,navIndex+1); navHistory.push(id); navIndex=navHistory.length-1; updateNavBtns(); }
 function goBack(){ if(navIndex>0){ navIndex--; Shiny.setInputValue('nav_history_jump',navHistory[navIndex],{priority:'event'}); } updateNavBtns(); }
@@ -1395,7 +1554,9 @@ ui <- tagList(
                     tags$button(class = "header-btn",
                                 tags$svg(viewBox="0 0 24 24", tags$path(d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"), tags$path(d="M13.73 21a2 2 0 0 1-3.46 0"))),
                     tags$button(class = "header-btn",
-                                tags$svg(viewBox="0 0 24 24", tags$path(d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"), tags$circle(cx="12",cy="7",r="4")))
+                                tags$svg(viewBox="0 0 24 24", tags$path(d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"), tags$circle(cx="12",cy="7",r="4"))),
+                    tags$script(HTML("document.body.classList.add('dark-mode');"))
+                    
            )
   ),
   
@@ -3795,6 +3956,8 @@ server <- function(input, output, session) {
                                     onclick="Shiny.setInputValue('po_tab_click','team',{priority:'event'})", "Team Odds")
                         ,tags$button(class=paste("po-tab", if(tab=="favdog") "active" else ""),
                                      onclick="Shiny.setInputValue('po_tab_click','favdog',{priority:'event'})", "Fav & Dog Analysis")
+                        ,tags$button(class=paste("po-tab", if(tab=="favdog") "active" else ""),
+                                     onclick="Shiny.setInputValue('po_tab_click','favdog',{priority:'event'})", "Fav & Dog Analysis")
                ),
                
                # Filter bar
@@ -4220,7 +4383,8 @@ server <- function(input, output, session) {
   
   
   output$po_favdog_ui <- renderUI({
-    # Aggregate per team
+    
+    # SECTION 1: Per-Team Breakdown
     fd <- team_data %>%
       group_by(TEAM) %>%
       summarise(
@@ -4232,8 +4396,8 @@ server <- function(input, output, session) {
         .groups = "drop"
       ) %>%
       mutate(
-        u_sum   = dog_w + dog_l,
-        f_sum   = fav_w + fav_l,
+        u_sum      = dog_w + dog_l,
+        f_sum      = fav_w + fav_l,
         u_won_pct  = ifelse(u_sum > 0, round(dog_w / u_sum * 100, 1), NA),
         u_loss_pct = ifelse(u_sum > 0, round(dog_l / u_sum * 100, 1), NA),
         f_won_pct  = ifelse(f_sum > 0, round(fav_w / f_sum * 100, 1), NA),
@@ -4243,8 +4407,6 @@ server <- function(input, output, session) {
     
     if(nrow(fd) == 0) return(tags$div(class="pr-placeholder", tags$p("No data available")))
     
-    # Conditional formatting helper — assigns class based on percentile rank
-    # higher_is_better: TRUE = high values get green, FALSE = high values get red
     fd_pct_class <- function(val, all_vals, higher_is_better=TRUE) {
       if(is.na(val)) return("")
       vals <- all_vals[!is.na(all_vals)]
@@ -4259,49 +4421,32 @@ server <- function(input, output, session) {
       else if(pct <= 0.89) "fd-pct-8" else "fd-pct-9"
     }
     
-    # Precompute all values for ranking
     all_u_won_pct  <- fd$u_won_pct
     all_u_loss_pct <- fd$u_loss_pct
     all_f_won_pct  <- fd$f_won_pct
     all_f_loss_pct <- fd$f_loss_pct
     
-    # Build rows
     rows_html <- paste(sapply(seq_len(nrow(fd)), function(i) {
       r <- fd[i,]
       team_abv <- as.character(r$TEAM)
-      
-      # Logo
       logo_url <- NBA_TEAMS$logo[NBA_TEAMS$abv == team_abv]
       logo_html <- if(length(logo_url) > 0 && nchar(logo_url) > 0)
         sprintf("<img class='fd-logo' src='%s'/>", logo_url) else ""
-      
-      # Conditional classes for percentage columns
-      uw_cls <- fd_pct_class(r$u_won_pct, all_u_won_pct, higher_is_better=TRUE)
-      ul_cls <- fd_pct_class(r$u_loss_pct, all_u_loss_pct, higher_is_better=FALSE)
-      fw_cls <- fd_pct_class(r$f_won_pct, all_f_won_pct, higher_is_better=TRUE)
-      fl_cls <- fd_pct_class(r$f_loss_pct, all_f_loss_pct, higher_is_better=FALSE)
-      
+      uw_cls <- fd_pct_class(r$u_won_pct, all_u_won_pct, TRUE)
+      ul_cls <- fd_pct_class(r$u_loss_pct, all_u_loss_pct, FALSE)
+      fw_cls <- fd_pct_class(r$f_won_pct, all_f_won_pct, TRUE)
+      fl_cls <- fd_pct_class(r$f_loss_pct, all_f_loss_pct, FALSE)
       fmt_pct <- function(v) if(is.na(v)) "\u2014" else paste0(v, "%")
-      
-      sprintf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td class='%s'>%s</td><td class='%s'>%s</td><td>%s</td><td>%s</td><td>%s</td><td class='%s'>%s</td><td class='%s'>%s</td></tr>",
-              logo_html, team_abv,
-              as.integer(r$games),
-              as.integer(r$u_sum), as.integer(r$dog_w), as.integer(r$dog_l),
-              as.integer(r$f_sum),
-              uw_cls, fmt_pct(r$u_won_pct),
-              ul_cls, fmt_pct(r$u_loss_pct),
-              as.integer(r$f_sum),
-              as.integer(r$fav_w), as.integer(r$fav_l),
-              fw_cls, fmt_pct(r$f_won_pct),
-              fl_cls, fmt_pct(r$f_loss_pct))
+      paste0("<tr><td>", logo_html, "</td><td>", team_abv, "</td><td>", as.integer(r$games),
+             "</td><td>", as.integer(r$u_sum), "</td><td>", as.integer(r$dog_w), "</td><td>", as.integer(r$dog_l),
+             "</td><td class='", uw_cls, "'>", fmt_pct(r$u_won_pct), "</td><td class='", ul_cls, "'>", fmt_pct(r$u_loss_pct),
+             "</td><td>", as.integer(r$fav_w), "</td><td>", as.integer(r$fav_l),
+             "</td><td>", as.integer(r$f_sum),
+             "</td><td class='", fw_cls, "'>", fmt_pct(r$f_won_pct), "</td><td class='", fl_cls, "'>", fmt_pct(r$f_loss_pct), "</td></tr>")
     }), collapse="")
     
-    # Header with group rows
-    header_html <- sprintf(
-      "<thead><tr><th class='fd-grp-g' colspan='3'></th><th class='fd-grp-u' colspan='6'>UNDERDOG</th><th class='fd-grp-f' colspan='5'>FAVORITE</th></tr><tr><th></th><th>Team</th><th class='fd-grp-g'>Games</th><th class='fd-grp-u'>uSUM</th><th class='fd-grp-u'>uWon</th><th class='fd-grp-u'>uLoss</th><th class='fd-grp-u'>fSUM</th><th class='fd-grp-u'>uWon%%</th><th class='fd-grp-u'>uLoss%%</th><th class='fd-grp-f'>fSUM</th><th class='fd-grp-f'>fWon</th><th class='fd-grp-f'>fLoss</th><th class='fd-grp-f'>fWon%%</th><th class='fd-grp-f'>fLoss%%</th></tr></thead>"
-    )
+    header_html <- "<thead><tr><th class='fd-grp-g' colspan='3'></th><th class='fd-grp-u' colspan='5'>UNDERDOG</th><th class='fd-grp-f' colspan='5'>FAVORITE</th></tr><tr><th></th><th>Team</th><th class='fd-grp-g'>GP</th><th class='fd-grp-u'>uSUM</th><th class='fd-grp-u'>uW</th><th class='fd-grp-u'>uL</th><th class='fd-grp-u'>uW%%</th><th class='fd-grp-u'>uL%%</th><th class='fd-grp-f'>fW</th><th class='fd-grp-f'>fL</th><th class='fd-grp-f'>fSUM</th><th class='fd-grp-f'>fW%%</th><th class='fd-grp-f'>fL%%</th></tr></thead>"
     
-    # Summary banner
     total_dog_games <- sum(fd$u_sum, na.rm=TRUE)
     total_dog_wins  <- sum(fd$dog_w, na.rm=TRUE)
     total_fav_games <- sum(fd$f_sum, na.rm=TRUE)
@@ -4309,31 +4454,99 @@ server <- function(input, output, session) {
     dog_win_pct <- if(total_dog_games > 0) round(total_dog_wins / total_dog_games * 100, 1) else 0
     fav_win_pct <- if(total_fav_games > 0) round(total_fav_wins / total_fav_games * 100, 1) else 0
     
+    # SECTION 2: Slate Size Analysis
+    games_per_date <- team_data %>%
+      distinct(ESPN_GAME_ID, GAME_DATE) %>%
+      group_by(GAME_DATE) %>%
+      summarise(slate_size = n(), .groups="drop")
+    
+    td_slate <- team_data %>%
+      left_join(games_per_date, by="GAME_DATE")
+    
+    td_slate$slate_bucket <- cut(td_slate$slate_size,
+                                 breaks=c(0, 4, 6, 9, 16),
+                                 labels=c("1-4 Games", "5-6 Games", "7-9 Games", "10+ Games"),
+                                 right=TRUE)
+    
+    slate_summary <- td_slate %>%
+      filter(!is.na(slate_bucket)) %>%
+      group_by(slate_bucket) %>%
+      summarise(
+        total_games = n_distinct(ESPN_GAME_ID),
+        slates      = n_distinct(GAME_DATE),
+        dog_wins    = sum(as.numeric(dog_win), na.rm=TRUE),
+        dog_losses  = sum(as.numeric(dog_loss), na.rm=TRUE),
+        fav_wins    = sum(as.numeric(fav_win), na.rm=TRUE),
+        fav_losses  = sum(as.numeric(fav_loss), na.rm=TRUE),
+        .groups="drop"
+      ) %>%
+      mutate(
+        dog_total   = dog_wins + dog_losses,
+        fav_total   = fav_wins + fav_losses,
+        dog_win_pct = ifelse(dog_total > 0, round(dog_wins / dog_total * 100, 1), 0),
+        fav_win_pct = ifelse(fav_total > 0, round(fav_wins / fav_total * 100, 1), 0),
+        avg_dog_wins = ifelse(slates > 0, round(dog_wins / slates, 1), 0),
+        avg_fav_wins = ifelse(slates > 0, round(fav_wins / slates, 1), 0)
+      )
+    
+    slate_detail <- td_slate %>%
+      filter(!is.na(slate_bucket)) %>%
+      group_by(GAME_DATE, slate_bucket) %>%
+      summarise(dog_wins_tonight = sum(as.numeric(dog_win), na.rm=TRUE), .groups="drop")
+    
+    slate_cards_html <- paste(sapply(seq_len(nrow(slate_summary)), function(i) {
+      s <- slate_summary[i,]
+      bar_dog <- if(s$dog_win_pct + s$fav_win_pct > 0) round(s$dog_win_pct / (s$dog_win_pct + s$fav_win_pct) * 100) else 50
+      paste0(
+        "<div class='fd-slate-card'><div class='fd-slate-card-title'>", s$slate_bucket,
+        "<span class='fd-slate-count'>", s$slates, " slates</span></div>",
+        "<div class='fd-slate-stat-row'><span class='fd-slate-stat-label'>Total Games</span><span class='fd-slate-stat-val'>", s$total_games, "</span></div>",
+        "<div class='fd-slate-stat-row'><span class='fd-slate-stat-label'>Dog Win Rate</span><span class='fd-slate-stat-val dog-color'>", s$dog_win_pct, "%</span></div>",
+        "<div class='fd-slate-stat-row'><span class='fd-slate-stat-label'>Fav Win Rate</span><span class='fd-slate-stat-val fav-color'>", s$fav_win_pct, "%</span></div>",
+        "<div class='fd-slate-stat-row'><span class='fd-slate-stat-label'>Avg Dog Wins / Slate</span><span class='fd-slate-stat-val dog-color'>", s$avg_dog_wins, "</span></div>",
+        "<div class='fd-slate-stat-row'><span class='fd-slate-stat-label'>Avg Fav Wins / Slate</span><span class='fd-slate-stat-val fav-color'>", s$avg_fav_wins, "</span></div>",
+        "<div class='fd-slate-bar'><div class='fd-slate-bar-dog' style='width:", bar_dog, "%;'></div><div class='fd-slate-bar-fav' style='width:", 100 - bar_dog, "%;'></div></div></div>")
+    }), collapse="")
+    
+    slate_table_rows <- paste(sapply(seq_len(nrow(slate_summary)), function(i) {
+      s <- slate_summary[i,]
+      bucket_nights <- slate_detail %>% filter(slate_bucket == s$slate_bucket)
+      if(nrow(bucket_nights) > 0) {
+        mode_dog <- as.integer(names(sort(table(bucket_nights$dog_wins_tonight), decreasing=TRUE))[1])
+        max_dog  <- max(bucket_nights$dog_wins_tonight)
+        min_dog  <- min(bucket_nights$dog_wins_tonight)
+        range_str <- paste0(min_dog, "-", max_dog, " (mode: ", mode_dog, ")")
+      } else { range_str <- "\u2014" }
+      paste0("<tr><td>", s$slate_bucket, "</td><td>", s$slates, "</td><td>", s$total_games,
+             "</td><td>", s$dog_wins, "</td><td>", s$dog_losses,
+             "</td><td style='color:#c8a020;font-weight:700;'>", s$dog_win_pct, "%</td>",
+             "<td>", s$fav_wins, "</td><td>", s$fav_losses,
+             "</td><td style='color:#5a7aaa;font-weight:700;'>", s$fav_win_pct, "%</td>",
+             "<td>", s$avg_dog_wins, "</td><td>", range_str, "</td></tr>")
+    }), collapse="")
+    
+    slate_table_header <- "<thead><tr><th>Slate Size</th><th>Slates</th><th>Games</th><th>Dog W</th><th>Dog L</th><th>Dog W%</th><th>Fav W</th><th>Fav L</th><th>Fav W%</th><th>Avg Dog W/Slate</th><th>Dog W Range (Mode)</th></tr></thead>"
+    
+    # RENDER
     tagList(
-      # Banner stats
       tags$div(class="to-banner",
-               tags$div(class="to-banner-stat",
-                        tags$div(class="to-banner-val", total_dog_games),
-                        tags$div(class="to-banner-lbl", "Underdog Games")),
-               tags$div(class="to-banner-stat",
-                        tags$div(class="to-banner-val", total_dog_wins),
-                        tags$div(class="to-banner-lbl", "Dog Wins")),
-               tags$div(class="to-banner-stat",
-                        tags$div(class="to-banner-val", paste0(dog_win_pct, "%")),
-                        tags$div(class="to-banner-lbl", "Dog Win Rate")),
-               tags$div(class="to-banner-stat",
-                        tags$div(class="to-banner-val", total_fav_games),
-                        tags$div(class="to-banner-lbl", "Favorite Games")),
-               tags$div(class="to-banner-stat",
-                        tags$div(class="to-banner-val", total_fav_wins),
-                        tags$div(class="to-banner-lbl", "Fav Wins")),
-               tags$div(class="to-banner-stat",
-                        tags$div(class="to-banner-val", paste0(fav_win_pct, "%")),
-                        tags$div(class="to-banner-lbl", "Fav Win Rate"))
+               tags$div(class="to-banner-stat", tags$div(class="to-banner-val", total_dog_games), tags$div(class="to-banner-lbl", "Dog Games")),
+               tags$div(class="to-banner-stat", tags$div(class="to-banner-val", total_dog_wins), tags$div(class="to-banner-lbl", "Dog Wins")),
+               tags$div(class="to-banner-stat", tags$div(class="to-banner-val", paste0(dog_win_pct, "%")), tags$div(class="to-banner-lbl", "Dog Win Rate")),
+               tags$div(class="to-banner-stat", tags$div(class="to-banner-val", total_fav_games), tags$div(class="to-banner-lbl", "Fav Games")),
+               tags$div(class="to-banner-stat", tags$div(class="to-banner-val", total_fav_wins), tags$div(class="to-banner-lbl", "Fav Wins")),
+               tags$div(class="to-banner-stat", tags$div(class="to-banner-val", paste0(fav_win_pct, "%")), tags$div(class="to-banner-lbl", "Fav Win Rate"))
       ),
-      # Table
       tags$div(style="overflow-x:auto; border:1px solid var(--border); border-radius:8px; background:var(--bg-card); margin-top:12px;",
-               HTML(sprintf("<table class='fd-table'>%s<tbody>%s</tbody></table>", header_html, rows_html))
+               HTML(paste0("<table class='fd-table'>", header_html, "<tbody>", rows_html, "</tbody></table>"))
+      ),
+      tags$div(class="fd-slate-section",
+               tags$div(class="fd-section-title", "Slate Size Analysis"),
+               tags$div(class="fd-section-sub", "Dog and favorite win rates by number of games on the slate"),
+               HTML(paste0("<div class='fd-slate-cards'>", slate_cards_html, "</div>")),
+               tags$div(style="overflow-x:auto; border:1px solid var(--border); border-radius:8px; background:var(--bg-card);",
+                        HTML(paste0("<table class='fd-slate-table'>", slate_table_header, "<tbody>", slate_table_rows, "</tbody></table>"))
+               )
       )
     )
   })
