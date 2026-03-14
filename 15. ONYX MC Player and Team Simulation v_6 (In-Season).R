@@ -2,17 +2,15 @@
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 #
-#           .o.       ooooo     ooo oooooooooooo ooooooooo.   oooooooooooo ooooo        ooooo ooooo     ooo  .oooooo..o      8      ooo        ooooo   .oooooo.                           oooooooo 
-#          .888.      `888'     `8' `888'     `8 `888   `Y88. `888'     `8 `888'        `888' `888'     `8' d8P'    `Y8      8      `88.       .888'  d8P'  `Y8b                         dP""""""" 
-#         .8"888.      888       8   888          888   .d88'  888          888          888   888       8  Y88bo.           8       888b     d'888  888               oooo    ooo      d88888b.   
-#        .8' `888.     888       8   888oooo8     888ooo88P'   888oooo8     888          888   888       8   `"Y8888o.               8 Y88. .P  888  888                `88.  .8'           `Y88b  
-#       .88ooo8888.    888       8   888    "     888`88b.     888    "     888          888   888       8       `"Y88b      8       8  `888'   888  888                 `88..8'              ]88  
-#      .8'     `888.   `88.    .8'   888       o  888  `88b.   888       o  888       o  888   `88.    .8'  oo     .d8P      8       8    Y     888  `88b    ooo          `888'         o.   .88P  
-#     o88o     o8888o    `YbodP'    o888ooooood8 o888o  o888o o888ooooood8 o888ooooood8 o888o    `YbodP'    8""88888P'       8      o8o        o888o  `Y8bood8P'           `8'          `8bd88P'   
-#                                                                                                                                                                                             
-#                                                                                                                                                                                             
-#                                                                                                                                                                                             
+#       .oooooo.   ooooo      ooo oooooo   oooo ooooooo  ooooo      8      ooo        ooooo   .oooooo.                        .ooo   
+#      d8P'  `Y8b  `888b.     `8'  `888.   .8'   `8888    d8'       8      `88.       .888'  d8P'  `Y8b                     .88'     
+#     888      888  8 `88b.    8    `888. .8'      Y888..8P         8       888b     d'888  888               oooo    ooo  d88'      
+#     888      888  8   `88b.  8     `888.8'        `8888'                  8 Y88. .P  888  888                `88.  .8'  d888P"Ybo. 
+#     888      888  8     `88b.8      `888'        .8PY888.         8       8  `888'   888  888                 `88..8'   Y88[   ]88 
+#     `88b    d88'  8       `888       888        d8'  `888b        8       8    Y     888  `88b    ooo          `888'    `Y88   88P 
+#      `Y8bood8P'  o8o        `8      o888o     o888o  o88888o      8      o8o        o888o  `Y8bood8P'           `8'      `88bod8'  
 #
+#                                                                                                                                                                                             
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠                                                                                                                                               
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
@@ -43,7 +41,7 @@
 #   - mode = "today"    : loads today's schedule file (nba_schedule_YYYYMMDD.csv)
 #   - mode = "backtest" : does NOT auto-load schedule; you will call load_schedule_for_date()
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
-
+gc()
 rm(list = setdiff(ls(), c(
   # core globals
   "current_date",
@@ -69,6 +67,7 @@ rm(list = setdiff(ls(), c(
 library(data.table)
 library(dplyr)
 library(purrr)
+library(hoopR)
 library(tibble)
 library(lubridate)
 library(future)
@@ -89,6 +88,7 @@ player_mc_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. 
 rot_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/12. Player Rotations"
 odds_player_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/11. Player Enriched Odds"
 injury_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/9. Historical Injuries (RapidAPI)"
+
 
 
 # -----------------------------
@@ -214,6 +214,8 @@ injury_data <- fread(injury_data_file, colClasses = "character", encoding = "UTF
 sched_file <- file.path(sched_dir, paste0("nba_schedule_", season_token, ".csv"))
 nba_schedule_season <- fread(sched_file, colClasses = "character", encoding = "UTF-8")
 
+nba_schedule_season <- nba_schedule_season %>%
+  filter(game_date != "2026-02-15")
 
 # -----------------------------
 # Load player odds data (optional for team MC; keep loaded for later)
@@ -221,9 +223,953 @@ nba_schedule_season <- fread(sched_file, colClasses = "character", encoding = "U
 player_odds_enrich_file <- file.path(odds_player_dir, paste0("nba_player_odds_enrich_", season_token, ".csv"))
 player_odds_enrich_df <- fread(player_odds_enrich_file, colClasses = "character", encoding = "UTF-8")
 
+delta_v2 <- fread("C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/12. Player Rotations/player_impact_assessment_delta_2025_2026.csv")
+
+# Load the odds file
+odds_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/8. Historical Odds (Odds API)"
+odds_raw <- fread(file.path(odds_dir, "nba_historical_odds_2025_2026.csv"), 
+                  colClasses = "character", encoding = "UTF-8")
+
+# Remove games with no player minutes (postponed/cancelled)
+valid_game_ids <- BaseStats_Player_MC %>%
+  group_by(ESPN_GAME_ID) %>%
+  summarise(total_mins = sum(as.numeric(MINS_Q1), na.rm = TRUE)) %>%
+  filter(total_mins > 0) %>%
+  pull(ESPN_GAME_ID)
+
+BaseStats_Player_MC <- BaseStats_Player_MC %>%
+  filter(ESPN_GAME_ID %in% valid_game_ids)
+
+BaseStats_Team_MC <- BaseStats_Team_MC %>%
+  filter(ESPN_GAME_ID %in% valid_game_ids)
+
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+# 0. END: Load + Standardize Inputs (Mode-aware)
+#   - mode = "today"    : loads today's schedule file (nba_schedule_YYYYMMDD.csv)
+#   - mode = "backtest" : does NOT auto-load schedule; you will call load_schedule_for_date()
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+
+library(data.table)
+library(dplyr)
+
+# Load the two source files
+player_rotations <- fread(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/12. Player Rotations/pm_nba_player_level_rotations_2025_2026.csv", 
+  colClasses = "character"
+)
+
+BaseStats_Player_MC <- fread(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/2. BaseStats_Player/BaseStats_Player_MC_2025_2026.csv", 
+  colClasses = "character"
+)
+
+# Deduplicate rotations to one row per player-game
+rot_deduped <- player_rotations %>%
+  distinct(ESPN_GAME_ID, ESPN_TEAM_ID, PLAYER_ID, .keep_all = TRUE)
+
+# Find the correct scaling factor (total game minutes)
+comparison <- rot_deduped %>%
+  mutate(
+    rot_seconds_total = as.numeric(PLAYER_LINEUP_IN_Q1) + 
+      as.numeric(PLAYER_LINEUP_IN_Q2) + 
+      as.numeric(PLAYER_LINEUP_IN_Q3) + 
+      as.numeric(PLAYER_LINEUP_IN_Q4)
+  ) %>%
+  select(ESPN_GAME_ID, PLAYER_ID, rot_seconds_total) %>%
+  inner_join(
+    BaseStats_Player_MC %>%
+      transmute(
+        ESPN_GAME_ID = ESPN_GAME_ID,
+        PLAYER_ID = ESPN_PLAYER_ID,
+        bs_mins = as.numeric(MINS_CGS)
+      ),
+    by = c("ESPN_GAME_ID", "PLAYER_ID")
+  ) %>%
+  filter(bs_mins > 5)
+
+# What does dividing by 60 give us?
+cat("If we divide by 60:", round(mean(comparison$rot_seconds_total / 60, na.rm = TRUE), 2), 
+    "vs BS:", round(mean(comparison$bs_mins, na.rm = TRUE), 2), "\n")
+
+# Find empirical scaling factor
+scale_factor <- mean(comparison$rot_seconds_total / comparison$bs_mins, na.rm = TRUE)
+cat("Empirical scale factor:", round(scale_factor, 4), "\n")
+cat("If we divide by", round(scale_factor, 2), "instead of 60:", 
+    round(mean(comparison$rot_seconds_total / scale_factor, na.rm = TRUE), 2), 
+    "vs BS:", round(mean(comparison$bs_mins, na.rm = TRUE), 2), "\n\n")
+
+# Per-quarter scale factors
+for (q in 1:4) {
+  rot_col <- paste0("PLAYER_LINEUP_IN_Q", q)
+  bs_col <- paste0("MINS_Q", q)
+  
+  if (bs_col %in% names(BaseStats_Player_MC)) {
+    q_comp <- rot_deduped %>%
+      mutate(rot_q = as.numeric(.data[[rot_col]])) %>%
+      select(ESPN_GAME_ID, PLAYER_ID, rot_q) %>%
+      inner_join(
+        BaseStats_Player_MC %>%
+          transmute(
+            ESPN_GAME_ID = ESPN_GAME_ID,
+            PLAYER_ID = ESPN_PLAYER_ID,
+            bs_q = as.numeric(.data[[bs_col]])
+          ),
+        by = c("ESPN_GAME_ID", "PLAYER_ID")
+      ) %>%
+      filter(bs_q > 1)
+    
+    q_scale <- mean(q_comp$rot_q / q_comp$bs_q, na.rm = TRUE)
+    cat("Q", q, "scale factor:", round(q_scale, 2), "\n")
+  }
+}
+
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
+#
+#
+#     oooooooooo.                 .                    .oooooo.   oooo                                                     
+#     `888'   `Y8b              .o8                   d8P'  `Y8b  `888                                                     
+#      888      888  .oooo.   .o888oo  .oooo.        888           888   .ooooo.   .oooo.   ooo. .oo.    .oooo.o  .ooooo.  
+#      888      888 `P  )88b    888   `P  )88b       888           888  d88' `88b `P  )88b  `888P"Y88b  d88(  "8 d88' `88b 
+#      888      888  .oP"888    888    .oP"888       888           888  888ooo888  .oP"888   888   888  `"Y88b.  888ooo888 
+#      888     d88' d8(  888    888 . d8(  888       `88b    ooo   888  888    .o d8(  888   888   888  o.  )88b 888    .o 
+#     o888bood8P'   `Y888""8o   "888" `Y888""8o       `Y8bood8P'  o888o `Y8bod8P' `Y888""8o o888o o888o 8""888P' `Y8bod8P' 
+#
+#
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
+# ==========================================================================================================
+# ONYX DATA CLEANSE & DIAGNOSTIC LAYER v2
+# ----------------------------------------------------------------------------------------------------------
+# Runs after Configuration & Load, before any profile building.
+# Flags data quality issues that would cause silent failures or miscalibration downstream.
+#
+# Structure:
+#   Section 1: Structural Integrity   — row counts, date ranges, duplicates, ID/date type consistency,
+#                                       postponed/missing games
+#   Section 2: NA Audit               — NA rates on all profile-feeding columns, zero-NA key checks
+#   Section 3: Value Range Checks     — minutes, shooting pcts, scores, usage sanity
+#   Section 4: Calculation Diagnostics — delta zero-sum, Platt inputs, possession profile sanity,
+#                                        usage weight population
+#
+# Outputs:
+#   cleanse_log         — data.frame of all warnings and failures
+#   cleanse_passed      — logical, TRUE if no FAIL-level issues found
+#
+# Hard filter applied:
+#   nba_games_canon_season filtered to only games with stats in BaseStats_Team_MC
+#   (removes postponed/cancelled games automatically)
+#
+# Usage: if (!cleanse_passed) stop("Data cleanse failed — review cleanse_log before proceeding.")
+# ==========================================================================================================
+
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊
+# 💊💊💊 START: Data Cleanse & Diagnostic Layer v2
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊
+
+suppressWarnings({
+  library(dplyr)
+  library(data.table)
+})
+
+
+BaseStats_Player_MC <- as_tibble(BaseStats_Player_MC)
+BaseStats_Team_MC <- as_tibble(BaseStats_Team_MC)
+
+# --------------------------------------------------
+# Logging infrastructure
+# --------------------------------------------------
+cleanse_log <- data.frame(
+  section  = character(),
+  check    = character(),
+  level    = character(),
+  detail   = character(),
+  stringsAsFactors = FALSE
+)
+
+log_check <- function(section, check, level, detail) {
+  cleanse_log <<- rbind(cleanse_log, data.frame(
+    section = section,
+    check   = check,
+    level   = level,
+    detail  = as.character(detail),
+    stringsAsFactors = FALSE
+  ))
+  sym <- switch(level, INFO = "ℹ️ ", WARN = "⚠️ ", FAIL = "❌ ")
+  cat(sym, "[", section, "]", check, "—", detail, "\n")
+}
+
+na_rate <- function(x) mean(is.na(x))
+fmt_pct <- function(x) paste0(round(x * 100, 1), "%")
+
+cat("\n========================================================\n")
+cat("  ONYX DATA CLEANSE v2\n")
+cat("========================================================\n\n")
+
+# ==========================================================================================================
+# PRE-CLEANSE: HARD FILTER — Remove postponed/cancelled games
+# ----------------------------------------------------------------------------------------------------------
+# Filter nba_games_canon_season to only games that exist in BaseStats_Team_MC.
+# This removes postponed games, cancelled games, and any future games that
+# made it into the schedule before stats were available.
+# ==========================================================================================================
+cat("--- PRE-CLEANSE: HARD FILTERS ---\n\n")
+
+if (exists("nba_games_canon_season") && exists("BaseStats_Team_MC")) {
+  
+  n_before <- nrow(nba_games_canon_season)
+  
+  valid_game_ids <- BaseStats_Team_MC %>%
+    distinct(ESPN_GAME_ID) %>%
+    mutate(ESPN_GAME_ID = as.character(ESPN_GAME_ID))
+  
+  postponed_ids <- setdiff(
+    as.character(nba_games_canon_season$game_id),
+    valid_game_ids$ESPN_GAME_ID
+  )
+  
+  if (length(postponed_ids) > 0) {
+    cat("⚠️  Filtering", length(postponed_ids), "postponed/missing games from nba_games_canon_season:\n")
+    cat("   IDs:", paste(postponed_ids, collapse=", "), "\n\n")
+  }
+  
+  nba_games_canon_season <- nba_games_canon_season %>%
+    filter(as.character(game_id) %in% valid_game_ids$ESPN_GAME_ID)
+  
+  n_after <- nrow(nba_games_canon_season)
+  cat("✅ nba_games_canon_season filtered:", n_before, "→", n_after, "games\n\n")
+  
+} else {
+  cat("⚠️  Cannot apply postponed game filter — nba_games_canon_season or BaseStats_Team_MC missing\n\n")
+}
+
+# ==========================================================================================================
+# SECTION 1: STRUCTURAL INTEGRITY
+# ==========================================================================================================
+cat("\n--- SECTION 1: STRUCTURAL INTEGRITY ---\n\n")
+
+# --------------------------------------------------
+# 1A: Row counts and date ranges
+# --------------------------------------------------
+files <- list(
+  BaseStats_Player_MC   = if (exists("BaseStats_Player_MC"))   BaseStats_Player_MC   else NULL,
+  BaseStats_Team_MC     = if (exists("BaseStats_Team_MC"))     BaseStats_Team_MC     else NULL,
+  injury_data           = if (exists("injury_data"))           injury_data           else NULL,
+  nba_schedule_season   = if (exists("nba_schedule_season"))   nba_schedule_season   else NULL,
+  delta_v2              = if (exists("delta_v2"))              delta_v2              else NULL,
+  nba_games_canon_season = if (exists("nba_games_canon_season")) nba_games_canon_season else NULL
+)
+
+date_cols <- list(
+  BaseStats_Player_MC    = "GAME_DATE",
+  BaseStats_Team_MC      = "GAME_DATE",
+  injury_data            = "game_date_dt",
+  nba_schedule_season    = "game_date",
+  delta_v2               = "GAME_DATE",
+  nba_games_canon_season = "game_date"
+)
+
+for (nm in names(files)) {
+  df <- files[[nm]]
+  if (is.null(df)) {
+    log_check("S1", nm, "WARN", "Object not found in environment")
+    next
+  }
+  
+  dcol <- date_cols[[nm]]
+  if (!is.null(dcol) && dcol %in% names(df)) {
+    dates <- as.Date(df[[dcol]])
+    date_info <- paste0("rows=", nrow(df),
+                        " | dates=", min(dates, na.rm=TRUE),
+                        " to ", max(dates, na.rm=TRUE))
+  } else {
+    date_info <- paste0("rows=", nrow(df), " | no date col found")
+  }
+  log_check("S1", nm, "INFO", date_info)
+}
+
+# --------------------------------------------------
+# 1B: Postponed/missing games check
+# --------------------------------------------------
+if (exists("nba_games_canon_season") && exists("BaseStats_Team_MC")) {
+  
+  # After hard filter this should be 0 — but log it for audit trail
+  canon_ids <- as.character(nba_games_canon_season$game_id)
+  stats_ids <- as.character(unique(BaseStats_Team_MC$ESPN_GAME_ID))
+  still_missing <- setdiff(canon_ids, stats_ids)
+  
+  if (length(still_missing) > 0) {
+    log_check("S1", "Postponed/missing games", "WARN",
+              paste0(length(still_missing), " games in canon schedule still missing from BaseStats: ",
+                     paste(head(still_missing, 5), collapse=", ")))
+  } else {
+    log_check("S1", "Postponed/missing games", "INFO",
+              "All canon schedule games have stats in BaseStats_Team_MC ✓")
+  }
+}
+
+# --------------------------------------------------
+# 1C: Duplicate game/player/date combinations
+# --------------------------------------------------
+if (exists("BaseStats_Player_MC")) {
+  dupes <- BaseStats_Player_MC %>%
+    mutate(GAME_DATE = as.Date(GAME_DATE)) %>%
+    group_by(ESPN_GAME_ID, ESPN_PLAYER_ID, ESPN_TEAM_ID, GAME_DATE) %>%
+    filter(n() > 1) %>%
+    nrow()
+  
+  if (dupes > 0) {
+    log_check("S1", "BaseStats_Player_MC duplicates", "WARN",
+              paste0(dupes, " duplicate game/player/date rows found"))
+  } else {
+    log_check("S1", "BaseStats_Player_MC duplicates", "INFO", "No duplicates found")
+  }
+}
+
+if (exists("BaseStats_Team_MC")) {
+  dupes_t <- BaseStats_Team_MC %>%
+    mutate(GAME_DATE = as.Date(GAME_DATE)) %>%
+    group_by(ESPN_GAME_ID, ESPN_TEAM_ID, GAME_DATE) %>%
+    filter(n() > 1) %>%
+    nrow()
+  
+  if (dupes_t > 0) {
+    log_check("S1", "BaseStats_Team_MC duplicates", "WARN",
+              paste0(dupes_t, " duplicate game/team/date rows"))
+  } else {
+    log_check("S1", "BaseStats_Team_MC duplicates", "INFO", "No duplicates found")
+  }
+}
+
+# --------------------------------------------------
+# 1D: ID type consistency
+# --------------------------------------------------
+if (exists("BaseStats_Player_MC")) {
+  id_types <- sapply(
+    c("ESPN_PLAYER_ID", "ESPN_TEAM_ID", "ESPN_GAME_ID", "NBA_PLAYER_ID"),
+    function(col) if (col %in% names(BaseStats_Player_MC)) class(BaseStats_Player_MC[[col]]) else "missing"
+  )
+  
+  non_char <- id_types[id_types != "character" & id_types != "missing"]
+  if (length(non_char) > 0) {
+    log_check("S1", "ID type consistency", "WARN",
+              paste0("Non-character IDs: ", paste(names(non_char), non_char, sep="=", collapse=", ")))
+  } else {
+    log_check("S1", "ID type consistency", "INFO", "All key IDs are character type")
+  }
+}
+
+# --------------------------------------------------
+# 1E: Date format consistency
+# --------------------------------------------------
+if (exists("BaseStats_Player_MC")) {
+  if (!inherits(BaseStats_Player_MC$GAME_DATE, "Date")) {
+    sample_dates <- head(BaseStats_Player_MC$GAME_DATE, 20)
+    has_slash <- any(grepl("/", sample_dates))
+    has_dash  <- any(grepl("-", sample_dates))
+    if (has_slash && has_dash) {
+      log_check("S1", "Date format", "FAIL",
+                "Mixed date formats in BaseStats_Player_MC — standardize to YYYY-MM-DD")
+    } else if (has_slash) {
+      log_check("S1", "Date format", "WARN",
+                "MM/DD/YYYY format in BaseStats_Player_MC — convert to YYYY-MM-DD")
+    } else {
+      log_check("S1", "Date format", "INFO",
+                paste0("Date class: ", class(BaseStats_Player_MC$GAME_DATE)))
+    }
+  } else {
+    log_check("S1", "Date format", "INFO", "GAME_DATE is proper Date class ✓")
+  }
+}
+
+# ==========================================================================================================
+# SECTION 2: NA AUDIT
+# ==========================================================================================================
+cat("\n--- SECTION 2: NA AUDIT ---\n\n")
+
+NA_WARN_THRESHOLD <- 0.05
+NA_FAIL_THRESHOLD <- 0.20
+
+# --------------------------------------------------
+# 2A: Critical join keys — must be zero NA
+# --------------------------------------------------
+if (exists("BaseStats_Player_MC")) {
+  key_cols <- c("ESPN_PLAYER_ID", "ESPN_TEAM_ID", "ESPN_GAME_ID", "GAME_DATE")
+  for (col in key_cols) {
+    if (!col %in% names(BaseStats_Player_MC)) {
+      log_check("S2", paste0("Key: ", col), "FAIL", "Column missing from BaseStats_Player_MC")
+      next
+    }
+    r <- na_rate(BaseStats_Player_MC[[col]])
+    if (r > 0) {
+      log_check("S2", paste0("Key: ", col), "FAIL",
+                paste0(fmt_pct(r), " NA in critical join key"))
+    } else {
+      log_check("S2", paste0("Key: ", col), "INFO", "0% NA ✓")
+    }
+  }
+}
+
+# --------------------------------------------------
+# 2B: Profile-feeding columns NA rates
+# --------------------------------------------------
+profile_cols <- c(
+  "MINS_Q1", "MINS_Q2", "MINS_Q3", "MINS_Q4",
+  "MINS_CGS", "PTS_CGS",
+  "2PTA_CGS", "2PTM_CGS",
+  "3PTA_CGS", "3PTM_CGS",
+  "FTA_CGS",  "FTM_CGS"
+)
+
+if (exists("BaseStats_Player_MC")) {
+  for (col in profile_cols) {
+    if (!col %in% names(BaseStats_Player_MC)) {
+      log_check("S2", paste0("Profile col: ", col), "WARN", "Column not found in BaseStats_Player_MC")
+      next
+    }
+    r <- na_rate(BaseStats_Player_MC[[col]])
+    level <- if (r >= NA_FAIL_THRESHOLD) "FAIL" else if (r >= NA_WARN_THRESHOLD) "WARN" else "INFO"
+    log_check("S2", paste0("Profile col: ", col), level, paste0(fmt_pct(r), " NA rate"))
+  }
+}
+
+# --------------------------------------------------
+# 2C: Injury data NA audit
+# --------------------------------------------------
+if (exists("injury_data")) {
+  inj_key_cols <- c("espn_player_id", "espn_team_id", "date", "status")
+  for (col in inj_key_cols) {
+    if (!col %in% names(injury_data)) {
+      log_check("S2", paste0("Injury key: ", col), "WARN", "Column not found in injury_data")
+      next
+    }
+    r <- na_rate(injury_data[[col]])
+    level <- if (r > 0.01) "WARN" else "INFO"
+    log_check("S2", paste0("Injury key: ", col), level, paste0(fmt_pct(r), " NA rate"))
+  }
+  
+  if ("status" %in% names(injury_data)) {
+    status_counts <- table(tolower(injury_data$status))
+    log_check("S2", "Injury status values", "INFO",
+              paste(names(status_counts), status_counts, sep="=", collapse=" | "))
+  }
+}
+
+# --------------------------------------------------
+# 2D: Delta file NA audit
+# --------------------------------------------------
+if (exists("delta_v2")) {
+  delta_na_cols <- c("DELTA_MINS_Q1", "DELTA_MINS_Q2", "DELTA_MINS_Q3", "DELTA_MINS_Q4",
+                     "BASE_USAGE_Q1", "BASE_USAGE_Q2", "BASE_USAGE_Q3", "BASE_USAGE_Q4")
+  for (col in delta_na_cols) {
+    if (!col %in% names(delta_v2)) next
+    r <- na_rate(delta_v2[[col]])
+    level <- if (r >= NA_FAIL_THRESHOLD) "FAIL" else if (r >= NA_WARN_THRESHOLD) "WARN" else "INFO"
+    log_check("S2", paste0("Delta: ", col), level, paste0(fmt_pct(r), " NA rate"))
+  }
+}
+
+# ==========================================================================================================
+# SECTION 3: VALUE RANGE CHECKS
+# ==========================================================================================================
+cat("\n--- SECTION 3: VALUE RANGE CHECKS ---\n\n")
+
+if (exists("BaseStats_Player_MC")) {
+  bsp <- BaseStats_Player_MC %>%
+    mutate(across(starts_with("MINS_Q"), ~suppressWarnings(as.numeric(.))))
+  
+  # 3A: Player quarter minutes (0-12 per player)
+  for (q in c("Q1","Q2","Q3","Q4")) {
+    col <- paste0("MINS_", q)
+    if (!col %in% names(bsp)) next
+    vals <- bsp[[col]]
+    n_over <- sum(vals > 12, na.rm = TRUE)
+    n_neg  <- sum(vals < 0,  na.rm = TRUE)
+    
+    if (n_over > 0) {
+      log_check("S3", paste0("Player mins ", q, " > 12"), "WARN",
+                paste0(n_over, " rows exceed 12 min (", fmt_pct(n_over/nrow(bsp)), ")"))
+    } else {
+      log_check("S3", paste0("Player mins ", q), "INFO",
+                paste0("Range: ", round(min(vals, na.rm=TRUE), 1),
+                       " - ", round(max(vals, na.rm=TRUE), 1)))
+    }
+    if (n_neg > 0) {
+      log_check("S3", paste0("Player mins ", q, " negative"), "FAIL",
+                paste0(n_neg, " negative minute values"))
+    }
+  }
+  
+  # 3B: Team quarter minutes summing to ~60
+  for (q in c("Q1","Q2","Q3","Q4")) {
+    col <- paste0("MINS_", q)
+    if (!col %in% names(bsp)) next
+    
+    team_totals <- bsp %>%
+      mutate(GAME_DATE = as.Date(GAME_DATE),
+             val = suppressWarnings(as.numeric(.data[[col]]))) %>%
+      group_by(ESPN_GAME_ID, ESPN_TEAM_ID) %>%
+      summarise(team_total = sum(val, na.rm = TRUE), .groups = "drop")
+    
+    n_low  <- sum(team_totals$team_total < 45, na.rm = TRUE)
+    n_high <- sum(team_totals$team_total > 75, na.rm = TRUE)
+    mean_t <- round(mean(team_totals$team_total, na.rm = TRUE), 1)
+    
+    if (n_low > 0 || n_high > 0) {
+      log_check("S3", paste0("Team total mins ", q), "WARN",
+                paste0("Mean=", mean_t, " | <45: ", n_low, " | >75: ", n_high))
+    } else {
+      log_check("S3", paste0("Team total mins ", q), "INFO",
+                paste0("Mean=", mean_t, " (expected ~60) ✓"))
+    }
+  }
+  
+  # 3C: Shooting percentages (0-1)
+  shoot_checks <- list(
+    list(made="2PTM_CGS", att="2PTA_CGS", name="FG2%"),
+    list(made="3PTM_CGS", att="3PTA_CGS", name="FG3%"),
+    list(made="FTM_CGS",  att="FTA_CGS",  name="FT%")
+  )
+  
+  for (sc in shoot_checks) {
+    if (!all(c(sc$made, sc$att) %in% names(bsp))) next
+    pct <- suppressWarnings(as.numeric(bsp[[sc$made]]) / as.numeric(bsp[[sc$att]]))
+    pct <- pct[!is.na(pct) & is.finite(pct)]
+    n_over <- sum(pct > 1, na.rm = TRUE)
+    n_neg  <- sum(pct < 0, na.rm = TRUE)
+    
+    if (n_over > 0 || n_neg > 0) {
+      log_check("S3", sc$name, "FAIL",
+                paste0("Out of range: >1=", n_over, " | <0=", n_neg,
+                       " | mean=", round(mean(pct, na.rm=TRUE), 3)))
+    } else {
+      log_check("S3", sc$name, "INFO",
+                paste0("Mean=", round(mean(pct, na.rm=TRUE), 3),
+                       " range=[", round(min(pct), 3), ", ", round(max(pct), 3), "]"))
+    }
+  }
+  
+  # 3D: Points per minute (0-2)
+  if (all(c("PTS_CGS","MINS_CGS") %in% names(bsp))) {
+    ppm <- suppressWarnings(as.numeric(bsp$PTS_CGS) / as.numeric(bsp$MINS_CGS))
+    ppm <- ppm[!is.na(ppm) & is.finite(ppm) & as.numeric(bsp$MINS_CGS) > 2]
+    n_high <- sum(ppm > 2, na.rm = TRUE)
+    
+    if (n_high > 0) {
+      log_check("S3", "Points per minute", "WARN",
+                paste0(n_high, " rows pts/min > 2 (small sample likely) | mean=",
+                       round(mean(ppm, na.rm=TRUE), 3)))
+    } else {
+      log_check("S3", "Points per minute", "INFO",
+                paste0("Mean=", round(mean(ppm, na.rm=TRUE), 3),
+                       " max=", round(max(ppm, na.rm=TRUE), 3)))
+    }
+  }
+}
+
+# 3E: Score sanity
+if (exists("BaseStats_Team_MC")) {
+  score_col <- intersect(c("PTS_CGS","PTS","TEAM_PTS"), names(BaseStats_Team_MC))[1]
+  if (!is.na(score_col)) {
+    scores <- suppressWarnings(as.numeric(BaseStats_Team_MC[[score_col]]))
+    n_zero <- sum(scores == 0, na.rm = TRUE)
+    n_high <- sum(scores > 160, na.rm = TRUE)
+    mean_s <- round(mean(scores, na.rm = TRUE), 1)
+    
+    if (n_zero > 0) {
+      log_check("S3", "Team score sanity", "FAIL",
+                paste0(n_zero, " games with 0 points — check for postponed games"))
+    } else if (n_high > 0) {
+      log_check("S3", "Team score sanity", "WARN",
+                paste0(n_high, " games >160 pts | mean=", mean_s))
+    } else {
+      log_check("S3", "Team score sanity", "INFO",
+                paste0("Mean=", mean_s,
+                       " range=[", min(scores, na.rm=TRUE), ", ", max(scores, na.rm=TRUE), "] ✓"))
+    }
+  }
+}
+
+# ==========================================================================================================
+# SECTION 4: CALCULATION-SPECIFIC DIAGNOSTICS
+# ==========================================================================================================
+cat("\n--- SECTION 4: CALCULATION DIAGNOSTICS ---\n\n")
+
+# 4A: Delta file zero-sum check
+if (exists("delta_v2")) {
+  delta_check <- delta_v2 %>%
+    mutate(
+      ESPN_TEAM_ID  = as.character(ESPN_TEAM_ID),
+      OUT_PLAYER_ID = as.character(OUT_PLAYER_ID),
+      GAME_DATE     = as.Date(GAME_DATE)
+    ) %>%
+    group_by(ESPN_GAME_ID, ESPN_TEAM_ID, OUT_PLAYER_ID, GAME_DATE) %>%
+    summarise(
+      sum_delta_Q1 = sum(DELTA_MINS_Q1, na.rm = TRUE),
+      sum_delta_Q2 = sum(DELTA_MINS_Q2, na.rm = TRUE),
+      sum_delta_Q3 = sum(DELTA_MINS_Q3, na.rm = TRUE),
+      sum_delta_Q4 = sum(DELTA_MINS_Q4, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(total_delta = sum_delta_Q1 + sum_delta_Q2 + sum_delta_Q3 + sum_delta_Q4)
+  
+  mean_total_delta  <- round(mean(delta_check$total_delta, na.rm = TRUE), 2)
+  n_large_imbalance <- sum(abs(delta_check$total_delta) > 15, na.rm = TRUE)
+  
+  if (abs(mean_total_delta) > 3) {
+    log_check("S4", "Delta zero-sum", "WARN",
+              paste0("Mean total delta=", mean_total_delta,
+                     " (expected ~0) | >15 min imbalances: ", n_large_imbalance))
+  } else {
+    log_check("S4", "Delta zero-sum", "INFO",
+              paste0("Mean total delta=", mean_total_delta,
+                     " | large imbalances: ", n_large_imbalance))
+  }
+  
+  for (q in c("Q1","Q2","Q3","Q4")) {
+    col    <- paste0("sum_delta_", q)
+    mean_q <- round(mean(delta_check[[col]], na.rm = TRUE), 3)
+    log_check("S4", paste0("Delta mean ", q), "INFO",
+              paste0("Mean sum of deltas = ", mean_q, " (expected ~0)"))
+  }
+}
+
+# 4B: Usage weight join diagnostic
+# --------------------------------------------------
+# Critical check: how well is delta_v2 joining to player_minutes_params?
+# Low match rate means deltas aren't being applied and injury absorption
+# is falling back to proportional redistribution for most games.
+# --------------------------------------------------
+if (exists("delta_v2") && exists("player_minutes_params_backtest")) {
+  
+  n_params_total    <- nrow(player_minutes_params_backtest)
+  n_params_with_uwq <- sum(!is.na(player_minutes_params_backtest$usage_weight_Q1))
+  pct_uwq           <- fmt_pct(n_params_with_uwq / n_params_total)
+  
+  if (n_params_with_uwq / n_params_total < 0.10) {
+    log_check("S4", "Usage weight join (params)", "WARN",
+              paste0("Only ", pct_uwq, " of minute param rows have usage weights — delta join likely failing"))
+    
+    # Diagnose the join mismatch
+    delta_dates  <- sort(unique(as.Date(delta_v2$GAME_DATE)))
+    params_dates <- sort(unique(as.Date(player_minutes_params_backtest$GAME_DATE)))
+    
+    n_date_match   <- length(intersect(delta_dates, params_dates))
+    n_delta_only   <- length(setdiff(delta_dates,  params_dates))
+    n_params_only  <- length(setdiff(params_dates, delta_dates))
+    
+    log_check("S4", "Usage weight date overlap", "INFO",
+              paste0("Dates in both=", n_date_match,
+                     " | delta only=", n_delta_only,
+                     " | params only=", n_params_only))
+    
+    # Check team ID type match
+    delta_tid_class  <- class(delta_v2$ESPN_TEAM_ID)
+    params_tid_class <- class(player_minutes_params_backtest$ESPN_TEAM_ID)
+    
+    if (delta_tid_class != params_tid_class) {
+      log_check("S4", "Usage weight team ID type mismatch", "WARN",
+                paste0("delta_v2 ESPN_TEAM_ID=", delta_tid_class,
+                       " vs params ESPN_TEAM_ID=", params_tid_class,
+                       " — type mismatch will cause silent join failure"))
+    } else {
+      log_check("S4", "Usage weight team ID types", "INFO",
+                paste0("Both are ", delta_tid_class, " ✓"))
+    }
+    
+    # Check player ID type match
+    delta_pid_class  <- class(delta_v2$AFFECTED_PLAYER_ID)
+    params_pid_class <- class(player_minutes_params_backtest$ESPN_PLAYER_ID)
+    
+    if (delta_pid_class != params_pid_class) {
+      log_check("S4", "Usage weight player ID type mismatch", "WARN",
+                paste0("delta_v2 AFFECTED_PLAYER_ID=", delta_pid_class,
+                       " vs params ESPN_PLAYER_ID=", params_pid_class,
+                       " — type mismatch will cause silent join failure"))
+    } else {
+      log_check("S4", "Usage weight player ID types", "INFO",
+                paste0("Both are ", delta_pid_class, " ✓"))
+    }
+    
+  } else {
+    log_check("S4", "Usage weight join (params)", "INFO",
+              paste0(pct_uwq, " of minute param rows have usage weights ✓"))
+  }
+  
+} else if (exists("player_shooting_profile_q")) {
+  
+  # Fallback if params not available — check shooting profile
+  n_total    <- nrow(player_shooting_profile_q)
+  n_with_uwq <- sum(!is.na(player_shooting_profile_q$usage_weight_q))
+  pct_pop    <- fmt_pct(n_with_uwq / n_total)
+  
+  if (n_with_uwq / n_total < 0.10) {
+    log_check("S4", "Usage weight population (shooting)", "WARN",
+              paste0("Only ", pct_pop, " of shooting profile rows have usage_weight_q — check delta join"))
+  } else {
+    log_check("S4", "Usage weight population (shooting)", "INFO",
+              paste0(pct_pop, " of rows have usage_weight_q ✓"))
+  }
+} else {
+  log_check("S4", "Usage weight population", "INFO",
+            "Profiles not yet built — run after profile building")
+}
+
+# 4C: Possession profile sanity
+if (exists("team_poss_profile_q_backtest")) {
+  poss_data <- team_poss_profile_q_backtest %>%
+    filter(qtr %in% c(1,2,3,4,"Q1","Q2","Q3","Q4"))
+  
+  if (nrow(poss_data) > 0 && "POSS_mean" %in% names(poss_data)) {
+    mean_poss <- round(mean(poss_data$POSS_mean, na.rm = TRUE), 1)
+    n_low     <- sum(poss_data$POSS_mean < 18, na.rm = TRUE)
+    n_high    <- sum(poss_data$POSS_mean > 35, na.rm = TRUE)
+    
+    if (n_low > 0 || n_high > 0) {
+      log_check("S4", "Possession profile", "WARN",
+                paste0("Mean=", mean_poss, " | <18: ", n_low, " | >35: ", n_high))
+    } else {
+      log_check("S4", "Possession profile", "INFO",
+                paste0("Mean=", mean_poss, " per quarter (expected 24-28) ✓"))
+    }
+  }
+} else {
+  log_check("S4", "Possession profile", "INFO",
+            "team_poss_profile_q_backtest not yet built — run after profile building")
+}
+
+# 4D: Platt scaling input distribution
+if (exists("mc_backtest_validation") && "home_win_prob" %in% names(mc_backtest_validation)) {
+  wp         <- mc_backtest_validation$home_win_prob
+  mean_wp    <- round(mean(wp, na.rm = TRUE), 3)
+  sd_wp      <- round(sd(wp,   na.rm = TRUE), 3)
+  n_near50   <- sum(abs(wp - 0.5) < 0.05, na.rm = TRUE)
+  pct_near50 <- fmt_pct(n_near50 / length(wp))
+  
+  if (sd_wp < 0.05) {
+    log_check("S4", "Platt input distribution", "WARN",
+              paste0("Win probs clustered — sd=", sd_wp, " mean=", mean_wp))
+  } else {
+    log_check("S4", "Platt input distribution", "INFO",
+              paste0("mean=", mean_wp, " sd=", sd_wp,
+                     " | ", pct_near50, " within 5% of 50/50"))
+  }
+} else {
+  log_check("S4", "Platt input distribution", "INFO",
+            "mc_backtest_validation not yet built — run after simulation")
+}
+
+# 4E: Score inflation canary
+if (exists("mc_results_summary")) {
+  mean_home <- round(mean(mc_results_summary$home_pts_mean, na.rm = TRUE), 1)
+  mean_away <- round(mean(mc_results_summary$away_pts_mean, na.rm = TRUE), 1)
+  
+  if (mean_home > 122 || mean_away > 122) {
+    log_check("S4", "Score inflation canary", "FAIL",
+              paste0("Scores too high — home=", mean_home, " away=", mean_away, " (expected 112-118)"))
+  } else if (mean_home < 105 || mean_away < 105) {
+    log_check("S4", "Score inflation canary", "WARN",
+              paste0("Scores low — home=", mean_home, " away=", mean_away, " (expected 112-118)"))
+  } else {
+    log_check("S4", "Score inflation canary", "INFO",
+              paste0("home=", mean_home, " away=", mean_away, " ✓"))
+  }
+} else {
+  log_check("S4", "Score inflation canary", "INFO",
+            "mc_results_summary not yet built — run after simulation")
+}
+
+
+# Players with minutes but no shooting stats
+mins_no_stats <- BaseStats_Player_MC %>%
+  mutate(MINS = as.numeric(MINS_CGS),
+         FGA2 = as.numeric(`2PTA_CGS`),
+         FGA3 = as.numeric(`3PTA_CGS`),
+         FTA  = as.numeric(FTA_CGS)) %>%
+  filter(MINS > 0, is.na(FGA2) & is.na(FGA3) & is.na(FTA)) %>%
+  distinct(ESPN_PLAYER_ID, ESPN_TEAM_ID, PLAYER_NAME)
+
+if (nrow(mins_no_stats) > 0) {
+  log_check("S2", "Mins without stats", "WARN",
+            paste0(nrow(mins_no_stats), " players have MINS > 0 but no shooting data"))
+} else {
+  log_check("S2", "Mins without stats", "INFO", "All players with minutes have shooting data ✓")
+}
+
+# Players with shooting stats but no minutes
+stats_no_mins <- BaseStats_Player_MC %>%
+  mutate(MINS = as.numeric(MINS_CGS),
+         FGA2 = as.numeric(`2PTA_CGS`),
+         FGA3 = as.numeric(`3PTA_CGS`),
+         FTA  = as.numeric(FTA_CGS)) %>%
+  filter((MINS == 0 | is.na(MINS)) & (!is.na(FGA2) | !is.na(FGA3) | !is.na(FTA))) %>%
+  distinct(ESPN_PLAYER_ID, ESPN_TEAM_ID, PLAYER_NAME)
+
+if (nrow(stats_no_mins) > 0) {
+  log_check("S2", "Stats without mins", "WARN",
+            paste0(nrow(stats_no_mins), " players have shooting data but MINS = 0 or NA"))
+} else {
+  log_check("S2", "Stats without mins", "INFO", "All players with stats have minutes ✓")
+}
+
+
+# ==========================================================================================================
+# SUMMARY
+# ==========================================================================================================
+cat("\n========================================================\n")
+cat("  CLEANSE SUMMARY\n")
+cat("========================================================\n\n")
+
+n_info <- sum(cleanse_log$level == "INFO")
+n_warn <- sum(cleanse_log$level == "WARN")
+n_fail <- sum(cleanse_log$level == "FAIL")
+
+cat("  ℹ️  INFO :", n_info, "\n")
+cat("  ⚠️  WARN :", n_warn, "\n")
+cat("  ❌ FAIL :", n_fail, "\n\n")
+
+if (n_fail > 0) {
+  cat("❌ FAIL items:\n")
+  cleanse_log %>%
+    filter(level == "FAIL") %>%
+    with(cat(paste0("  - [", section, "] ", check, ": ", detail, "\n")))
+  cat("\n")
+}
+
+if (n_warn > 0) {
+  cat("⚠️  WARN items:\n")
+  cleanse_log %>%
+    filter(level == "WARN") %>%
+    with(cat(paste0("  - [", section, "] ", check, ": ", detail, "\n")))
+  cat("\n")
+}
+
+cleanse_passed <- n_fail == 0
+
+if (cleanse_passed) {
+  cat("✅ Data cleanse passed — no FAIL-level issues found.\n\n")
+} else {
+  cat("❌ Data cleanse FAILED — review cleanse_log before proceeding.\n\n")
+  cat("View full log with: View(cleanse_log)\n\n")
+}
+
+# ==========================================================================================================
+# CLEANSE SUMMARY POPUP (Interactive)
+# ==========================================================================================================
+
+if (interactive()) {
+  
+  library(shiny)
+  library(DT)
+  
+  cleanse_decision <- NULL
+  
+  app <- shinyApp(
+    ui = fluidPage(
+      tags$head(tags$style(HTML("
+        body { background-color: #1a1a2e; color: #e0e0e0; font-family: 'Consolas', monospace; padding: 20px; }
+        h2 { color: #00d4ff; }
+        h3 { color: #ffcc00; margin-top: 20px; }
+        .btn-continue { background-color: #00c853; color: white; font-size: 18px; padding: 12px 40px; border: none; border-radius: 6px; margin-right: 15px; }
+        .btn-continue:hover { background-color: #00e676; color: white; }
+        .btn-stop { background-color: #ff1744; color: white; font-size: 18px; padding: 12px 40px; border: none; border-radius: 6px; }
+        .btn-stop:hover { background-color: #ff5252; color: white; }
+        .summary-box { background-color: #16213e; border-radius: 8px; padding: 15px; margin: 10px 0; display: inline-block; margin-right: 20px; text-align: center; }
+        .summary-box .count { font-size: 36px; font-weight: bold; }
+        .info-count { color: #4fc3f7; }
+        .warn-count { color: #ffcc00; }
+        .fail-count { color: #ff1744; }
+      "))),
+      
+      h2("ONYX Data Cleanse Results"),
+      
+      div(style = "display: flex; margin-bottom: 20px;",
+          div(class = "summary-box",
+              div(class = "count info-count", textOutput("n_info_txt", inline = TRUE)),
+              div("INFO")),
+          div(class = "summary-box",
+              div(class = "count warn-count", textOutput("n_warn_txt", inline = TRUE)),
+              div("WARN")),
+          div(class = "summary-box",
+              div(class = "count fail-count", textOutput("n_fail_txt", inline = TRUE)),
+              div("FAIL"))
+      ),
+      
+      h3("Full Cleanse Log"),
+      DTOutput("cleanse_table"),
+      
+      br(),
+      div(style = "text-align: center; margin-top: 20px;",
+          actionButton("btn_continue", "Continue", class = "btn-continue"),
+          actionButton("btn_stop", "Stop", class = "btn-stop")
+      )
+    ),
+    
+    server = function(input, output, session) {
+      
+      output$n_info_txt <- renderText(sum(cleanse_log$level == "INFO"))
+      output$n_warn_txt <- renderText(sum(cleanse_log$level == "WARN"))
+      output$n_fail_txt <- renderText(sum(cleanse_log$level == "FAIL"))
+      
+      output$cleanse_table <- renderDT({
+        datatable(
+          cleanse_log,
+          options = list(
+            pageLength = 50,
+            dom = 'ftip',
+            order = list(list(2, 'desc'))
+          ),
+          rownames = FALSE
+        ) %>%
+          formatStyle(
+            'level',
+            backgroundColor = styleEqual(
+              c('INFO', 'WARN', 'FAIL'),
+              c('#1b3a2a', '#3a3a1b', '#3a1b1b')
+            ),
+            color = styleEqual(
+              c('INFO', 'WARN', 'FAIL'),
+              c('#4fc3f7', '#ffcc00', '#ff1744')
+            ),
+            fontWeight = 'bold'
+          )
+      })
+      
+      observeEvent(input$btn_continue, {
+        cleanse_decision <<- "continue"
+        stopApp()
+      })
+      
+      observeEvent(input$btn_stop, {
+        cleanse_decision <<- "stop"
+        stopApp()
+      })
+    }
+  )
+  
+  runApp(app, launch.browser = TRUE)
+  
+  if (is.null(cleanse_decision) || cleanse_decision == "stop") {
+    stop("Cleanse stopped by user. Review cleanse_log before proceeding.")
+  } else {
+    cat("✅ Cleanse approved. Continuing...\n\n")
+  }
+  
+} else {
+  # Non-interactive fallback
+  if (!cleanse_passed) {
+    stop("Data cleanse failed — review cleanse_log before proceeding.")
+  }
+}
+
+
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊
+# 💊💊💊 END: Data Cleanse & Diagnostic Layer v2
+# 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                            
 
 
 
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠                                                                                                             
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 #
 #
@@ -237,6 +1183,9 @@ player_odds_enrich_df <- fread(player_odds_enrich_file, colClasses = "character"
 # 
 #
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠                                                                                                             
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠                                                                                                             
+
+
 
 
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠    
@@ -264,31 +1213,32 @@ player_odds_enrich_df <- fread(player_odds_enrich_file, colClasses = "character"
 # SET MODE
 # -----------------------------
 mode <- "backtest"   # Options: "production", "backtest", "calibration", "research"
+n_sims <- 500
 
 # -----------------------------
 # MODE-SPECIFIC CONFIGURATION
 # -----------------------------
 if (mode == "production") {
   # Live predictions for today's slate
-  as_of_date         <- as.Date("2025-12-31")
+  as_of_date         <- as.Date("2026-03-10")
   load_backtest_data <- FALSE  # Don't load historical rosters (faster)
   load_player_odds   <- TRUE   # Load current market lines
   
 } else if (mode == "backtest") {
   # Historical validation on specific date
-  as_of_date         <- as.Date("2025-12-31")  # ← Set backtest date here
+  as_of_date         <- as.Date("2026-03-10")  # ← Set backtest date here
   load_backtest_data <- TRUE   # Load all rosters < as_of_date
   load_player_odds   <- FALSE  # Historical odds not needed for validation
   
 } else if (mode == "calibration") {
   # Tune variance parameters against historical games
-  as_of_date         <- as.Date("2025-12-31")  # ← Set calibration cutoff
+  as_of_date         <- as.Date("2026-03-10")  # ← Set calibration cutoff
   load_backtest_data <- TRUE   # Need historical data
   load_player_odds   <- FALSE  # Don't need odds for calibration
   
 } else if (mode == "research") {
   # Model development sandbox - load everything
-  as_of_date         <- as.Date("2025-12-31")
+  as_of_date         <- as.Date("2026-03-10")
   load_backtest_data <- TRUE   # Load all available history
   load_player_odds   <- TRUE   # Load all available data
   
@@ -296,7 +1246,7 @@ if (mode == "production") {
   stop("Invalid mode: ", mode, ". Must be one of: production, backtest, calibration, research")
 }
 
-cat("🎯 AURELIUS MODE:", mode, "\n")
+cat("🎯 ONYX MODE:", mode, "\n")
 cat("📅 As-of Date:", as.character(as_of_date), "\n")
 cat("📊 Load Backtest Data:", load_backtest_data, "\n")
 cat("💰 Load Player Odds:", load_player_odds, "\n")
@@ -837,13 +1787,13 @@ suppressWarnings({
   library(dplyr)
   library(tibble)
   library(purrr)
+  library(tidyr)
   library(hoopR)
 })
 
 # -----------------------------
 # 0) Standardize / bridge
 # -----------------------------
-# [Keep all your existing standardization code]
 BaseStats_Player_MC <- BaseStats_Player_MC %>%
   mutate(
     NBA_PLAYER_ID  = as.character(NBA_PLAYER_ID),
@@ -858,22 +1808,51 @@ injury_data <- injury_data %>%
     status         = tolower(as.character(status))
   )
 
-if ("date" %in% names(injury_data)) {
-  injury_data <- injury_data %>% mutate(game_date_dt = as.Date(date))
-} else if ("game_date" %in% names(injury_data)) {
-  injury_data <- injury_data %>% mutate(game_date_dt = as.Date(game_date))
-} else {
-  stop("injury_data must contain `date` or `game_date`.")
-}
+# Force parse game_date as MM/DD/YYYY → Date
+injury_data$game_date_dt <- as.Date(injury_data$game_date, format = "%m/%d/%Y")
 
 bridge_unique <- BaseStats_Player_MC %>%
   select(NBA_PLAYER_ID, ESPN_PLAYER_ID, ESPN_TEAM_ID) %>%
   distinct(NBA_PLAYER_ID, ESPN_TEAM_ID, .keep_all = TRUE)
 
+# ----------------------------------------------------------
+# Build injury lookup table
+# ----------------------------------------------------------
+# Instead of forward-filling every day (which breaks on edge cases),
+# we build a clean lookup of all injury records. At game time, we
+# find each player's most recent injury status on or before the
+# game date. If that status is "out", the player is unavailable.
+#
+# Safety net: actual minutes cross-reference in the availability
+# builder removes any player who played despite being listed as OUT.
+# ----------------------------------------------------------
+cat("🩺 Building injury lookup table...\n")
+
+injury_filled <- injury_data %>%
+  mutate(
+    ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID),
+    ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+    date           = game_date_dt,
+    status         = tolower(as.character(status))
+  ) %>%
+  filter(
+    ESPN_PLAYER_ID != "",
+    ESPN_TEAM_ID   != "",
+    !is.na(date),
+    !grepl("G League", reason, ignore.case = TRUE)
+  ) %>%
+  select(ESPN_TEAM_ID, ESPN_PLAYER_ID, date, status) %>%
+  distinct() %>%
+  group_by(ESPN_TEAM_ID, ESPN_PLAYER_ID, date) %>%
+  arrange(desc(date)) %>%
+  slice(1) %>%
+  ungroup()
+
+cat("✅ injury_filled built |", nrow(injury_filled), "player-date records\n\n")
+
 # -----------------------------
 # 1) Roster cache
 # -----------------------------
-# [Keep your existing cache code]
 .roster_cache <- new.env(parent = emptyenv())
 
 get_team_roster_cached <- function(nba_team_id, season_token2) {
@@ -882,17 +1861,22 @@ get_team_roster_cached <- function(nba_team_id, season_token2) {
     return(get(key, envir = .roster_cache))
   }
   
-  raw <- nba_commonteamroster(team_id = nba_team_id, season = season_token2)
+  raw <- NULL
+  for (attempt in 1:3) {
+    tryCatch({
+      raw <- nba_commonteamroster(team_id = nba_team_id, season = season_token2)
+      break
+    }, error = function(e) {
+      message("Attempt ", attempt, " failed for team ", nba_team_id, ": ", e$message)
+      Sys.sleep(attempt * 2)
+    })
+  }
+  
+  if (is.null(raw)) stop("Failed to fetch roster for team ", nba_team_id)
   
   roster <- raw$CommonTeamRoster %>%
-    rename(
-      NBA_TEAM_ID   = TeamID,
-      NBA_PLAYER_ID = PLAYER_ID
-    ) %>%
-    mutate(
-      NBA_TEAM_ID   = as.character(NBA_TEAM_ID),
-      NBA_PLAYER_ID = as.character(NBA_PLAYER_ID)
-    )
+    rename(NBA_TEAM_ID = TeamID, NBA_PLAYER_ID = PLAYER_ID) %>%
+    mutate(across(c(NBA_TEAM_ID, NBA_PLAYER_ID), as.character))
   
   assign(key, roster, envir = .roster_cache)
   Sys.sleep(0.5)
@@ -902,7 +1886,6 @@ get_team_roster_cached <- function(nba_team_id, season_token2) {
 # -----------------------------
 # 2) Core builder
 # -----------------------------
-# [Keep your existing build_availability_for_date function - no changes]
 build_availability_for_date <- function(schedule_df, game_date, date_key) {
   
   game_date <- as.Date(game_date)
@@ -930,9 +1913,24 @@ build_availability_for_date <- function(schedule_df, game_date, date_key) {
   }) %>%
     left_join(bridge_unique, by = c("NBA_PLAYER_ID", "ESPN_TEAM_ID"))
   
-  inj_out <- injury_data %>%
-    filter(game_date_dt == game_date, status == "out") %>%
+  # Use most recent injury status on or before game date
+  # If the last report says "out", the player is unavailable
+  inj_out <- injury_filled %>%
+    filter(date <= game_date) %>%
+    group_by(ESPN_TEAM_ID, ESPN_PLAYER_ID) %>%
+    slice_max(date, n = 1) %>%
+    ungroup() %>%
+    filter(status == "out") %>%
     distinct(ESPN_TEAM_ID, ESPN_PLAYER_ID)
+  
+  # Safety net — remove anyone who actually played
+  actually_played <- BaseStats_Player_MC %>%
+    mutate(GAME_DATE = as.Date(GAME_DATE)) %>%
+    filter(GAME_DATE == game_date, as.numeric(MINS_CGS) > 0) %>%
+    distinct(ESPN_TEAM_ID, ESPN_PLAYER_ID)
+  
+  inj_out <- inj_out %>%
+    anti_join(actually_played, by = c("ESPN_TEAM_ID", "ESPN_PLAYER_ID"))
   
   roster_pool <- roster_pool %>%
     mutate(
@@ -1004,7 +2002,7 @@ if (nrow(sched_today) == 0) {
   roster_out_today    <- today_avail$roster_out
   injury_team_summary_today_df <- today_avail$team_audit
   
-  cat("✅ TODAY:", nrow(roster_active_today), "active players,", 
+  cat("✅ TODAY:", nrow(roster_active_today), "active players,",
       nrow(roster_out_today), "out\n")
 }
 
@@ -1214,9 +2212,14 @@ message(
   " | date=", unique(player_projections_today$date_key)
 )
 
+
+  
 # ============================================================
 # B) BACKTEST projections (ALL dates < as_of_date)
 # ============================================================
+
+if (mode == "backtest") {
+  
 player_projections_backtest <- build_player_projections(
   roster_active_backtest
 )
@@ -1227,6 +2230,7 @@ message(
   " | dates=", length(unique(player_projections_backtest$date_key))
 )
 
+}  # end mode == "backtest"
 
 # 🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩
 # END PLAYER PROJECTION STAGING
@@ -1250,30 +2254,81 @@ message(
 #
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-
 # ==========================================================================================================
-# MINUTES BASELINE PARAMETER BUILDER
+# MINUTES BASELINE PARAMETER BUILDER v3 (ROTATION-AWARE)
 # ----------------------------------------------------------------------------------------------------------
-# This section builds leakage-safe baseline minute distribution parameters for both TODAY and BACKTEST.
-# For each date, it computes per-quarter minute means and standard deviations using a rolling window of
-# recent games that occurred strictly before that date. These statistics describe how minutes are typically
-# allocated for each player by quarter, without introducing simulation noise or randomness.
+# Changes from v2:
+#   - Step A now pulls from rotation_mins_player (derived from player_rotations) instead of
+#     BaseStats_Player_MC MINS_Q* columns. This gives more precise quarter-level minutes that
+#     naturally capture starter vs bench patterns and quarter-specific rotation behavior.
+#   - rotation_mins_player preprocessor added before the builder.
+#   - Step E uses coalesce fix from v2 (usage weight accumulation, not overwrite).
+#   - All other steps unchanged from v2.
 #
-# The full roster pool is used as the base universe, while injury status is applied separately to flag
-# players as active or out, ensuring team completeness and supporting later minute redistribution logic.
-# Out players are retained in the output so their unavailable minutes can be reallocated downstream.
+# REQUIRES:
+#   - player_rotations (loaded in Section 0)
+#   - delta_v2 / delta_lookup
+#   - BaseStats_Player_MC (still used for ESPN_GAME_ID join at bottom)
+#   - roster_pool/roster_out by-date lists
 #
-# This layer produces deterministic distribution parameters only and does not generate projections.
-# All as-of-date minutes, variance, and redistribution are handled later inside the Monte Carlo engine.
+# Output columns:
+#   mins_mean_Q1-Q6, mins_sd_Q1-Q6  — rotation-derived quarter minute expectations
+#   usage_weight_Q1-Q4              — player's baseline usage share per quarter
 # ==========================================================================================================
 
+# 🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄
+# ROTATION-AWARE MINUTES PREPROCESSOR
+# Converts player_rotations into a clean per-player-per-game
+# quarter minutes table (in actual minutes, not seconds)
+# 🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄🔄
+
+cat("🔄 Building rotation-aware player minutes...\n")
+
+# Empirical scale factors (rotation seconds → BaseStats minutes)
+ROT_SCALE_Q1 <- 62.19
+ROT_SCALE_Q2 <- 61.55
+ROT_SCALE_Q3 <- 61.39
+ROT_SCALE_Q4 <- 60.07
+ROT_SCALE_OT <- 60.00  # OT stays at 60 (not enough data to calibrate)
+
+rotation_mins_player <- player_rotations %>%
+  distinct(ESPN_GAME_ID, ESPN_TEAM_ID, PLAYER_ID, .keep_all = TRUE) %>%
+  transmute(
+    ESPN_GAME_ID   = as.character(ESPN_GAME_ID),
+    ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID),
+    ESPN_PLAYER_ID = as.character(PLAYER_ID),
+    GAME_DATE      = as.Date(GAME_DATE),
+    STARTER_STATUS = as.character(STARTER_STATUS),
+    
+    MINS_Q1 = as.numeric(PLAYER_LINEUP_IN_Q1) / ROT_SCALE_Q1,
+    MINS_Q2 = as.numeric(PLAYER_LINEUP_IN_Q2) / ROT_SCALE_Q2,
+    MINS_Q3 = as.numeric(PLAYER_LINEUP_IN_Q3) / ROT_SCALE_Q3,
+    MINS_Q4 = as.numeric(PLAYER_LINEUP_IN_Q4) / ROT_SCALE_Q4,
+    MINS_Q5 = as.numeric(PLAYER_LINEUP_IN_Q5) / ROT_SCALE_OT,
+    MINS_Q6 = as.numeric(PLAYER_LINEUP_IN_Q6) / ROT_SCALE_OT,
+    MINS_CGS = MINS_Q1 + MINS_Q2 + MINS_Q3 + MINS_Q4 + MINS_Q5 + MINS_Q6
+  ) %>%
+  filter(!is.na(ESPN_PLAYER_ID), ESPN_PLAYER_ID != "")
+
+rotation_mins_player <- as_tibble(rotation_mins_player)
+
+cat("✅ rotation_mins_player built |", nrow(rotation_mins_player), "player-game rows\n")
+cat("   Games:", n_distinct(rotation_mins_player$ESPN_GAME_ID), "\n")
+cat("   Players:", n_distinct(rotation_mins_player$ESPN_PLAYER_ID), "\n\n")
+
+
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-# 🏀🏀🏀 START: Minutes BASELINE PARAMETER BUILDER (NO SIMULATION)
+# 🏀🏀🏀 START: Minutes BASELINE PARAMETER BUILDER v3 (ROTATION-AWARE)
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+
+library(parallel)
+library(pbapply)
 
 stopifnot(
+  exists("rotation_mins_player"),
   exists("BaseStats_Player_MC"),
-  exists("num0")
+  exists("num0"),
+  exists("delta_v2")
 )
 
 quarters <- c("Q1","Q2","Q3","Q4","Q5","Q6")
@@ -1281,6 +2336,24 @@ quarters <- c("Q1","Q2","Q3","Q4","Q5","Q6")
 key_to_date <- function(k) {
   suppressWarnings(as.Date(gsub("[^0-9]", "", k), "%Y%m%d"))
 }
+
+# ----------------------------------------------------------
+# Pre-process delta_v2 once outside the per-date loop
+# ----------------------------------------------------------
+delta_lookup <- delta_v2 %>%
+  mutate(
+    ESPN_TEAM_ID       = as.character(ESPN_TEAM_ID),
+    GAME_DATE          = as.Date(GAME_DATE),
+    OUT_PLAYER_ID      = as.character(OUT_PLAYER_ID),
+    AFFECTED_PLAYER_ID = as.character(AFFECTED_PLAYER_ID)
+  ) %>%
+  select(
+    ESPN_TEAM_ID, GAME_DATE,
+    OUT_PLAYER_ID,
+    AFFECTED_PLAYER_ID,
+    DELTA_MINS_Q1, DELTA_MINS_Q2, DELTA_MINS_Q3, DELTA_MINS_Q4,
+    BASE_USAGE_Q1, BASE_USAGE_Q2, BASE_USAGE_Q3, BASE_USAGE_Q4
+  )
 
 # ------------------------------------------------------------
 # Helper: build minutes PARAMETER TABLE for ONE DATE
@@ -1296,22 +2369,20 @@ build_minutes_params_one_date <- function(
   date_key  <- format(proj_date, "%Y%m%d")
   
   # ----------------------------------------------------------
-  # A) Historical per-quarter minute params (LEAKAGE-SAFE)
+  # A) Historical per-quarter minute params (ROTATION-AWARE, LEAKAGE-SAFE)
+  #    NOW USES rotation_mins_player instead of BaseStats_Player_MC
   # ----------------------------------------------------------
   build_q_params <- function(q) {
     col <- paste0("MINS_", q)
-    if (!col %in% names(BaseStats_Player_MC)) return(NULL)
+    if (!col %in% names(rotation_mins_player)) return(NULL)
     
-    BaseStats_Player_MC %>%
-      dplyr::mutate(
-        GAME_DATE = as.Date(GAME_DATE),
-        val       = num0(.data[[col]], NA_real_)
-      ) %>%
+    rotation_mins_player %>%
       dplyr::filter(GAME_DATE < proj_date) %>%
       dplyr::arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
       dplyr::group_by(ESPN_PLAYER_ID) %>%
       dplyr::slice_tail(n = n_games_back) %>%
       dplyr::mutate(
+        val        = .data[[col]],
         days_ago   = as.numeric(as.Date(proj_date) - GAME_DATE),
         rec_weight = exp(-0.1 * days_ago)
       ) %>%
@@ -1319,21 +2390,18 @@ build_minutes_params_one_date <- function(
         n_games_obs  = n(),
         total_weight = sum(rec_weight, na.rm = TRUE),
         
-        # Recency-weighted mean
         mins_mean_raw = ifelse(
           total_weight > 0,
           sum(val * rec_weight, na.rm = TRUE) / total_weight,
           mean(val, na.rm = TRUE)
         ),
         
-        # Recency-weighted SD
         mins_sd_raw = ifelse(
           total_weight > 0 & n_games_obs > 1,
           sqrt(sum(rec_weight * (val - mins_mean_raw)^2, na.rm = TRUE) / total_weight),
           sd(val, na.rm = TRUE)
         ),
         
-        # Shrink toward league average for small samples
         !!paste0("mins_mean_", q) := ifelse(
           n_games_obs < 5,
           0.7 * mins_mean_raw + 0.3 * 8.0,
@@ -1381,10 +2449,7 @@ build_minutes_params_one_date <- function(
   # D) Attach params + flags
   # ----------------------------------------------------------
   df <- base_df %>%
-    dplyr::left_join(
-      mins_params,
-      by = "ESPN_PLAYER_ID"
-    ) %>%
+    dplyr::left_join(mins_params, by = "ESPN_PLAYER_ID") %>%
     dplyr::mutate(
       is_out    = as.integer(paste0(ESPN_TEAM_ID, "::", ESPN_PLAYER_ID) %in% out_keys),
       is_active = 1L - is_out
@@ -1397,58 +2462,167 @@ build_minutes_params_one_date <- function(
     )
   
   # ----------------------------------------------------------
-  # E) Redistribute injured player minutes (minutes-weighted)
+  # E) Injury absorption using empirical deltas from delta_v2
+  #    (coalesce fix from v2 — accumulates, doesn't overwrite)
   # ----------------------------------------------------------
-  # Instead of proportional scaling, we use each active player's
-  # historical average minutes as the absorption weight.
-  # High-minute players absorb more of the injured player's minutes
-  # than bench players, which is a better approximation of real substitution.
+  out_player_ids <- if (!is.null(roster_out) && nrow(roster_out) > 0) {
+    roster_out %>%
+      mutate(ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID),
+             ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID)) %>%
+      select(ESPN_TEAM_ID, ESPN_PLAYER_ID)
+  } else {
+    NULL
+  }
   
+  reg_quarters <- c("Q1","Q2","Q3","Q4")
+  
+  # Initialize usage_weight columns BEFORE the loop
+  for (q in reg_quarters) {
+    ucol <- paste0("usage_weight_", q)
+    df[[ucol]] <- NA_real_
+  }
+  
+  if (!is.null(out_player_ids) && nrow(out_player_ids) > 0) {
+    
+    date_deltas <- delta_lookup %>%
+      mutate(ESPN_TEAM_ID       = as.character(ESPN_TEAM_ID),
+             AFFECTED_PLAYER_ID = as.character(AFFECTED_PLAYER_ID),
+             OUT_PLAYER_ID      = as.character(OUT_PLAYER_ID))
+    
+    for (i in seq_len(nrow(out_player_ids))) {
+      
+      out_tid <- out_player_ids$ESPN_TEAM_ID[i]
+      out_pid <- out_player_ids$ESPN_PLAYER_ID[i]
+      
+      player_deltas <- date_deltas %>%
+        filter(ESPN_TEAM_ID == out_tid, OUT_PLAYER_ID == out_pid) %>%
+        group_by(AFFECTED_PLAYER_ID) %>%
+        summarise(
+          DELTA_MINS_Q1 = mean(DELTA_MINS_Q1, na.rm = TRUE),
+          DELTA_MINS_Q2 = mean(DELTA_MINS_Q2, na.rm = TRUE),
+          DELTA_MINS_Q3 = mean(DELTA_MINS_Q3, na.rm = TRUE),
+          DELTA_MINS_Q4 = mean(DELTA_MINS_Q4, na.rm = TRUE),
+          BASE_USAGE_Q1 = mean(BASE_USAGE_Q1, na.rm = TRUE),
+          BASE_USAGE_Q2 = mean(BASE_USAGE_Q2, na.rm = TRUE),
+          BASE_USAGE_Q3 = mean(BASE_USAGE_Q3, na.rm = TRUE),
+          BASE_USAGE_Q4 = mean(BASE_USAGE_Q4, na.rm = TRUE),
+          .groups = "drop"
+        )
+      
+      if (nrow(player_deltas) > 0) {
+        
+        df <- df %>%
+          left_join(
+            player_deltas %>%
+              rename(ESPN_PLAYER_ID = AFFECTED_PLAYER_ID) %>%
+              rename_with(~paste0(., "_new"), starts_with("DELTA_MINS_")) %>%
+              rename_with(~paste0(., "_new"), starts_with("BASE_USAGE_")),
+            by = "ESPN_PLAYER_ID"
+          ) %>%
+          mutate(
+            mins_mean_Q1 = ifelse(
+              is_active == 1 & !is.na(DELTA_MINS_Q1_new),
+              pmax(0, mins_mean_Q1 + DELTA_MINS_Q1_new), mins_mean_Q1),
+            mins_mean_Q2 = ifelse(
+              is_active == 1 & !is.na(DELTA_MINS_Q2_new),
+              pmax(0, mins_mean_Q2 + DELTA_MINS_Q2_new), mins_mean_Q2),
+            mins_mean_Q3 = ifelse(
+              is_active == 1 & !is.na(DELTA_MINS_Q3_new),
+              pmax(0, mins_mean_Q3 + DELTA_MINS_Q3_new), mins_mean_Q3),
+            mins_mean_Q4 = ifelse(
+              is_active == 1 & !is.na(DELTA_MINS_Q4_new),
+              pmax(0, mins_mean_Q4 + DELTA_MINS_Q4_new), mins_mean_Q4),
+            
+            usage_weight_Q1 = coalesce(usage_weight_Q1, BASE_USAGE_Q1_new),
+            usage_weight_Q2 = coalesce(usage_weight_Q2, BASE_USAGE_Q2_new),
+            usage_weight_Q3 = coalesce(usage_weight_Q3, BASE_USAGE_Q3_new),
+            usage_weight_Q4 = coalesce(usage_weight_Q4, BASE_USAGE_Q4_new)
+          ) %>%
+          select(-ends_with("_new"))
+        
+      } else {
+        
+        for (q in reg_quarters) {
+          col <- paste0("mins_mean_", q)
+          if (!col %in% names(df)) next
+          
+          df <- df %>%
+            group_by(ESPN_TEAM_ID) %>%
+            mutate(
+              active_total      = sum(.data[[col]] * is_active, na.rm = TRUE),
+              injured_mins      = sum(.data[[col]] * (ESPN_PLAYER_ID == out_pid), na.rm = TRUE),
+              absorption_weight = case_when(
+                is_active == 0    ~ 0,
+                active_total <= 0 ~ 1 / pmax(sum(is_active), 1),
+                TRUE              ~ .data[[col]] / active_total
+              ),
+              !!col := case_when(
+                is_active == 0      ~ 0,
+                is.na(.data[[col]]) ~ 0,
+                active_total <= 0   ~ .data[[col]],
+                TRUE ~ .data[[col]] + (injured_mins * absorption_weight)
+              )
+            ) %>%
+            select(-active_total, -injured_mins, -absorption_weight) %>%
+            ungroup()
+        }
+        
+        for (q in reg_quarters) {
+          mcol <- paste0("mins_mean_", q)
+          ucol <- paste0("usage_weight_", q)
+          if (!mcol %in% names(df)) next
+          
+          df <- df %>%
+            group_by(ESPN_TEAM_ID) %>%
+            mutate(
+              team_mins = sum(.data[[mcol]] * is_active, na.rm = TRUE),
+              !!ucol := ifelse(
+                is_active == 1 & is.na(.data[[ucol]]) & team_mins > 0,
+                .data[[mcol]] / team_mins,
+                .data[[ucol]]
+              )
+            ) %>%
+            select(-team_mins) %>%
+            ungroup()
+        }
+      }
+      
+      df <- df %>%
+        mutate(across(
+          starts_with("mins_mean_"),
+          ~ifelse(ESPN_PLAYER_ID == out_pid & ESPN_TEAM_ID == out_tid, 0, .)
+        ))
+    }
+    
+  }
+  
+  # ----------------------------------------------------------
+  # F) Safety clamp: normalize active players to quarter cap
+  # ----------------------------------------------------------
   for (q in quarters) {
     col <- paste0("mins_mean_", q)
     if (!col %in% names(df)) next
     
-    cap <- if (q %in% c("Q1","Q2","Q3","Q4")) 60 else 25
+    cap <- if (q %in% reg_quarters) 60 else 25
     
     df <- df %>%
       group_by(ESPN_TEAM_ID) %>%
       mutate(
-        # Total minutes from active players
-        active_total = sum(.data[[col]] * is_active, na.rm = TRUE),
-        
-        # Total minutes being vacated by injured players
-        injured_mins = sum(.data[[col]] * is_out, na.rm = TRUE),
-        
-        # Each active player's share of active minutes (absorption weight)
-        absorption_weight = case_when(
-          is_active == 0 ~ 0,
-          active_total <= 0 ~ 1 / sum(is_active, na.rm = TRUE),
-          TRUE ~ .data[[col]] / active_total
-        ),
-        
-        # Redistribute injured minutes proportionally to active players
-        !!col := case_when(
-          is_active == 0      ~ 0,
-          is.na(.data[[col]]) ~ 0,
-          active_total <= 0   ~ .data[[col]],
-          TRUE ~ .data[[col]] + (injured_mins * absorption_weight)
-        )
-      ) %>%
-      # Final safety clamp to exactly hit cap
-      mutate(
         team_total = sum(.data[[col]] * is_active, na.rm = TRUE),
         !!col := case_when(
-          is_active == 0  ~ 0,
-          team_total <= 0 ~ .data[[col]],
-          TRUE            ~ .data[[col]] * (cap / team_total)
+          is_active == 0    ~ 0,
+          team_total <= 0   ~ .data[[col]],
+          team_total > cap  ~ .data[[col]] * (cap / team_total),
+          TRUE              ~ .data[[col]]
         )
       ) %>%
-      select(-active_total, -injured_mins, -absorption_weight, -team_total) %>%
+      select(-team_total) %>%
       ungroup()
   }
   
   df
 }
+
 # ============================================================
 # A) TODAY: BUILD MINUTES PARAMETER TABLE
 # ============================================================
@@ -1476,26 +2650,47 @@ if (exists("roster_pool_today") && nrow(roster_pool_today) > 0) {
 # ============================================================
 # B) BACKTEST: BUILD STACKED MINUTES PARAMETER TABLE
 # ============================================================
+if (mode == "backtest") {
+  
 if (exists("roster_pool_backtest_by_date") && length(roster_pool_backtest_by_date) > 0) {
   
-  cat("📊 Building BACKTEST minutes parameters...\n")
+  cat("📊 Building BACKTEST minutes parameters (rotation-aware)...\n")
   
   bt_keys  <- names(roster_pool_backtest_by_date)
   bt_dates <- key_to_date(bt_keys)
   bt_keys  <- bt_keys[!is.na(bt_dates)]
   
+  cl <- makeCluster(5)
+  clusterExport(cl, c(
+    "build_minutes_params_one_date",
+    "rotation_mins_player",
+    "BaseStats_Player_MC",
+    "delta_lookup",
+    "roster_pool_backtest_by_date",
+    "roster_out_backtest_by_date",
+    "num0",
+    "quarters",
+    "key_to_date"
+  ))
+  clusterEvalQ(cl, {
+    library(dplyr)
+    library(tidyr)
+  })
+  
   player_minutes_params_backtest <- dplyr::bind_rows(
-    lapply(bt_keys, function(kk) {
+    pblapply(bt_keys, function(kk) {
       build_minutes_params_one_date(
         proj_date   = key_to_date(kk),
         roster_pool = roster_pool_backtest_by_date[[kk]],
         roster_out  = roster_out_backtest_by_date[[kk]]
       )
-    })
+    }, cl = cl)
   )
   
+  stopCluster(cl)
+  
   message(
-    "✅ Minutes baseline params built | BACKTEST | dates=", length(bt_keys),
+    "✅ Minutes baseline params built (ROTATION) | BACKTEST | dates=", length(bt_keys),
     " | rows=", nrow(player_minutes_params_backtest)
   )
   
@@ -1504,36 +2699,16 @@ if (exists("roster_pool_backtest_by_date") && length(roster_pool_backtest_by_dat
   warning("⚠️  roster_pool_backtest_by_date missing or empty - player_minutes_params_backtest is empty")
 }
 
+}  # end mode == "backtest"
+
 
 # ============================================================
 # JOIN: Minutes Parameters to Player Projections
 # ============================================================
-# This must happen BEFORE shooting profiles are built
-# (shooting profiles need mins_mean_Q* columns)
 
-if (nrow(player_projections_backtest) > 0 && 
-    exists("player_minutes_params_backtest") && 
-    nrow(player_minutes_params_backtest) > 0) {
-  
-  cat("🔗 Joining minutes parameters to player projections (BACKTEST)...\n")
-  
-  player_projections_backtest <- player_projections_backtest %>%
-    left_join(
-      player_minutes_params_backtest %>%
-        select(
-          date_key, ESPN_PLAYER_ID, ESPN_TEAM_ID,
-          starts_with("mins_mean_"),
-          starts_with("mins_sd_"),
-          is_out, is_active
-        ),
-      by = c("date_key", "ESPN_PLAYER_ID", "ESPN_TEAM_ID")
-    )
-  
-  message("✅ BACKTEST projections enriched with minutes params")
-}
-
-if (nrow(player_projections_today) > 0 && 
-    exists("player_minutes_params_today") && 
+# TODAY join — runs in BOTH modes
+if (nrow(player_projections_today) > 0 &&
+    exists("player_minutes_params_today") &&
     nrow(player_minutes_params_today) > 0) {
   
   cat("🔗 Joining minutes parameters to player projections (TODAY)...\n")
@@ -1545,6 +2720,7 @@ if (nrow(player_projections_today) > 0 &&
           date_key, ESPN_PLAYER_ID, ESPN_TEAM_ID,
           starts_with("mins_mean_"),
           starts_with("mins_sd_"),
+          starts_with("usage_weight_"),
           is_out, is_active
         ),
       by = c("date_key", "ESPN_PLAYER_ID", "ESPN_TEAM_ID")
@@ -1553,11 +2729,74 @@ if (nrow(player_projections_today) > 0 &&
   message("✅ TODAY projections enriched with minutes params")
 }
 
-
+# BACKTEST join + diagnostics — backtest only
+if (mode == "backtest") {
+  
+  if (nrow(player_projections_backtest) > 0 &&
+      exists("player_minutes_params_backtest") &&
+      nrow(player_minutes_params_backtest) > 0) {
+    
+    cat("🔗 Joining minutes parameters to player projections (BACKTEST)...\n")
+    
+    player_projections_backtest <- player_projections_backtest %>%
+      left_join(
+        player_minutes_params_backtest %>%
+          select(
+            date_key, ESPN_PLAYER_ID, ESPN_TEAM_ID,
+            starts_with("mins_mean_"),
+            starts_with("mins_sd_"),
+            starts_with("usage_weight_"),
+            is_out, is_active
+          ),
+        by = c("date_key", "ESPN_PLAYER_ID", "ESPN_TEAM_ID")
+      )
+    
+    message("✅ BACKTEST projections enriched with minutes params")
+  }
+  
+  player_minutes_params_backtest <- player_minutes_params_backtest %>%
+    left_join(
+      BaseStats_Player_MC %>%
+        select(ESPN_GAME_ID, NBA_GAME_ID, GAME_DATE, ESPN_TEAM_ID) %>%
+        mutate(GAME_DATE = as.Date(GAME_DATE)) %>%
+        distinct(),
+      by = c("GAME_DATE", "ESPN_TEAM_ID")
+    )
+  
+  player_minutes_params_backtest %>%
+    filter(is_active == 1) %>%
+    group_by(date_key, ESPN_TEAM_ID) %>%
+    summarise(total_Q1 = sum(mins_mean_Q1, na.rm = TRUE), .groups = "drop") %>%
+    summarise(mean_Q1 = mean(total_Q1), max_Q1 = max(total_Q1))
+  
+  player_minutes_params_backtest %>%
+    filter(is_active == 1) %>%
+    group_by(date_key, ESPN_TEAM_ID) %>%
+    summarise(total_Q1 = sum(mins_mean_Q1, na.rm = TRUE), .groups = "drop") %>%
+    summarise(
+      mean = round(mean(total_Q1), 2),
+      median = round(median(total_Q1), 2),
+      min = round(min(total_Q1), 2),
+      max = round(max(total_Q1), 2),
+      pct_under_58 = round(mean(total_Q1 < 58) * 100, 1),
+      pct_under_55 = round(mean(total_Q1 < 55) * 100, 1)
+    )
+  
+}  # end mode == "backtest"
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-# 🏀🏀🏀 END: Minutes BASELINE PARAMETER BUILDER
+# 🏀🏀🏀 END: Minutes BASELINE PARAMETER BUILDER v3 (ROTATION-AWARE)
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+
+stats_no_mins <- BaseStats_Player_MC %>%
+  filter(
+    (is.na(as.numeric(MINS_CGS)) | as.numeric(MINS_CGS) == 0),
+    (!is.na(as.numeric(FGA_CGS)) & as.numeric(FGA_CGS) > 0)
+  )
+
+cat("Players:", n_distinct(stats_no_mins$ESPN_PLAYER_ID), "\n")
+cat("Rows:", nrow(stats_no_mins), "\n")
+cat("PTS lost:", sum(as.numeric(stats_no_mins$PTS_CGS), na.rm = TRUE), "\n")
 
 
 
@@ -1568,10 +2807,23 @@ if (nrow(player_projections_today) > 0 &&
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 
 stopifnot(
-  exists("player_projections_today"),
-  exists("player_projections_backtest"),
   exists("nba_schedule_season")
 )
+
+if (mode == "production") {
+  stopifnot(
+    exists("player_projections_today"),
+    exists("nba_schedule_season")
+  )
+}
+
+if (mode == "backtest") {
+  stopifnot(
+    exists("player_projections_today"),
+    exists("player_projections_backtest"),
+    exists("nba_schedule_season")
+  )
+}
 
 stopifnot(
   all(c("team_id","team","opp_id","opp","home_away_sym","home_away") %in% names(nba_schedule_season))
@@ -1617,39 +2869,43 @@ if (nrow(player_projections_today) > 0) {
 # ============================================================
 # B) ENRICH BACKTEST PROJECTIONS
 # ============================================================
-if (nrow(player_projections_backtest) > 0) {
+if (mode == "backtest") {
   
-  cat("📋 Enriching BACKTEST projections with game context...\n")
+  if (nrow(player_projections_backtest) > 0) {
+    
+    cat("📋 Enriching BACKTEST projections with game context...\n")
+    
+    player_projections_backtest <- player_projections_backtest %>%
+      left_join(
+        nba_schedule_season %>%
+          transmute(
+            GAME_DATE    = as.Date(game_date),
+            ESPN_TEAM_ID = as.character(team_id),
+            ESPN_GAME_ID = as.character(game_id)
+          ),
+        by = c("GAME_DATE", "ESPN_TEAM_ID")
+      ) %>%
+      left_join(
+        nba_schedule_season %>%
+          transmute(
+            ESPN_GAME_ID  = as.character(game_id),
+            ESPN_TEAM_ID  = as.character(team_id),
+            TEAM          = team,
+            ESPN_OPP_ID   = as.character(opp_id),
+            OPP           = opp,
+            HOME_AWAY     = home_away,
+            HOME_AWAY_SYM = home_away_sym
+          ),
+        by = c("ESPN_GAME_ID", "ESPN_TEAM_ID")
+      )
+    
+    message("✅ BACKTEST projections enriched | rows=", nrow(player_projections_backtest))
+    
+  } else {
+    message("⏭️  Skipping BACKTEST enrichment (no backtest data)")
+  }
   
-  player_projections_backtest <- player_projections_backtest %>%
-    left_join(
-      nba_schedule_season %>%
-        transmute(
-          GAME_DATE    = as.Date(game_date),
-          ESPN_TEAM_ID = as.character(team_id),
-          ESPN_GAME_ID = as.character(game_id)
-        ),
-      by = c("GAME_DATE", "ESPN_TEAM_ID")
-    ) %>%
-    left_join(
-      nba_schedule_season %>%
-        transmute(
-          ESPN_GAME_ID  = as.character(game_id),
-          ESPN_TEAM_ID  = as.character(team_id),
-          TEAM          = team,
-          ESPN_OPP_ID   = as.character(opp_id),
-          OPP           = opp,
-          HOME_AWAY     = home_away,
-          HOME_AWAY_SYM = home_away_sym
-        ),
-      by = c("ESPN_GAME_ID", "ESPN_TEAM_ID")
-    )
-  
-  message("✅ BACKTEST projections enriched | rows=", nrow(player_projections_backtest))
-  
-} else {
-  message("⏭️  Skipping BACKTEST enrichment (no backtest data)")
-}
+}  # end mode == "backtest"
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # ======================================
@@ -1704,7 +2960,10 @@ validate_projections <- function(df, df_name) {
 
 # Run validations
 validate_projections(player_projections_today, "player_projections_today")
-validate_projections(player_projections_backtest, "player_projections_backtest")
+
+if (mode == "backtest") {
+  validate_projections(player_projections_backtest, "player_projections_backtest")
+}
 
 # 🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩🧩
 # END DATA VALIDATION
@@ -1763,6 +3022,13 @@ get_mins_q <- function(df, q) {
   if (col %in% names(df)) return(as.numeric(df[[col]]))
   rep(0, nrow(df))
 }
+
+get_usage_q <- function(df, q) {
+  col <- paste0("usage_weight_Q", q)
+  if (col %in% names(df)) return(as.numeric(df[[col]]))
+  rep(NA_real_, nrow(df))
+}
+
 
 # --------------------------------------------------
 # A) Build player shooting baselines (LEAKAGE-SAFE)
@@ -1862,7 +3128,8 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
         ESPN_PLAYER_ID = player_projections_today$ESPN_PLAYER_ID,
         qtr            = q,
         
-        mins_q      = get_mins_q(player_projections_today, q),
+        mins_q         = get_mins_q(player_projections_today, q),
+        usage_weight_q = get_usage_q(player_projections_today, q),  # NEW
         
         FG2_pct     = player_projections_today$FG2_pct,
         FG3_pct     = player_projections_today$FG3_pct,
@@ -1886,6 +3153,8 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
 # ============================================================
 # C) BACKTEST: Build Shooting Profile
 # ============================================================
+if (mode == "backtest") {
+  
 if (exists("player_projections_backtest") && nrow(player_projections_backtest) > 0) {
   
   cat("📊 Building BACKTEST shooting profiles...\n")
@@ -1929,13 +3198,15 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
           ESPN_PLAYER_ID = sub$ESPN_PLAYER_ID,
           qtr            = q,
           
-          mins_q      = get_mins_q(sub, q),
+          mins_q         = get_mins_q(sub, q),
+          usage_weight_q = get_usage_q(sub, q),  # NEW — only addition
           
           FG2_pct     = sub$FG2_pct,
           FG3_pct     = sub$FG3_pct,
           FT_pct      = sub$FT_pct,
           p3          = sub$p3,
-          FTA_per_FGA = sub$FTA_per_FGA
+          FTA_per_FGA = sub$FTA_per_FGA,
+          pts_per_min = sub$pts_per_min   # keep this if it was there before
         )
       })
     )
@@ -1954,6 +3225,9 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   player_shooting_profile_q <- tibble()
   message("⏭️  Skipping BACKTEST shooting profile (no backtest data)")
 }
+  
+}  # end mode == "backtest"
+
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # 🏀🏀🏀 END: Player Shooting Rate Profile
@@ -2014,6 +3288,13 @@ get_mins_q <- function(df, q) {
   if (col %in% names(df)) return(as.numeric(df[[col]]))
   rep(0, nrow(df))
 }
+
+get_usage_q <- function(df, q) {
+  col <- paste0("usage_weight_Q", q)
+  if (col %in% names(df)) return(as.numeric(df[[col]]))
+  rep(NA_real_, nrow(df))
+}
+
 
 # --------------------------------------------------
 # A) Build deterministic PPM baseline (LEAKAGE-SAFE)
@@ -2227,6 +3508,12 @@ get_mins_q <- function(df, q) {
   rep(0, nrow(df))
 }
 
+get_usage_q <- function(df, q) {
+  col <- paste0("usage_weight_Q", q)
+  if (col %in% names(df)) return(as.numeric(df[[col]]))
+  rep(NA_real_, nrow(df))
+}
+
 # --------------------------------------------------
 # A) Build OREB/DREB/MIN baseline (LEAKAGE-SAFE)
 # --------------------------------------------------
@@ -2371,9 +3658,9 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
           qtr            = q,
           
           mins_q       = get_mins_q(sub, q),
+          reb_per_min  = sub$reb_per_min,
           oreb_per_min = sub$oreb_per_min,
-          dreb_per_min = sub$dreb_per_min,
-          reb_per_min  = sub$reb_per_min
+          dreb_per_min = sub$dreb_per_min
         )
       })
     )
@@ -2449,6 +3736,12 @@ get_mins_q <- function(df, q) {
   col <- paste0("mins_mean_Q", q)
   if (col %in% names(df)) return(as.numeric(df[[col]]))
   rep(0, nrow(df))
+}
+
+get_usage_q <- function(df, q) {
+  col <- paste0("usage_weight_Q", q)
+  if (col %in% names(df)) return(as.numeric(df[[col]]))
+  rep(NA_real_, nrow(df))
 }
 
 # --------------------------------------------------
@@ -2659,6 +3952,12 @@ get_mins_q <- function(df, q) {
   rep(0, nrow(df))
 }
 
+get_usage_q <- function(df, q) {
+  col <- paste0("usage_weight_Q", q)
+  if (col %in% names(df)) return(as.numeric(df[[col]]))
+  rep(NA_real_, nrow(df))
+}
+
 # --------------------------------------------------
 # A) Build BLK/MIN baseline (LEAKAGE-SAFE)
 # --------------------------------------------------
@@ -2866,6 +4165,13 @@ get_mins_q <- function(df, q) {
   rep(0, nrow(df))
 }
 
+get_usage_q <- function(df, q) {
+  col <- paste0("usage_weight_Q", q)
+  if (col %in% names(df)) return(as.numeric(df[[col]]))
+  rep(NA_real_, nrow(df))
+}
+
+
 # --------------------------------------------------
 # A) Build STL/MIN baseline (LEAKAGE-SAFE)
 # --------------------------------------------------
@@ -3070,6 +4376,12 @@ get_mins_q <- function(df, q) {
   col <- paste0("mins_mean_Q", q)
   if (col %in% names(df)) return(as.numeric(df[[col]]))
   rep(0, nrow(df))
+}
+
+get_usage_q <- function(df, q) {
+  col <- paste0("usage_weight_Q", q)
+  if (col %in% names(df)) return(as.numeric(df[[col]]))
+  rep(NA_real_, nrow(df))
 }
 
 # --------------------------------------------------
@@ -3279,6 +4591,13 @@ get_mins_q <- function(df, q) {
   rep(0, nrow(df))
 }
 
+get_usage_q <- function(df, q) {
+  col <- paste0("usage_weight_Q", q)
+  if (col %in% names(df)) return(as.numeric(df[[col]]))
+  rep(NA_real_, nrow(df))
+}
+
+
 # --------------------------------------------------
 # A) Choose FOULS column (robust)
 # --------------------------------------------------
@@ -3417,11 +4736,11 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
     sub_q <- bind_rows(
       lapply(quarters, function(q) {
         tibble(
-          GAME_DATE       = sub$GAME_DATE,
-          ESPN_GAME_ID    = sub$ESPN_GAME_ID,
-          ESPN_TEAM_ID    = sub$ESPN_TEAM_ID,
-          ESPN_PLAYER_ID  = sub$ESPN_PLAYER_ID,
-          qtr             = q,
+          GAME_DATE      = sub$GAME_DATE,
+          ESPN_GAME_ID   = sub$ESPN_GAME_ID,
+          ESPN_TEAM_ID   = sub$ESPN_TEAM_ID,
+          ESPN_PLAYER_ID = sub$ESPN_PLAYER_ID,
+          qtr            = q,
           
           mins_q        = get_mins_q(sub, q),
           fouls_per_min = sub$fouls_per_min
@@ -3685,15 +5004,15 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
 # 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
 
 # --------------------------------------------------
-# Home Court Adjustment Parameters (Conservative)
+# Home Court Adjustment Parameters
 # --------------------------------------------------
 HCA <- list(
-  fg2_mult = 1.015,   # +1.5% on 2PT shooting
-  fg3_mult = 1.020,   # +2.0% on 3PT shooting
-  ft_mult  = 1.010,   # +1.0% on FT shooting
-  fta_mult = 1.050,   # +5% more FT attempts (referee bias)
-  mins_mult = 1.010   # +1% minutes (unused for now)
-  # TODO: Add tov_mult, oreb_mult when rest/travel features are added
+  fg2_mult  = 1.020,   # +2.0% on 2PT shooting (was 1.5%)
+  fg3_mult  = 1.025,   # +2.5% on 3PT shooting (was 2.0%)
+  ft_mult   = 1.010,   # +1.0% on FT shooting (unchanged)
+  fta_mult  = 1.060,   # +6% more FT attempts (was 5%)
+  tov_mult  = 0.970,   # -3% turnovers at home (NEW)
+  oreb_mult = 1.020    # +2% offensive rebounds at home (NEW)
 )
 
 # --------------------------------------------------
@@ -3709,11 +5028,13 @@ if (exists("team_offense_adjusted_q") && nrow(team_offense_adjusted_q) > 0) {
       by = "game_id"
     ) %>%
     mutate(
-      is_home          = ESPN_TEAM_ID == home_team_id,
-      fg2_pct_adjusted = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
-      fg3_pct_adjusted = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
-      ft_pct_adjusted  = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
-      fta_per_fga_adjusted = ifelse(is_home, fta_per_fga_adjusted * HCA$fta_mult, fta_per_fga_adjusted)
+      is_home              = ESPN_TEAM_ID == home_team_id,
+      fg2_pct_adjusted     = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
+      fg3_pct_adjusted     = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
+      ft_pct_adjusted      = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
+      fta_per_fga_adjusted = ifelse(is_home, fta_per_fga_adjusted * HCA$fta_mult, fta_per_fga_adjusted),
+      tov_per_poss_adjusted  = ifelse(is_home, tov_per_poss_adjusted  * HCA$tov_mult,  tov_per_poss_adjusted),
+      oreb_per_poss_adjusted = ifelse(is_home, oreb_per_poss_adjusted * HCA$oreb_mult, oreb_per_poss_adjusted)
     ) %>%
     select(-is_home, -home_team_id)
   
@@ -3733,21 +5054,320 @@ if (exists("team_offense_adjusted_q_today") && nrow(team_offense_adjusted_q_toda
       by = "game_id"
     ) %>%
     mutate(
-      is_home          = ESPN_TEAM_ID == home_team_id,
-      fg2_pct_adjusted = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
-      fg3_pct_adjusted = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
-      ft_pct_adjusted  = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
-      fta_per_fga_adjusted = ifelse(is_home, fta_per_fga_adjusted * HCA$fta_mult, fta_per_fga_adjusted)
+      is_home              = ESPN_TEAM_ID == home_team_id,
+      fg2_pct_adjusted     = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
+      fg3_pct_adjusted     = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
+      ft_pct_adjusted      = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
+      fta_per_fga_adjusted = ifelse(is_home, fta_per_fga_adjusted * HCA$fta_mult, fta_per_fga_adjusted),
+      tov_per_poss_adjusted  = ifelse(is_home, tov_per_poss_adjusted  * HCA$tov_mult,  tov_per_poss_adjusted),
+      oreb_per_poss_adjusted = ifelse(is_home, oreb_per_poss_adjusted * HCA$oreb_mult, oreb_per_poss_adjusted)
     ) %>%
     select(-is_home, -home_team_id)
   
   message("✅ Home court advantage applied to TODAY team offense profiles")
 }
 
-
 # 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
 # 🏠🏠🏠 END: Home Court Advantage Adjustments
 # 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+
+
+
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀️
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀️
+#
+#
+#
+#     oooooooooo.              .o88o.                                               ooooooooo.                       .o88o.  o8o  oooo                   .o ooooooooo.   o.   
+#     `888'   `Y8b             888 `"                                               `888   `Y88.                     888 `"  `"'  `888                  .8' `888   `Y88. `8.  
+#      888      888  .ooooo.  o888oo   .ooooo.  ooo. .oo.    .oooo.o  .ooooo.        888   .d88' oooo d8b  .ooooo.  o888oo  oooo   888   .ooooo.       .8'   888   .d88'  `8. 
+#      888      888 d88' `88b  888    d88' `88b `888P"Y88b  d88(  "8 d88' `88b       888ooo88P'  `888""8P d88' `88b  888    `888   888  d88' `88b      88    888ooo88P'    88 
+#      888      888 888ooo888  888    888ooo888  888   888  `"Y88b.  888ooo888       888          888     888   888  888     888   888  888ooo888      88    888           88 
+#      888     d88' 888    .o  888    888    .o  888   888  o.  )88b 888    .o       888          888     888   888  888     888   888  888    .o      `8.   888          .8' 
+#     o888bood8P'   `Y8bod8P' o888o   `Y8bod8P' o888o o888o 8""888P' `Y8bod8P'      o888o        d888b    `Y8bod8P' o888o   o888o o888o `Y8bod8P'       `8. o888o        .8'  
+#                                                                                                                                                        `"              "'   
+#
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀️
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀️
+# ==========================================================================================================
+# PLAYER DEFENSIVE ADJUSTMENT PROFILE (CRUDE - CLOSEST DEFENDER TRACKING)
+# ----------------------------------------------------------------------------------------------------------
+# This section builds a team-level defensive adjustment that modifies each player's shooting profile
+# based on how the OPPOSING DEFENSE contests shots. It uses closest defender tracking data to measure
+# what FG2% and FG3% opponents shoot against each team, broken down by contest level
+# (Tight, Very Tight, Open, Wide Open).
+#
+# APPROACH (Phase 1 — Crude):
+#   - For each defending team, compute the average FG2% and FG3% opponents shoot against them
+#   - Compare to league average to derive a defensive multiplier (e.g. Celtics allow 4% below avg)
+#   - Apply that multiplier to each player's shooting profile before the sim runs
+#   - This is a TEAM-level adjustment applied to individual players, not a true matchup model
+#
+# PHASE 2 (Future):
+#   - When closest defender identity is available, build true player-vs-player matchup adjustments
+#   - Apply position-based defensive splits (guard defenders vs. big defenders)
+#
+# OUTPUT:
+#   team_defensive_shooting_adj    -- multiplier per defending team (fg2_mult, fg3_mult)
+#   player_shooting_profile_q      -- updated with opponent defensive adjustments applied
+# ==========================================================================================================
+
+# 🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️
+# 🛡️🛡️🛡️ START: Player Defensive Adjustment Profile
+# 🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️
+
+stopifnot(
+  exists("nba_games_canon_season"),
+  exists("player_shooting_profile_q_today"),
+  exists("num0")
+)
+
+if (mode == "backtest") {
+  stopifnot(exists("player_shooting_profile_q"))
+}
+
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(data.table)
+  library(tibble)
+})
+
+# --------------------------------------------------
+# Step 1: Load closest defender tracking data
+# --------------------------------------------------
+shot_tracking_dir <- file.path(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data",
+  "0. Datahub (Temp)/1. hoopR/9. ShotTracking Data"
+)
+
+cat("📂 Loading closest defender tracking data...\n")
+
+closest_defender_raw <- fread(
+  file.path(shot_tracking_dir, paste0("nba_closetdefendertracked_", season_token, ".csv")),
+  colClasses = "character",
+  encoding   = "UTF-8"
+)
+
+cat("  Loaded:", nrow(closest_defender_raw), "rows\n\n")
+
+# --------------------------------------------------
+# Step 2: Standardize and cast
+# --------------------------------------------------
+closest_defender <- closest_defender_raw %>%
+  transmute(
+    espn_game_id               = as.character(espn_game_id),
+    espn_player_id             = as.character(espn_player_id),
+    espn_team_id               = as.character(espn_team_id),
+    game_date                  = as.Date(game_date),
+    defender_range_designation = as.character(defender_range_designation),
+    FG2M = num0(FG2M, NA_real_),
+    FG2A = num0(FG2A, NA_real_),
+    FG3M = num0(FG3M, NA_real_),
+    FG3A = num0(FG3A, NA_real_)
+  ) %>%
+  filter(!is.na(espn_game_id), !is.na(espn_team_id))
+
+# --------------------------------------------------
+# Step 3: Join opponent team ID from canon games
+# Closest defender data has the OFFENSIVE player's team.
+# We need the DEFENDING team = the opponent.
+# --------------------------------------------------
+
+# Build both perspectives directly — no pivot needed, column names stay unambiguous
+game_opponent_map <- bind_rows(
+  nba_games_canon_season %>%
+    transmute(
+      espn_game_id      = as.character(game_id),
+      espn_team_id      = as.character(home_team_id),
+      defending_team_id = as.character(away_team_id)
+    ),
+  nba_games_canon_season %>%
+    transmute(
+      espn_game_id      = as.character(game_id),
+      espn_team_id      = as.character(away_team_id),
+      defending_team_id = as.character(home_team_id)
+    )
+) %>%
+  filter(!is.na(defending_team_id)) %>%
+  distinct()
+
+closest_defender <- closest_defender %>%
+  left_join(game_opponent_map, by = c("espn_game_id", "espn_team_id"))
+
+cat("  Opponent join complete. NAs in defending_team_id:",
+    sum(is.na(closest_defender$defending_team_id)), "\n\n")
+
+# --------------------------------------------------
+# Step 4: Build league average FG2% and FG3%
+# by contest level (used as the anchor for adjustments)
+# --------------------------------------------------
+cat("  Computing league average shooting by contest level...\n")
+
+league_avg_by_contest <- closest_defender %>%
+  filter(!is.na(defender_range_designation)) %>%
+  group_by(defender_range_designation) %>%
+  summarise(
+    lg_FG2_pct = ifelse(sum(FG2A, na.rm = TRUE) > 0,
+                        sum(FG2M, na.rm = TRUE) / sum(FG2A, na.rm = TRUE),
+                        NA_real_),
+    lg_FG3_pct = ifelse(sum(FG3A, na.rm = TRUE) > 0,
+                        sum(FG3M, na.rm = TRUE) / sum(FG3A, na.rm = TRUE),
+                        NA_real_),
+    .groups = "drop"
+  )
+
+# Overall league averages (all contest levels combined)
+lg_FG2_overall <- sum(closest_defender$FG2M, na.rm = TRUE) /
+  max(sum(closest_defender$FG2A, na.rm = TRUE), 1)
+lg_FG3_overall <- sum(closest_defender$FG3M, na.rm = TRUE) /
+  max(sum(closest_defender$FG3A, na.rm = TRUE), 1)
+
+cat("  League avg FG2%:", round(lg_FG2_overall, 3),
+    "| FG3%:", round(lg_FG3_overall, 3), "\n\n")
+
+# --------------------------------------------------
+# Step 5: Build per-defending-team shooting allowed
+# Leakage-safe: use all games before as_of_date
+# Recency-weighted: exp(-0.1 * days_ago)
+# --------------------------------------------------
+cat("  Building team defensive shooting allowed profiles...\n")
+
+team_def_raw <- closest_defender %>%
+  filter(
+    !is.na(defending_team_id),
+    game_date < as.Date(as_of_date)
+  ) %>%
+  mutate(
+    days_ago   = as.numeric(as.Date(as_of_date) - game_date),
+    rec_weight = exp(-0.1 * days_ago)
+  ) %>%
+  group_by(defending_team_id) %>%
+  summarise(
+    n_games = n_distinct(espn_game_id),
+    
+    # Weighted FG2% and FG3% allowed (all contest levels combined)
+    w_FG2A = sum(FG2A * rec_weight, na.rm = TRUE),
+    w_FG2M = sum(FG2M * rec_weight, na.rm = TRUE),
+    w_FG3A = sum(FG3A * rec_weight, na.rm = TRUE),
+    w_FG3M = sum(FG3M * rec_weight, na.rm = TRUE),
+    
+    FG2_pct_allowed = ifelse(w_FG2A > 0, w_FG2M / w_FG2A, lg_FG2_overall),
+    FG3_pct_allowed = ifelse(w_FG3A > 0, w_FG3M / w_FG3A, lg_FG3_overall),
+    
+    # Contest rate: proportion of opponent shots that are Tight or Very Tight
+    total_shots = sum(FG2A + FG3A, na.rm = TRUE),
+    tight_shots = sum(
+      ifelse(defender_range_designation %in% c("Tight", "Very Tight"),
+             FG2A + FG3A, 0),
+      na.rm = TRUE
+    ),
+    contest_rate = ifelse(total_shots > 0, tight_shots / total_shots, 0.40),
+    
+    .groups = "drop"
+  ) %>%
+  mutate(
+    # Small sample shrinkage toward league average
+    shrink_w = ifelse(n_games < 10, 0.4, 0.15),
+    
+    FG2_pct_allowed = (1 - shrink_w) * FG2_pct_allowed + shrink_w * lg_FG2_overall,
+    FG3_pct_allowed = (1 - shrink_w) * FG3_pct_allowed + shrink_w * lg_FG3_overall,
+    contest_rate    = (1 - shrink_w) * contest_rate    + shrink_w * 0.40,
+    
+    # Defensive multiplier: ratio of what this defense allows vs league average
+    # < 1.0 = elite defense (allows below average), > 1.0 = poor defense
+    fg2_def_mult = FG2_pct_allowed / lg_FG2_overall,
+    fg3_def_mult = FG3_pct_allowed / lg_FG3_overall,
+    
+    # Clamp multipliers to reasonable range (no defense is 30% better or worse)
+    fg2_def_mult = pmin(pmax(fg2_def_mult, 0.85), 1.15),
+    fg3_def_mult = pmin(pmax(fg3_def_mult, 0.85), 1.15)
+  ) %>%
+  select(
+    defending_team_id,
+    FG2_pct_allowed, FG3_pct_allowed,
+    fg2_def_mult, fg3_def_mult,
+    contest_rate, n_games
+  ) %>%
+  rename(ESPN_TEAM_ID = defending_team_id)
+
+cat("  Team defensive profiles built:", nrow(team_def_raw), "teams\n")
+cat("  FG2 mult range: [",
+    round(min(team_def_raw$fg2_def_mult), 3), ",",
+    round(max(team_def_raw$fg2_def_mult), 3), "]\n")
+cat("  FG3 mult range: [",
+    round(min(team_def_raw$fg3_def_mult), 3), ",",
+    round(max(team_def_raw$fg3_def_mult), 3), "]\n\n")
+
+# Store as named output
+team_defensive_shooting_adj <- team_def_raw
+
+# Build opponent lookup (needed by both backtest and today)
+opp_lookup <- bind_rows(
+  nba_games_canon_season %>%
+    transmute(
+      ESPN_GAME_ID = as.character(game_id),
+      ESPN_TEAM_ID = as.character(home_team_id),
+      opp_team_id  = as.character(away_team_id)
+    ),
+  nba_games_canon_season %>%
+    transmute(
+      ESPN_GAME_ID = as.character(game_id),
+      ESPN_TEAM_ID = as.character(away_team_id),
+      opp_team_id  = as.character(home_team_id)
+    )
+) %>%
+  distinct()
+
+# --------------------------------------------------
+# Step 6: Apply defensive adjustment to player shooting profiles
+
+# BACKTEST
+if (mode == "backtest") {
+  player_shooting_profile_q <- player_shooting_profile_q %>%
+    left_join(opp_lookup,
+              by = c("ESPN_GAME_ID", "ESPN_TEAM_ID")) %>%
+    left_join(
+      team_defensive_shooting_adj %>%
+        select(ESPN_TEAM_ID, fg2_def_mult, fg3_def_mult) %>%
+        rename(opp_team_id = ESPN_TEAM_ID),
+      by = "opp_team_id"
+    ) %>%
+    mutate(
+      fg2_def_mult = num0(fg2_def_mult, 1.0),
+      fg3_def_mult = num0(fg3_def_mult, 1.0),
+      FG2_pct = pmin(pmax(FG2_pct * fg2_def_mult, 0.20), 0.80),
+      FG3_pct = pmin(pmax(FG3_pct * fg3_def_mult, 0.10), 0.65)
+    ) %>%
+    select(-opp_team_id, -fg2_def_mult, -fg3_def_mult)
+  
+  cat("  Defensive adjustment applied to player_shooting_profile_q\n")
+}
+
+# TODAY
+if (exists("player_shooting_profile_q_today") && nrow(player_shooting_profile_q_today) > 0) {
+  player_shooting_profile_q_today <- player_shooting_profile_q_today %>%
+    left_join(opp_lookup,
+              by = c("ESPN_GAME_ID", "ESPN_TEAM_ID")) %>%
+    left_join(
+      team_defensive_shooting_adj %>%
+        select(ESPN_TEAM_ID, fg2_def_mult, fg3_def_mult) %>%
+        rename(opp_team_id = ESPN_TEAM_ID),
+      by = "opp_team_id"
+    ) %>%
+    mutate(
+      fg2_def_mult = num0(fg2_def_mult, 1.0),
+      fg3_def_mult = num0(fg3_def_mult, 1.0),
+      FG2_pct = pmin(pmax(FG2_pct * fg2_def_mult, 0.20), 0.80),
+      FG3_pct = pmin(pmax(FG3_pct * fg3_def_mult, 0.10), 0.65)
+    ) %>%
+    select(-opp_team_id, -fg2_def_mult, -fg3_def_mult)
+  
+  cat("  Defensive adjustment applied to player_shooting_profile_q_today\n")
+}
+
+# 🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️
+# 🛡️🛡️🛡️ END: Player Defensive Adjustment Profile
+# 🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️
 
 
 
@@ -6607,14 +8227,16 @@ if (exists("nba_games_canon_season") &&
   message("⏭️  Skipping TODAY team defensive profiles (missing dependencies)")
 }
 
-# ============================================================
-# B) BACKTEST: Build Team Defensive Profiles
-# ============================================================
-if (exists("nba_games_canon_season") &&
-    exists("team_offensive_efficiency_q") &&
-    exists("team_shooting_params_q") &&
-    exists("team_rebounding_rates_q") &&
-    exists("team_turnover_rates_q")) {
+if (mode == "backtest") {
+  
+  # ============================================================
+  # B) BACKTEST: Build Team Defensive Profiles
+  # ============================================================
+  if (exists("nba_games_canon_season") &&
+      exists("team_offensive_efficiency_q") &&
+      exists("team_shooting_params_q") &&
+      exists("team_rebounding_rates_q") &&
+      exists("team_turnover_rates_q")) {
   
   cat("📊 Building BACKTEST team defensive profiles...\n")
   
@@ -6659,6 +8281,8 @@ if (exists("nba_games_canon_season") &&
   team_defensive_profiles_q <- tibble()
   message("⏭️  Skipping BACKTEST team defensive profiles (missing dependencies)")
 }
+
+}  # end mode == "backtest"
 
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠️
 # 💠💠💠️️ END: Team Defensive Profiles (From Opponent Performance)
@@ -7028,39 +8652,35 @@ if (exists("nba_games_canon_season") &&
 # 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
 # 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
 # ==========================================================================================================
-# MONTE CARLO SIMULATION ENGINE - TEAM-LEVEL GAME PROJECTIONS
+# MONTE CARLO SIMULATION ENGINE
 # ----------------------------------------------------------------------------------------------------------
-# This section implements a parametric Monte Carlo simulation for NBA game outcomes. The engine uses
-# team-level rate profiles (pace, offensive efficiency, shooting, rebounding, turnovers, etc.) to
-# simulate game scores through repeated random sampling.
-#
 # ARCHITECTURE:
-# The simulation is RATE-BASED (parametric), not event-based. Team offensive efficiency (pts/poss) is
-# used directly rather than simulating individual possessions. This approach is:
-# - Faster (no possession-by-possession loops)
-# - Simpler (fewer moving parts)
-# - Standard (used by professional models like 538, BPI)
+# Rate-based (parametric) simulation — not event-based. Team offensive efficiency (pts/poss) is used
+# directly rather than simulating individual possessions. In player mode, each possession samples a
+# player by usage weight and fires their personal shooting profile.
 #
 # SIMULATION FLOW:
 # 1. Draw possessions for each team/quarter from pace profiles
 # 2. Apply possession adjustments (turnovers reduce scoring possessions)
 # 3. Apply bonus possessions (offensive rebounds create extra opportunities)
-# 4. Calculate expected points (effective_poss × pts_per_poss_adjusted)
+# 4. Calculate expected points (effective_poss x pts_per_poss_adjusted)
 # 5. Add variance (possession-based stochastic noise)
 # 6. Apply free throw bonus (fouling creates extra points)
 # 7. Sum across quarters to get game total
-# 8. Repeat 10,000 times to build outcome distribution
+# 8. Repeat N times to build outcome distribution
 #
 # GAME REALISM FEATURES:
 # - Blowout drag (Q4 possessions reduced in lopsided games)
 # - Intentional fouling (trailing team fouls to extend game)
 # - Overtime handling (if scores tied after regulation)
-# - Quarter-specific variance (different uncertainty per period)
 #
 # KEY FUNCTIONS:
-# - simulate_quarter_offense() - Simulates one team's offense for one quarter
-# - simulate_game_once() - Simulates one complete game (both teams, all quarters)
-# - run_monte_carlo() - Runs N simulations and aggregates results
+# - simulate_quarter_offense()        -- team-level, kept as fallback
+# - simulate_quarter_offense_player() -- player-level Option B (full box score)
+# - apply_blowout_drag()              -- Q4 adjustment
+# - apply_intentional_fouling()       -- Q4 endgame
+# - simulate_game_once()              -- single complete game (team-level)
+# - run_monte_carlo()                 -- N simulations, single game
 # ==========================================================================================================
 
 # 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
@@ -7073,9 +8693,7 @@ suppressPackageStartupMessages({
   library(purrr)
 })
 
-stopifnot(
-  exists("num0")
-)
+stopifnot(exists("num0"))
 
 # --------------------------------------------------
 # MC Configuration Parameters
@@ -7083,27 +8701,27 @@ stopifnot(
 if (!exists("MC_CONFIG")) {
   MC_CONFIG <- list(
     # Variance parameters
-    poss_variance_scale = 1.5,        # Scale factor for possession variance (1.0 = use profile sd as-is)
-    pts_per_poss_variance = 0.15,     # Base variance in pts/poss (±0.08 pts per possession)
+    poss_variance_scale    = 1.5,    # Scale factor for possession variance
+    pts_per_poss_variance  = 0.15,   # Base variance in pts/poss
     
     # Bonus/adjustment strengths
-    oreb_bonus_pct = 0.70,            # % of OREBs that create extra possessions
-    tov_reduction_pct = 1.00,         # % of turnovers that eliminate scoring possessions
-    foul_bonus_leverage = 1.00,       # Leverage for free throw bonus (1.0 = full effect)
+    oreb_bonus_pct         = 0.70,   # % of OREBs that create extra possessions
+    tov_reduction_pct      = 1.00,   # % of turnovers that eliminate scoring possessions
+    foul_bonus_leverage    = 1.00,   # Leverage for free throw bonus (1.0 = full effect)
     
     # Blowout behavior
-    blowout_threshold = 18,           # Point margin triggering blowout drag
-    blowout_poss_reduction = 0.15,    # % reduction in Q4 possessions during blowout
+    blowout_threshold      = 18,     # Point margin triggering blowout drag
+    blowout_poss_reduction = 0.15,   # % reduction in Q4 possessions during blowout
     
     # Endgame fouling
-    intentional_foul_margin = 6,      # Max margin for intentional fouling
-    intentional_foul_max_trips = 6,   # Max foul trips in close Q4
-    intentional_foul_strength = 1.0,  # Probability multiplier for fouling behavior
+    intentional_foul_margin    = 6,  # Max margin for intentional fouling
+    intentional_foul_max_trips = 6,  # Max foul trips in close Q4
+    intentional_foul_strength  = 1.0,# Probability multiplier for fouling behavior
     
     # Overtime
-    ot_poss_mean = 10,                # Mean possessions per OT period
-    ot_poss_sd = 2,                   # SD of possessions per OT
-    max_ot_periods = 2                # Max OT periods to simulate
+    ot_poss_mean   = 10,             # Mean possessions per OT period
+    ot_poss_sd     = 2,              # SD of possessions per OT
+    max_ot_periods = 2               # Max OT periods to simulate
   )
 }
 
@@ -7124,33 +8742,32 @@ draw_attempts <- function(mu, sd = 0) {
 # --------------------------------------------------
 # Possession Drawing
 # --------------------------------------------------
-draw_team_possessions_q <- function(team_id, qtr, game_id, 
+draw_team_possessions_q <- function(team_id, qtr, game_id,
                                     team_poss_profile_q,
                                     variance_scale = MC_CONFIG$poss_variance_scale) {
   
-  # Look up possession parameters for this team/game/quarter
   poss_params <- team_poss_profile_q %>%
     filter(
       ESPN_TEAM_ID == !!team_id,
       ESPN_GAME_ID == !!game_id,
-      qtr == !!qtr
+      qtr          == !!qtr
     ) %>%
     slice(1)
   
   if (nrow(poss_params) == 0) {
-    # Fallback: use league average (24 poss for regulation, 10 for OT)
     mu <- if (qtr <= 4) 24 else 10
-    sd <- if (qtr <= 4) 3 else 2
+    sd <- if (qtr <= 4) 3  else 2
   } else {
     mu <- num0(poss_params$POSS_mean, 24)
-    sd <- num0(poss_params$POSS_sd, 3) * variance_scale
+    sd <- num0(poss_params$POSS_sd,   3) * variance_scale
   }
   
   draw_attempts(mu, sd)
 }
 
 # --------------------------------------------------
-# Quarter Offense Simulation
+# TEAM-LEVEL Quarter Offense Simulation
+# Kept as fallback and for simulate_game_once / run_monte_carlo
 # --------------------------------------------------
 simulate_quarter_offense <- function(team_id, opp_team_id, qtr, game_id,
                                      team_offense_adjusted_q,
@@ -7166,10 +8783,10 @@ simulate_quarter_offense <- function(team_id, opp_team_id, qtr, game_id,
   # STEP 2: Get opponent-adjusted shooting profile
   off_params <- team_offense_adjusted_q %>%
     filter(
-      game_id == !!game_id,
-      ESPN_TEAM_ID == !!team_id,
+      game_id          == !!game_id,
+      ESPN_TEAM_ID     == !!team_id,
       OPP_ESPN_TEAM_ID == !!opp_team_id,
-      qtr == !!qtr
+      qtr              == !!qtr
     ) %>%
     slice(1)
   
@@ -7182,19 +8799,17 @@ simulate_quarter_offense <- function(team_id, opp_team_id, qtr, game_id,
   tov_rate  <- num0(off_params$tov_per_poss_adjusted,  0.14)
   oreb_rate <- num0(off_params$oreb_per_poss_adjusted, 0.10)
   
-  # STEP 3B: Foul bonus — opponent fouls generate extra FTAs for this team
-  # Uses opponent's foul rate scaled by foul_bonus_leverage
+  # STEP 3B: Foul bonus -- opponent fouls generate extra FTAs for this team
   foul_params <- team_foul_rates_q %>%
     filter(
       ESPN_GAME_ID == !!game_id,
-      ESPN_TEAM_ID == !!opp_team_id,  # opponent's fouls benefit this team
-      qtr == !!qtr
+      ESPN_TEAM_ID == !!opp_team_id,
+      qtr          == !!qtr
     ) %>%
     slice(1)
   
   opp_foul_rate <- num0(foul_params$foul_per_poss, 0.10)
   fta_rate <- fta_rate + (opp_foul_rate * MC_CONFIG$foul_bonus_leverage * 0.10)
-  # 0.10 scalar converts fouls/min to a reasonable FTA rate contribution
   
   # STEP 3C: Apply back-to-back fatigue penalty
   if (isTRUE(is_b2b == 1)) {
@@ -7207,100 +8822,66 @@ simulate_quarter_offense <- function(team_id, opp_team_id, qtr, game_id,
   }
   
   # STEP 4: Calculate turnovers
-  # tov_reduction_pct = 1.0 means full effect, < 1.0 dampens turnover impact
   effective_tov_rate <- clamp01(tov_rate * MC_CONFIG$tov_reduction_pct)
-  turnovers <- rbinom(1, base_poss, effective_tov_rate)
+  turnovers          <- rbinom(1, base_poss, effective_tov_rate)
   
   # STEP 5: Offensive rebound bonus possessions
-  scoring_poss <- base_poss - turnovers
+  scoring_poss  <- base_poss - turnovers
   expected_oreb <- scoring_poss * oreb_rate
-  bonus_poss <- rbinom(1, round(expected_oreb), MC_CONFIG$oreb_bonus_pct)
+  bonus_poss    <- rbinom(1, round(expected_oreb), MC_CONFIG$oreb_bonus_pct)
   
   # STEP 6: Effective scoring possessions
   effective_poss <- max(0, scoring_poss + bonus_poss)
   
   # STEP 7: Calculate pts per possession from shooting
-  pts_per_fga <- (1 - p3) * fg2_pct * 2 + p3 * fg3_pct * 3
+  pts_per_fga          <- (1 - p3) * fg2_pct * 2 + p3 * fg3_pct * 3
   pts_per_fga_with_fts <- pts_per_fga + fta_rate * ft_pct
-  fga_per_poss <- 0.88
-  pts_per_poss <- pts_per_fga_with_fts * fga_per_poss
+  fga_per_poss         <- 0.88
+  pts_per_poss         <- pts_per_fga_with_fts * fga_per_poss
   
   # STEP 8: Expected points + variance
   expected_pts <- effective_poss * pts_per_poss
-  pts_sd <- sqrt(effective_poss) * MC_CONFIG$pts_per_poss_variance
-  actual_pts <- max(0, rnorm(1, mean = expected_pts, sd = pts_sd))
+  pts_sd       <- sqrt(effective_poss) * MC_CONFIG$pts_per_poss_variance
+  actual_pts   <- max(0, rnorm(1, mean = expected_pts, sd = pts_sd))
   
   list(
-    points        = round(actual_pts),
-    base_poss     = base_poss,
-    turnovers     = turnovers,
-    bonus_poss    = bonus_poss,
+    points         = round(actual_pts),
+    base_poss      = base_poss,
+    turnovers      = turnovers,
+    bonus_poss     = bonus_poss,
     effective_poss = effective_poss,
-    pts_per_poss  = pts_per_poss,
-    expected_pts  = expected_pts
+    pts_per_poss   = pts_per_poss,
+    expected_pts   = expected_pts
   )
 }
 
-# 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
-# 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
-#
-#     PHASE 5: PLAYER-LEVEL MONTE CARLO SIMULATION ENGINE
-#
-#     WHAT CHANGED:
-#       - simulate_quarter_offense_player() replaces simulate_quarter_offense()
-#       - Instead of one team-level efficiency number, we loop over active players
-#       - Each possession: sample a player by usage*minutes weight, fire their
-#         personal fg2_pct / fg3_pct / ft_pct / p3 profiles
-#       - Per-player stats accumulate each sim → player props fall out naturally
-#       - run_mc_simulations_batch() updated to accept player profiles + toggle
-#
-#     WHAT IS IDENTICAL:
-#       - draw_team_possessions_q()      ← untouched
-#       - OT resolution block            ← untouched
-#       - Blowout drag / intentional foul ← untouched
-#       - aggregate_quarter_results()    ← untouched
-#       - calculate_summary_stats()      ← untouched
-#       - calculate_calibration()        ← untouched
-#       - Platt scaling section          ← untouched
-#
-# 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
-
-
 # ===========================================================================
-# SECTION 1: PLAYER-LEVEL QUARTER OFFENSE SIMULATION
+# PLAYER-LEVEL Quarter Offense Simulation -- OPTION B (FULL BOX SCORE)
 # ---------------------------------------------------------------------------
-# Drop-in replacement for simulate_quarter_offense().
-# Inputs are identical EXCEPT two new args are added:
-#   player_shooting_profile_q   — quarter-expanded player shooting profiles
-#   player_usage_profile        — game-level player usage rates
+# Replaces simulate_quarter_offense() in player mode inside
+# run_mc_simulations_batch().
 #
-# Logic:
-#   1. Draw possessions (same as before via draw_team_possessions_q)
-#   2. Get active players for this team/game/quarter with mins_q > 0
-#   3. Join usage rates, compute usage_weight = usage_rate * mins_q
-#   4. For each possession: sample a player by weight, fire their shooting
-#   5. Accumulate per-player stats (pts, fga, fgm, ftm, etc.)
-#   6. Return same list structure as old function PLUS player_stats tibble
-# ===========================================================================
-
-# ===========================================================================
-# simulate_quarter_offense_player() — OPTION B (FULL PLAYER-LEVEL)
-# ---------------------------------------------------------------------------
-# All box score stats (pts, reb, ast, blk, stl, fouls) tracked per player.
-# Replaces all team-level estimates in the quarter results tibble.
+# What stays team-level (no player equivalent exists):
+#   tov_rate  -- turnovers are a possession-level event, not per-player
+#   oreb_rate -- bonus possessions from offensive boards
+#   fta_bonus -- opponent foul rate boosting this team's FTA opportunities
+#   base_poss -- pace drawn from team pace profile
+#
+# What is player-level (from player profiles, NOT team_offense_adjusted_q):
+#   FG2%, FG3%, FT%, p3, FTA_per_FGA -- from player_shooting_profile_q
+#   usage weight for shot allocation  -- from player_usage_profile
+#   ast, blk, stl, reb, fouls        -- from player rate profiles (per min)
 #
 # New arguments vs team version:
-#   player_shooting_profile_q  — FG2%, FG3%, FT%, p3, FTA_per_FGA per player/qtr
-#   player_usage_profile       — usage_rate per player/game
-#   player_apm_profile_q       — ast_per_min per player/qtr
-#   player_bpm_profile_q       — blk_per_min per player/qtr
-#   player_spm_profile_q       — stl_per_min per player/qtr
-#   player_rpm_profile_q       — reb_per_min (+ oreb/dreb) per player/qtr
-#   player_fpm_profile_q       — fouls_per_min per player/qtr
+#   player_shooting_profile_q  -- FG2%, FG3%, FT%, p3, FTA_per_FGA per player/qtr
+#   player_usage_profile       -- usage_rate per player/game
+#   player_apm_profile_q       -- ast_per_min per player/qtr
+#   player_bpm_profile_q       -- blk_per_min per player/qtr
+#   player_spm_profile_q       -- stl_per_min per player/qtr
+#   player_rpm_profile_q       -- reb_per_min (+ oreb/dreb) per player/qtr
+#   player_fpm_profile_q       -- fouls_per_min per player/qtr
 #
 # Returns same list structure as team version PLUS player_stats tibble.
-# The quarter results tibble now uses player-derived reb/ast/blk/stl/fouls
-# instead of team-level possession estimates.
 # ===========================================================================
 
 simulate_quarter_offense_player <- function(
@@ -7324,13 +8905,15 @@ simulate_quarter_offense_player <- function(
 ) {
   
   # --------------------------------------------------
-  # STEP 1: Draw base possessions (unchanged)
+  # STEP 1: Draw base possessions (team pace profile -- no player equivalent)
   # --------------------------------------------------
   base_poss <- draw_team_possessions_q(team_id, qtr, game_id, team_poss_profile_q)
   
   # --------------------------------------------------
-  # STEP 2: Get opponent-adjusted team profile
-  # (tov_rate, oreb_rate, foul bonus — still team-level)
+  # STEP 2: Team-level rates -- only what has no player equivalent
+  #   tov_rate  : turnovers are a possession event, not a player shooting event
+  #   oreb_rate : bonus possessions from offensive boards
+  #   fta_bonus : opponent foul rate boosts this team's FTA opportunities
   # --------------------------------------------------
   off_params <- team_offense_adjusted_q %>%
     filter(
@@ -7343,9 +8926,7 @@ simulate_quarter_offense_player <- function(
   
   tov_rate  <- num0(off_params$tov_per_poss_adjusted,  0.14)
   oreb_rate <- num0(off_params$oreb_per_poss_adjusted, 0.10)
-  fta_rate  <- num0(off_params$fta_per_fga_adjusted,   0.29)
   
-  # Foul bonus — opponent fouls generate extra FTAs for this team
   foul_params <- team_foul_rates_q %>%
     filter(
       ESPN_GAME_ID == !!game_id,
@@ -7354,60 +8935,50 @@ simulate_quarter_offense_player <- function(
     ) %>%
     slice(1)
   
-  opp_foul_rate <- num0(foul_params$foul_per_poss, 0.10)
-  fta_rate <- fta_rate + (opp_foul_rate * MC_CONFIG$foul_bonus_leverage * 0.10)
+  fta_bonus <- num0(foul_params$foul_per_poss, 0.10) * MC_CONFIG$foul_bonus_leverage * 0.10
   
   # B2B fatigue on team-level rates
   if (isTRUE(is_b2b == 1)) {
-    fatigue_mult <- 0.97
-    tov_rate  <- tov_rate  * fatigue_mult
-    oreb_rate <- oreb_rate * fatigue_mult
-    fta_rate  <- fta_rate  * fatigue_mult
+    tov_rate  <- tov_rate  * 0.97
+    oreb_rate <- oreb_rate * 0.97
+    fta_bonus <- fta_bonus * 0.97
   }
   
   # --------------------------------------------------
   # STEP 3: Turnovers + effective possessions
   # --------------------------------------------------
   effective_tov_rate <- clamp01(tov_rate * MC_CONFIG$tov_reduction_pct)
-  turnovers          <- rbinom(1, base_poss, effective_tov_rate)
-  scoring_poss       <- base_poss - turnovers
-  expected_oreb      <- scoring_poss * oreb_rate
-  bonus_poss         <- rbinom(1, max(0L, round(expected_oreb)), MC_CONFIG$oreb_bonus_pct)
-  effective_poss     <- max(0L, scoring_poss + bonus_poss)
+  turnovers      <- rbinom(1, base_poss, effective_tov_rate)
+  scoring_poss   <- base_poss - turnovers
+  expected_oreb  <- scoring_poss * oreb_rate
+  bonus_poss     <- rbinom(1, max(0L, round(expected_oreb)), MC_CONFIG$oreb_bonus_pct)
+  effective_poss <- max(0L, scoring_poss + bonus_poss)
   
-  # Empty result template
+  # Empty player stats template (returned on early exit)
   empty_player_stats <- tibble(
     ESPN_PLAYER_ID = character(),
     sim_pts   = numeric(),
     sim_fga   = integer(), sim_fgm   = integer(),
     sim_fga3  = integer(), sim_fgm3  = integer(),
     sim_fta   = integer(), sim_ftm   = integer(),
-    sim_reb   = numeric(), sim_oreb  = numeric(), sim_dreb = numeric(),
-    sim_ast   = numeric(),
-    sim_blk   = numeric(),
-    sim_stl   = numeric(),
-    sim_fouls = numeric()
+    sim_reb   = numeric(), sim_oreb  = numeric(), sim_dreb  = numeric(),
+    sim_ast   = numeric(), sim_blk   = numeric(),
+    sim_stl   = numeric(), sim_fouls = numeric()
   )
   
   if (effective_poss == 0L) {
     return(list(
-      points         = 0L,
-      base_poss      = base_poss,
-      turnovers      = turnovers,
-      bonus_poss     = bonus_poss,
-      effective_poss = 0L,
-      pts_per_poss   = 0,
-      expected_pts   = 0,
-      # Team-level box score totals (used by quarter results tibble)
-      team_reb   = 0, team_ast   = 0,
-      team_blk   = 0, team_stl   = 0, team_fouls = 0,
+      points = 0L, base_poss = base_poss, turnovers = turnovers,
+      bonus_poss = bonus_poss, effective_poss = 0L,
+      pts_per_poss = 0, expected_pts = 0,
+      team_reb = 0, team_ast = 0, team_blk = 0, team_stl = 0, team_fouls = 0,
       player_stats = empty_player_stats
     ))
   }
   
   # --------------------------------------------------
-  # STEP 4: Get active players — shooting profile is the anchor
-  # (mins_q > 0 filters to players with projected minutes)
+  # STEP 4: Get active players -- shooting profile is the anchor
+  #   mins_q > 0 filters to players with projected minutes this quarter
   # --------------------------------------------------
   players_q <- player_shooting_profile_q %>%
     filter(
@@ -7418,22 +8989,24 @@ simulate_quarter_offense_player <- function(
     )
   
   # --------------------------------------------------
-  # FALLBACK: no player profiles — revert to team-level
+  # FALLBACK: no player profiles found -- revert to team-level shooting
   # --------------------------------------------------
   if (nrow(players_q) == 0) {
-    fg2_pct_t <- num0(off_params$fg2_pct_adjusted, 0.54)
-    fg3_pct_t <- num0(off_params$fg3_pct_adjusted, 0.36)
-    ft_pct_t  <- num0(off_params$ft_pct_adjusted,  0.78)
-    p3_t      <- num0(off_params$p3_adjusted,       0.42)
+    fg2_pct_t  <- num0(off_params$fg2_pct_adjusted,     0.54)
+    fg3_pct_t  <- num0(off_params$fg3_pct_adjusted,     0.36)
+    ft_pct_t   <- num0(off_params$ft_pct_adjusted,      0.78)
+    p3_t       <- num0(off_params$p3_adjusted,           0.42)
+    fta_rate_t <- num0(off_params$fta_per_fga_adjusted, 0.29) + fta_bonus
     
     if (isTRUE(is_b2b == 1)) {
-      fg2_pct_t <- fg2_pct_t * 0.97
-      fg3_pct_t <- fg3_pct_t * 0.97
-      ft_pct_t  <- ft_pct_t  * 0.97
+      fg2_pct_t  <- fg2_pct_t  * 0.97
+      fg3_pct_t  <- fg3_pct_t  * 0.97
+      ft_pct_t   <- ft_pct_t   * 0.97
+      fta_rate_t <- fta_rate_t * 0.97
     }
     
     pts_per_fga  <- (1 - p3_t) * fg2_pct_t * 2 + p3_t * fg3_pct_t * 3
-    pts_per_poss <- (pts_per_fga + fta_rate * ft_pct_t) * 0.88
+    pts_per_poss <- (pts_per_fga + fta_rate_t * ft_pct_t) * 0.88
     expected_pts <- effective_poss * pts_per_poss
     pts_sd       <- sqrt(effective_poss) * MC_CONFIG$pts_per_poss_variance
     actual_pts   <- max(0, rnorm(1, mean = expected_pts, sd = pts_sd))
@@ -7458,8 +9031,6 @@ simulate_quarter_offense_player <- function(
   # --------------------------------------------------
   # STEP 5: Join all player rate profiles
   # --------------------------------------------------
-  
-  # Usage rates
   players_q <- players_q %>%
     left_join(
       player_usage_profile %>%
@@ -7467,35 +9038,30 @@ simulate_quarter_offense_player <- function(
         select(ESPN_PLAYER_ID, usage_rate),
       by = "ESPN_PLAYER_ID"
     ) %>%
-    # Assists
     left_join(
       player_apm_profile_q %>%
         filter(ESPN_GAME_ID == !!game_id, ESPN_TEAM_ID == !!team_id, qtr == !!qtr) %>%
         select(ESPN_PLAYER_ID, ast_per_min),
       by = "ESPN_PLAYER_ID"
     ) %>%
-    # Blocks
     left_join(
       player_bpm_profile_q %>%
         filter(ESPN_GAME_ID == !!game_id, ESPN_TEAM_ID == !!team_id, qtr == !!qtr) %>%
         select(ESPN_PLAYER_ID, blk_per_min),
       by = "ESPN_PLAYER_ID"
     ) %>%
-    # Steals
     left_join(
       player_spm_profile_q %>%
         filter(ESPN_GAME_ID == !!game_id, ESPN_TEAM_ID == !!team_id, qtr == !!qtr) %>%
         select(ESPN_PLAYER_ID, stl_per_min),
       by = "ESPN_PLAYER_ID"
     ) %>%
-    # Rebounds (oreb + dreb + total)
     left_join(
       player_rpm_profile_q %>%
         filter(ESPN_GAME_ID == !!game_id, ESPN_TEAM_ID == !!team_id, qtr == !!qtr) %>%
         select(ESPN_PLAYER_ID, reb_per_min, oreb_per_min, dreb_per_min),
       by = "ESPN_PLAYER_ID"
     ) %>%
-    # Fouls
     left_join(
       player_fpm_profile_q %>%
         filter(ESPN_GAME_ID == !!game_id, ESPN_TEAM_ID == !!team_id, qtr == !!qtr) %>%
@@ -7503,28 +9069,34 @@ simulate_quarter_offense_player <- function(
       by = "ESPN_PLAYER_ID"
     ) %>%
     mutate(
-      # Fallback defaults for NAs
-      usage_rate   = num0(usage_rate,   0.20),
-      ast_per_min  = num0(ast_per_min,  0.05),   # ~2.4 ast/48min league avg
-      blk_per_min  = num0(blk_per_min,  0.01),   # ~0.5 blk/48min league avg
-      stl_per_min  = num0(stl_per_min,  0.015),  # ~0.7 stl/48min league avg
-      reb_per_min  = num0(reb_per_min,  0.08),   # ~3.8 reb/48min league avg
-      oreb_per_min = num0(oreb_per_min, 0.02),
-      dreb_per_min = num0(dreb_per_min, 0.06),
-      fouls_per_min= num0(fouls_per_min,0.07),   # ~3.4 fouls/48min league avg
+      # Fallback defaults for NAs (league avg per-minute rates)
+      usage_rate    = num0(usage_rate,    0.20),
+      ast_per_min   = num0(ast_per_min,   0.05),
+      blk_per_min   = num0(blk_per_min,   0.01),
+      stl_per_min   = num0(stl_per_min,   0.015),
+      reb_per_min   = num0(reb_per_min,   0.08),
+      oreb_per_min  = num0(oreb_per_min,  0.02),
+      dreb_per_min  = num0(dreb_per_min,  0.06),
+      fouls_per_min = num0(fouls_per_min, 0.07),
       
-      # Apply B2B fatigue to shooting profiles
+      # Apply B2B fatigue to player shooting profiles
       FG2_pct = if (isTRUE(is_b2b == 1)) FG2_pct * 0.97 else FG2_pct,
       FG3_pct = if (isTRUE(is_b2b == 1)) FG3_pct * 0.97 else FG3_pct,
       FT_pct  = if (isTRUE(is_b2b == 1)) FT_pct  * 0.97 else FT_pct,
       
+      # Apply foul bonus to each player's FTA rate
+      FTA_per_FGA = FTA_per_FGA + fta_bonus,
+      
       # Usage weight for shot allocation
-      usage_weight = usage_rate * mins_q
+      usage_weight = case_when(
+        !is.na(usage_weight_q) & usage_weight_q > 0 ~ usage_weight_q * mins_q,
+        TRUE ~ usage_rate * mins_q
+      )
     )
   
   total_weight <- sum(players_q$usage_weight, na.rm = TRUE)
   if (total_weight <= 0) {
-    players_q  <- players_q %>% mutate(usage_weight = 1)
+    players_q    <- players_q %>% mutate(usage_weight = 1)
     total_weight <- nrow(players_q)
   }
   players_q <- players_q %>% mutate(prob = usage_weight / total_weight)
@@ -7537,14 +9109,14 @@ simulate_quarter_offense_player <- function(
   probs      <- players_q$prob
   mins_vec   <- players_q$mins_q
   
-  # Shooting
+  # Player shooting profiles
   fg2_vec <- players_q$FG2_pct
   fg3_vec <- players_q$FG3_pct
   ft_vec  <- players_q$FT_pct
   p3_vec  <- players_q$p3
   fta_vec <- players_q$FTA_per_FGA
   
-  # Box score rates (per minute)
+  # Player per-minute box score rates
   ast_vec   <- players_q$ast_per_min
   blk_vec   <- players_q$blk_per_min
   stl_vec   <- players_q$stl_per_min
@@ -7554,13 +9126,10 @@ simulate_quarter_offense_player <- function(
   fouls_vec <- players_q$fouls_per_min
   
   # --------------------------------------------------
-  # STEP 7: Per-player expected non-scoring stats
-  # These are time-based (per minute × projected minutes)
-  # and do NOT vary per possession — computed once per quarter sim
+  # STEP 7: Time-based stats -- computed once per quarter sim
+  #   Correlate with minutes played, not shot attempts.
+  #   mins_q already reflects each player's projected share of the quarter.
   # --------------------------------------------------
-  
-  # Quarter duration baseline: ~12 min regulation, ~5 min OT
-  # mins_q already reflects each player's projected share
   acc_reb   <- pmax(0, rnorm(n_players, mean = reb_vec   * mins_vec, sd = sqrt(reb_vec   * mins_vec + 0.01)))
   acc_oreb  <- pmax(0, rnorm(n_players, mean = oreb_vec  * mins_vec, sd = sqrt(oreb_vec  * mins_vec + 0.01)))
   acc_dreb  <- pmax(0, rnorm(n_players, mean = dreb_vec  * mins_vec, sd = sqrt(dreb_vec  * mins_vec + 0.01)))
@@ -7570,7 +9139,9 @@ simulate_quarter_offense_player <- function(
   acc_fouls <- pmax(0, rnorm(n_players, mean = fouls_vec * mins_vec, sd = sqrt(fouls_vec * mins_vec + 0.01)))
   
   # --------------------------------------------------
-  # STEP 8: Simulate possessions — sample player, fire shooting profile
+  # STEP 8: Possession-based shooting loop
+  #   Sample a player by usage weight, fire their personal shooting profile.
+  #   FTA generated ONCE at quarter level from total FGA, not per-shot.
   # --------------------------------------------------
   acc_pts  <- numeric(n_players)
   acc_fga  <- integer(n_players)
@@ -7580,8 +9151,7 @@ simulate_quarter_offense_player <- function(
   acc_fta  <- integer(n_players)
   acc_ftm  <- integer(n_players)
   
-  fga_per_poss <- 0.88
-  n_fga <- max(0L, round(effective_poss * fga_per_poss))
+  n_fga <- max(0L, round(effective_poss * 0.88))
   
   if (n_fga > 0) {
     shooter_idx <- sample.int(n_players, size = n_fga, replace = TRUE, prob = probs)
@@ -7589,46 +9159,52 @@ simulate_quarter_offense_player <- function(
     for (idx in seq_len(n_fga)) {
       p <- shooter_idx[idx]
       
-      is_three <- runif(1) < p3_vec[p]
+      is_three <- runif(1) < num0(p3_vec[p], 0.35)
       
       if (is_three) {
-        made <- runif(1) < fg3_vec[p]
+        made <- runif(1) < num0(fg3_vec[p], 0.36)
         pts  <- if (made) 3L else 0L
         acc_fga3[p] <- acc_fga3[p] + 1L
         acc_fgm3[p] <- acc_fgm3[p] + as.integer(made)
       } else {
-        made <- runif(1) < fg2_vec[p]
+        made <- runif(1) < num0(fg2_vec[p], 0.52)
         pts  <- if (made) 2L else 0L
       }
       
       acc_fga[p] <- acc_fga[p] + 1L
       acc_fgm[p] <- acc_fgm[p] + as.integer(made)
       acc_pts[p] <- acc_pts[p] + pts
-      
-      # Free throws
-      draws_ft <- runif(1) < fta_vec[p]
-      if (draws_ft) {
-        n_ft    <- 2L
-        ft_made <- rbinom(1, n_ft, ft_vec[p])
-        acc_fta[p] <- acc_fta[p] + n_ft
-        acc_ftm[p] <- acc_ftm[p] + ft_made
-        acc_pts[p] <- acc_pts[p] + ft_made
+    }
+    
+    # ── FTA: generate at quarter level, not per shot ─────────────────────
+    # Each player's expected FTA = their FGA * their FTA_per_FGA rate.
+    # rbinom draws actual FTA attempts, then FTM from FT%.
+    # This prevents FTA firing independently on every possession.
+    for (p in seq_len(n_players)) {
+      fga_p <- if (is.na(acc_fga[p]) || acc_fga[p] <= 0) 0L else acc_fga[p]
+      if (fga_p > 0) {
+        fta_rate <- if (is.na(fta_vec[p]) || fta_vec[p] < 0) 0.27 else fta_vec[p]
+        ft_rate  <- if (is.na(ft_vec[p])  || ft_vec[p]  < 0) 0.78 else ft_vec[p]
+        player_fta <- rbinom(1, fga_p, fta_rate)
+        if (!is.na(player_fta) && player_fta > 0) {
+          player_ftm  <- rbinom(1, player_fta, ft_rate)
+          acc_fta[p]  <- acc_fta[p] + player_fta
+          acc_ftm[p]  <- acc_ftm[p] + player_ftm
+          acc_pts[p]  <- acc_pts[p] + player_ftm
+        }
       }
     }
   }
   
   # --------------------------------------------------
-  # STEP 9: Apply variance to total points
+  # STEP 9: Apply variance to total points, scale player pts proportionally
   # --------------------------------------------------
-  total_pts  <- sum(acc_pts)
-  pts_sd     <- sqrt(effective_poss) * MC_CONFIG$pts_per_poss_variance
-  actual_pts <- max(0, rnorm(1, mean = total_pts, sd = pts_sd))
-  
-  # Scale player pts proportionally to noise-adjusted total
+  total_pts      <- sum(acc_pts)
+  pts_sd         <- sqrt(effective_poss) * MC_CONFIG$pts_per_poss_variance
+  actual_pts     <- max(0, rnorm(1, mean = total_pts, sd = pts_sd))
   scale_factor   <- if (total_pts > 0) actual_pts / total_pts else 1
   acc_pts_scaled <- acc_pts * scale_factor
-  
-  pts_per_poss <- if (effective_poss > 0) actual_pts / effective_poss else 0
+  pts_per_poss   <- if (effective_poss > 0) actual_pts / effective_poss else 0
   
   # --------------------------------------------------
   # STEP 10: Build player stats tibble
@@ -7636,32 +9212,19 @@ simulate_quarter_offense_player <- function(
   player_stats <- tibble(
     ESPN_PLAYER_ID = player_ids,
     sim_pts   = acc_pts_scaled,
-    sim_fga   = acc_fga,
-    sim_fgm   = acc_fgm,
-    sim_fga3  = acc_fga3,
-    sim_fgm3  = acc_fgm3,
-    sim_fta   = acc_fta,
-    sim_ftm   = acc_ftm,
-    sim_reb   = acc_reb,
-    sim_oreb  = acc_oreb,
-    sim_dreb  = acc_dreb,
-    sim_ast   = acc_ast,
-    sim_blk   = acc_blk,
-    sim_stl   = acc_stl,
-    sim_fouls = acc_fouls
+    sim_fga   = acc_fga,  sim_fgm   = acc_fgm,
+    sim_fga3  = acc_fga3, sim_fgm3  = acc_fgm3,
+    sim_fta   = acc_fta,  sim_ftm   = acc_ftm,
+    sim_reb   = acc_reb,  sim_oreb  = acc_oreb,  sim_dreb  = acc_dreb,
+    sim_ast   = acc_ast,  sim_blk   = acc_blk,
+    sim_stl   = acc_stl,  sim_fouls = acc_fouls
   ) %>%
     filter(sim_fga > 0 | sim_fta > 0 | sim_reb > 0 | sim_ast > 0)
   
   # --------------------------------------------------
-  # STEP 11: Team-level totals (sum of player stats)
-  # Used directly in the quarter results tibble
+  # STEP 11: Team totals = sum of player stats
+  #   Feed directly into the quarter results tibble in run_mc_simulations_batch
   # --------------------------------------------------
-  team_reb   <- sum(acc_reb)
-  team_ast   <- sum(acc_ast)
-  team_blk   <- sum(acc_blk)
-  team_stl   <- sum(acc_stl)
-  team_fouls <- sum(acc_fouls)
-  
   list(
     points         = round(actual_pts),
     base_poss      = base_poss,
@@ -7670,126 +9233,22 @@ simulate_quarter_offense_player <- function(
     effective_poss = effective_poss,
     pts_per_poss   = pts_per_poss,
     expected_pts   = total_pts,
-    # Team totals for quarter results tibble
-    team_reb       = team_reb,
-    team_ast       = team_ast,
-    team_blk       = team_blk,
-    team_stl       = team_stl,
-    team_fouls     = team_fouls,
+    team_reb       = sum(acc_reb),
+    team_ast       = sum(acc_ast),
+    team_blk       = sum(acc_blk),
+    team_stl       = sum(acc_stl),
+    team_fouls     = sum(acc_fouls),
     player_stats   = player_stats
   )
 }
-
-
-# ===========================================================================
-# UPDATED QUARTER RESULTS ROWS
-# ---------------------------------------------------------------------------
-# Replace the quarter_results tibble construction inside
-# run_mc_simulations_batch with this. The only change is reb/ast/blk/stl/fouls
-# now come from home_result$team_reb etc. instead of possession estimates.
-# ===========================================================================
-
-# HOME quarter result row:
-# quarter_results[[length(quarter_results) + 1]] <- tibble(
-#   game_id      = game$game_id,
-#   game_date    = game$game_date,
-#   sim_index    = sim_i,
-#   team_id      = game$home_team_id,
-#   opp_id       = game$away_team_id,
-#   qtr          = qtr,
-#   pts_proj_q   = home_result$points,
-#   tov_proj_q   = home_result$turnovers,
-#   reb_proj_q   = round(home_result$team_reb),      # ← CHANGED
-#   ast_proj_q   = round(home_result$team_ast),      # ← CHANGED
-#   blk_proj_q   = round(home_result$team_blk),      # ← CHANGED
-#   stl_proj_q   = round(home_result$team_stl),      # ← CHANGED
-#   fouls_proj_q = round(home_result$team_fouls)     # ← CHANGED
-# )
-
-# AWAY quarter result row:
-# quarter_results[[length(quarter_results) + 1]] <- tibble(
-#   game_id      = game$game_id,
-#   game_date    = game$game_date,
-#   sim_index    = sim_i,
-#   team_id      = game$away_team_id,
-#   opp_id       = game$home_team_id,
-#   qtr          = qtr,
-#   pts_proj_q   = away_result$points,
-#   tov_proj_q   = away_result$turnovers,
-#   reb_proj_q   = round(away_result$team_reb),      # ← CHANGED
-#   ast_proj_q   = round(away_result$team_ast),      # ← CHANGED
-#   blk_proj_q   = round(away_result$team_blk),      # ← CHANGED
-#   stl_proj_q   = round(away_result$team_stl),      # ← CHANGED
-#   fouls_proj_q = round(away_result$team_fouls)     # ← CHANGED
-# )
-
-
-# ===========================================================================
-# UPDATED run_mc_simulations_batch() FUNCTION SIGNATURE
-# ---------------------------------------------------------------------------
-# Add these 5 new arguments after player_usage_profile:
-#
-#   player_apm_profile_q  = player_apm_profile_q,
-#   player_bpm_profile_q  = player_bpm_profile_q,
-#   player_spm_profile_q  = player_spm_profile_q,
-#   player_rpm_profile_q  = player_rpm_profile_q,
-#   player_fpm_profile_q  = player_fpm_profile_q,
-#
-# And pass them through to simulate_quarter_offense_player() at each call site.
-# ===========================================================================
-
-
-# ===========================================================================
-# UPDATED EXECUTION CALL
-# ---------------------------------------------------------------------------
-# Add the 5 new profile arguments to the mc_sims_backtest_q call:
-# ===========================================================================
-
-# mc_sims_backtest_q <- run_mc_simulations_batch(
-#   games_to_simulate = games_backtest,
-#
-#   # Team-level profiles (unchanged)
-#   team_offense_adjusted_q = team_offense_adjusted_q,
-#   team_poss_profile_q     = team_poss_profile_q_backtest,
-#   team_rebounding_rates_q = team_rebounding_rates_q,
-#   team_turnover_rates_q   = team_turnover_rates_q,
-#   team_foul_rates_q       = team_foul_rates_q,
-#   team_shooting_params_q  = team_shooting_params_q,
-#   team_assist_rates_q     = team_assist_rates_q,
-#   team_block_rates_q      = team_block_rates_q,
-#   team_steal_rates_q      = team_steal_rates_q,
-#
-#   # Player shooting + usage (from Phase 5 Section 3)
-#   player_shooting_profile_q = player_shooting_profile_q,
-#   player_usage_profile      = player_usage_profile_backtest,
-#
-#   # NEW: Player box score rate profiles
-#   player_apm_profile_q = player_apm_profile_q,
-#   player_bpm_profile_q = player_bpm_profile_q,
-#   player_spm_profile_q = player_spm_profile_q,
-#   player_rpm_profile_q = player_rpm_profile_q,
-#   player_fpm_profile_q = player_fpm_profile_q,
-#
-#   sim_mode     = "player",
-#   n_sims       = 1000,
-#   use_parallel = TRUE
-# )
 
 # --------------------------------------------------
 # Blowout Drag (Q4 Adjustment)
 # --------------------------------------------------
 apply_blowout_drag <- function(base_poss, margin_after_q3) {
-  
-  # If margin is small, no adjustment
-  if (abs(margin_after_q3) < MC_CONFIG$blowout_threshold) {
-    return(base_poss)
-  }
-  
-  # Reduce possessions in Q4 during blowouts
+  if (abs(margin_after_q3) < MC_CONFIG$blowout_threshold) return(base_poss)
   reduction_factor <- 1 - MC_CONFIG$blowout_poss_reduction
-  adjusted_poss <- round(base_poss * reduction_factor)
-  
-  max(adjusted_poss, 1L)  # At least 1 possession
+  max(round(base_poss * reduction_factor), 1L)
 }
 
 # --------------------------------------------------
@@ -7799,38 +9258,31 @@ apply_intentional_fouling <- function(home_pts, away_pts, home_ft_pct, away_ft_p
   
   margin <- home_pts - away_pts
   
-  # Only foul in close games
   if (abs(margin) > MC_CONFIG$intentional_foul_margin) {
     return(list(home_ft_pts = 0, away_ft_pts = 0, foul_trips = 0))
   }
   
-  # Determine number of foul trips (random, scaled by config)
-  foul_trips <- rbinom(
-    1, 
-    MC_CONFIG$intentional_foul_max_trips, 
-    MC_CONFIG$intentional_foul_strength * 0.5
-  )
+  foul_trips <- rbinom(1, MC_CONFIG$intentional_foul_max_trips,
+                       MC_CONFIG$intentional_foul_strength * 0.5)
   
   if (foul_trips == 0) {
     return(list(home_ft_pts = 0, away_ft_pts = 0, foul_trips = 0))
   }
   
-  # Trailing team fouls the leading team
   if (margin > 0) {
-    # Home winning, away fouls home
-    fta <- foul_trips * 2  # Assume 2 FTs per trip
-    ftm <- rbinom(1, fta, clamp01(home_ft_pct))
+    # Home winning -- away fouls home
+    ftm <- rbinom(1, foul_trips * 2, clamp01(home_ft_pct))
     return(list(home_ft_pts = ftm, away_ft_pts = 0, foul_trips = foul_trips))
   } else {
-    # Away winning, home fouls away
-    fta <- foul_trips * 2
-    ftm <- rbinom(1, fta, clamp01(away_ft_pct))
+    # Away winning -- home fouls away
+    ftm <- rbinom(1, foul_trips * 2, clamp01(away_ft_pct))
     return(list(home_ft_pts = 0, away_ft_pts = ftm, foul_trips = foul_trips))
   }
 }
 
 # --------------------------------------------------
-# Single Game Simulation
+# Single Game Simulation (team-level)
+# Used by run_monte_carlo -- not by run_mc_simulations_batch
 # --------------------------------------------------
 simulate_game_once <- function(game_id, home_team_id, away_team_id,
                                team_offense_adjusted_q,
@@ -7840,73 +9292,55 @@ simulate_game_once <- function(game_id, home_team_id, away_team_id,
                                team_foul_rates_q,
                                team_shooting_params_q) {
   
-  # Initialize quarter results
   home_pts_by_q <- numeric(4)
   away_pts_by_q <- numeric(4)
   
-  # Simulate Q1-Q3
   for (qtr in 1:3) {
-    
     home_result <- simulate_quarter_offense(
-      team_id = home_team_id,
-      opp_team_id = away_team_id,
-      qtr = qtr,
-      game_id = game_id,
+      team_id = home_team_id, opp_team_id = away_team_id,
+      qtr = qtr, game_id = game_id,
       team_offense_adjusted_q = team_offense_adjusted_q,
-      team_poss_profile_q = team_poss_profile_q,
+      team_poss_profile_q     = team_poss_profile_q,
       team_rebounding_rates_q = team_rebounding_rates_q,
-      team_turnover_rates_q = team_turnover_rates_q,
-      team_foul_rates_q = team_foul_rates_q
+      team_turnover_rates_q   = team_turnover_rates_q,
+      team_foul_rates_q       = team_foul_rates_q
     )
-    
     away_result <- simulate_quarter_offense(
-      team_id = away_team_id,
-      opp_team_id = home_team_id,
-      qtr = qtr,
-      game_id = game_id,
+      team_id = away_team_id, opp_team_id = home_team_id,
+      qtr = qtr, game_id = game_id,
       team_offense_adjusted_q = team_offense_adjusted_q,
-      team_poss_profile_q = team_poss_profile_q,
+      team_poss_profile_q     = team_poss_profile_q,
       team_rebounding_rates_q = team_rebounding_rates_q,
-      team_turnover_rates_q = team_turnover_rates_q,
-      team_foul_rates_q = team_foul_rates_q
+      team_turnover_rates_q   = team_turnover_rates_q,
+      team_foul_rates_q       = team_foul_rates_q
     )
-    
     home_pts_by_q[qtr] <- home_result$points
     away_pts_by_q[qtr] <- away_result$points
   }
   
-  # Check for blowout before Q4
   margin_after_q3 <- sum(home_pts_by_q[1:3]) - sum(away_pts_by_q[1:3])
   
-  # Simulate Q4 (with potential blowout drag)
   home_q4 <- simulate_quarter_offense(
-    team_id = home_team_id,
-    opp_team_id = away_team_id,
-    qtr = 4,
-    game_id = game_id,
+    team_id = home_team_id, opp_team_id = away_team_id,
+    qtr = 4, game_id = game_id,
     team_offense_adjusted_q = team_offense_adjusted_q,
-    team_poss_profile_q = team_poss_profile_q,
+    team_poss_profile_q     = team_poss_profile_q,
     team_rebounding_rates_q = team_rebounding_rates_q,
-    team_turnover_rates_q = team_turnover_rates_q,
-    team_foul_rates_q = team_foul_rates_q
+    team_turnover_rates_q   = team_turnover_rates_q,
+    team_foul_rates_q       = team_foul_rates_q
   )
-  
   away_q4 <- simulate_quarter_offense(
-    team_id = away_team_id,
-    opp_team_id = home_team_id,
-    qtr = 4,
-    game_id = game_id,
+    team_id = away_team_id, opp_team_id = home_team_id,
+    qtr = 4, game_id = game_id,
     team_offense_adjusted_q = team_offense_adjusted_q,
-    team_poss_profile_q = team_poss_profile_q,
+    team_poss_profile_q     = team_poss_profile_q,
     team_rebounding_rates_q = team_rebounding_rates_q,
-    team_turnover_rates_q = team_turnover_rates_q,
-    team_foul_rates_q = team_foul_rates_q
+    team_turnover_rates_q   = team_turnover_rates_q,
+    team_foul_rates_q       = team_foul_rates_q
   )
   
-  # Apply blowout drag to Q4 possessions if needed
   if (abs(margin_after_q3) >= MC_CONFIG$blowout_threshold) {
-    # Reduce Q4 scoring proportionally
-    drag_factor <- 1 - MC_CONFIG$blowout_poss_reduction
+    drag_factor     <- 1 - MC_CONFIG$blowout_poss_reduction
     home_q4$points <- round(home_q4$points * drag_factor)
     away_q4$points <- round(away_q4$points * drag_factor)
   }
@@ -7914,55 +9348,50 @@ simulate_game_once <- function(game_id, home_team_id, away_team_id,
   home_pts_by_q[4] <- home_q4$points
   away_pts_by_q[4] <- away_q4$points
   
+  # Define totals BEFORE clamping
+  home_total <- sum(home_pts_by_q)
+  away_total <- sum(away_pts_by_q)
   home_total <- pmax(65, pmin(160, home_total))
   away_total <- pmax(65, pmin(160, away_total))
   
-  # Calculate regulation totals
-  home_total <- sum(home_pts_by_q)
-  away_total <- sum(away_pts_by_q)
-  
-  # Get FT% for intentional fouling
   home_ft_pct <- team_shooting_params_q %>%
     filter(ESPN_TEAM_ID == !!home_team_id, qtr == 4) %>%
-    slice(1) %>%
-    pull(FT_pct) %>%
-    num0(0.78)
+    slice(1) %>% pull(FT_pct) %>% num0(0.78)
   
   away_ft_pct <- team_shooting_params_q %>%
     filter(ESPN_TEAM_ID == !!away_team_id, qtr == 4) %>%
-    slice(1) %>%
-    pull(FT_pct) %>%
-    num0(0.78)
+    slice(1) %>% pull(FT_pct) %>% num0(0.78)
   
-  # Apply intentional fouling if close
-  foul_result <- apply_intentional_fouling(home_total, away_total, home_ft_pct, away_ft_pct)
+  foul_result <- apply_intentional_fouling(home_total, away_total,
+                                           home_ft_pct, away_ft_pct)
   
   home_total <- home_total + foul_result$home_ft_pts
   away_total <- away_total + foul_result$away_ft_pts
   
-  # Return result
   tibble(
-    game_id = game_id,
-    home_team_id = home_team_id,
-    away_team_id = away_team_id,
-    home_points = home_total,
-    away_points = away_total,
-    margin = home_total - away_total,
-    home_win = home_total > away_total,
-    home_q1 = home_pts_by_q[1],
-    home_q2 = home_pts_by_q[2],
-    home_q3 = home_pts_by_q[3],
-    home_q4 = home_pts_by_q[4],
-    away_q1 = away_pts_by_q[1],
-    away_q2 = away_pts_by_q[2],
-    away_q3 = away_pts_by_q[3],
-    away_q4 = away_pts_by_q[4],
+    game_id                = game_id,
+    home_team_id           = home_team_id,
+    away_team_id           = away_team_id,
+    home_points            = home_total,
+    away_points            = away_total,
+    margin                 = home_total - away_total,
+    home_win               = home_total > away_total,
+    home_q1                = home_pts_by_q[1],
+    home_q2                = home_pts_by_q[2],
+    home_q3                = home_pts_by_q[3],
+    home_q4                = home_pts_by_q[4],
+    away_q1                = away_pts_by_q[1],
+    away_q2                = away_pts_by_q[2],
+    away_q3                = away_pts_by_q[3],
+    away_q4                = away_pts_by_q[4],
     intentional_foul_trips = foul_result$foul_trips
   )
 }
 
 # --------------------------------------------------
-# Monte Carlo Runner
+# Monte Carlo Runner (team-level, single game)
+# Thin wrapper around simulate_game_once for exploratory use.
+# The main backtest uses run_mc_simulations_batch in the Runner section.
 # --------------------------------------------------
 run_monte_carlo <- function(game_id, home_team_id, away_team_id,
                             team_offense_adjusted_q,
@@ -7976,26 +9405,22 @@ run_monte_carlo <- function(game_id, home_team_id, away_team_id,
   cat("🎲 Running", n_sims, "simulations for game", game_id, "\n")
   cat("   ", home_team_id, "(home) vs.", away_team_id, "(away)\n")
   
-  # Run simulations
   results <- map_dfr(1:n_sims, function(i) {
     if (i %% 1000 == 0) cat("  Completed", i, "simulations...\n")
-    
     simulate_game_once(
-      game_id = game_id,
-      home_team_id = home_team_id,
-      away_team_id = away_team_id,
+      game_id                 = game_id,
+      home_team_id            = home_team_id,
+      away_team_id            = away_team_id,
       team_offense_adjusted_q = team_offense_adjusted_q,
-      team_poss_profile_q = team_poss_profile_q,
+      team_poss_profile_q     = team_poss_profile_q,
       team_rebounding_rates_q = team_rebounding_rates_q,
-      team_turnover_rates_q = team_turnover_rates_q,
-      team_foul_rates_q = team_foul_rates_q,
-      team_shooting_params_q = team_shooting_params_q
+      team_turnover_rates_q   = team_turnover_rates_q,
+      team_foul_rates_q       = team_foul_rates_q,
+      team_shooting_params_q  = team_shooting_params_q
     )
   })
   
   cat("✅ Simulations complete!\n\n")
-  
-  # Return results
   results
 }
 
@@ -8026,9 +9451,9 @@ run_monte_carlo <- function(game_id, home_team_id, away_team_id,
 # This section implements the complete MC simulation workflow including:
 # - Backtest simulations on historical games
 # - Calibration analysis
-# - Production simulations for today's games
 # - Summary statistics and quarter-by-quarter breakdowns
 # - Parallel processing for performance
+# - Player props extraction (player mode only)
 # ==========================================================================================================
 
 # 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
@@ -8039,33 +9464,29 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(tibble)
   library(purrr)
+  library(future)
   library(future.apply)
   library(data.table)
 })
 
-# Set seed for reproducibility
 set.seed(123)
 
 # --------------------------------------------------
 # Helper: Aggregate Quarter Results to Game Level
 # --------------------------------------------------
 aggregate_quarter_results <- function(sim_results) {
-  
-  # Sum across quarters to get game totals
-  game_totals <- sim_results %>%
+  sim_results %>%
     group_by(game_id, game_date, sim_index, team_id, opp_id) %>%
     summarise(
-      pts_total = sum(pts_proj_q, na.rm = TRUE),
-      tov_total = sum(tov_proj_q, na.rm = TRUE),
-      reb_total = sum(reb_proj_q, na.rm = TRUE),
-      ast_total = sum(ast_proj_q, na.rm = TRUE),
-      blk_total = sum(blk_proj_q, na.rm = TRUE),
-      stl_total = sum(stl_proj_q, na.rm = TRUE),
+      pts_total   = sum(pts_proj_q,   na.rm = TRUE),
+      tov_total   = sum(tov_proj_q,   na.rm = TRUE),
+      reb_total   = sum(reb_proj_q,   na.rm = TRUE),
+      ast_total   = sum(ast_proj_q,   na.rm = TRUE),
+      blk_total   = sum(blk_proj_q,   na.rm = TRUE),
+      stl_total   = sum(stl_proj_q,   na.rm = TRUE),
       fouls_total = sum(fouls_proj_q, na.rm = TRUE),
       .groups = "drop"
     )
-  
-  game_totals
 }
 
 # --------------------------------------------------
@@ -8073,128 +9494,97 @@ aggregate_quarter_results <- function(sim_results) {
 # --------------------------------------------------
 calculate_summary_stats <- function(game_totals, nba_games_canon_season) {
   
-  # Separate home and away results
+  game_lookup <- nba_games_canon_season %>%
+    transmute(
+      game_id      = as.character(game_id),
+      home_team_id = as.character(home_team_id),
+      away_team_id = as.character(away_team_id)
+    )
+  
   home_results <- game_totals %>%
-    inner_join(
-      nba_games_canon_season %>%
-        transmute(
-          game_id = as.character(game_id),
-          home_team_id = as.character(home_team_id),
-          away_team_id = as.character(away_team_id)
-        ),
-      by = c("game_id", "team_id" = "home_team_id", "opp_id" = "away_team_id")
-    ) %>%
-    select(game_id, game_date, sim_index, 
-           home_team_id = team_id, 
-           home_pts = pts_total,
-           home_tov = tov_total,
-           home_reb = reb_total,
-           home_ast = ast_total,
-           home_blk = blk_total,
-           home_stl = stl_total)
+    inner_join(game_lookup,
+               by = c("game_id", "team_id" = "home_team_id", "opp_id" = "away_team_id")) %>%
+    select(game_id, game_date, sim_index,
+           home_team_id = team_id,
+           home_pts = pts_total, home_tov = tov_total,
+           home_reb = reb_total, home_ast = ast_total,
+           home_blk = blk_total, home_stl = stl_total)
   
   away_results <- game_totals %>%
-    inner_join(
-      nba_games_canon_season %>%
-        transmute(
-          game_id = as.character(game_id),
-          home_team_id = as.character(home_team_id),
-          away_team_id = as.character(away_team_id)
-        ),
-      by = c("game_id", "team_id" = "away_team_id", "opp_id" = "home_team_id")
-    ) %>%
-    select(game_id, game_date, sim_index, 
-           away_team_id = team_id, 
-           away_pts = pts_total,
-           away_tov = tov_total,
-           away_reb = reb_total,
-           away_ast = ast_total,
-           away_blk = blk_total,
-           away_stl = stl_total)
+    inner_join(game_lookup,
+               by = c("game_id", "team_id" = "away_team_id", "opp_id" = "home_team_id")) %>%
+    select(game_id, game_date, sim_index,
+           away_team_id = team_id,
+           away_pts = pts_total, away_tov = tov_total,
+           away_reb = reb_total, away_ast = ast_total,
+           away_blk = blk_total, away_stl = stl_total)
   
-  # Join home and away
   combined <- home_results %>%
     inner_join(away_results, by = c("game_id", "game_date", "sim_index"))
   
-  # Calculate summary statistics per game
-  summary <- combined %>%
+  combined %>%
     group_by(game_id, game_date, home_team_id, away_team_id) %>%
     summarise(
       n_sims = n(),
       
-      # Home team stats
-      home_pts_mean = mean(home_pts, na.rm = TRUE),
+      home_pts_mean   = mean(home_pts, na.rm = TRUE),
       home_pts_median = median(home_pts, na.rm = TRUE),
-      home_pts_sd = sd(home_pts, na.rm = TRUE),
-      home_pts_p5 = quantile(home_pts, 0.05, na.rm = TRUE),
-      home_pts_p95 = quantile(home_pts, 0.95, na.rm = TRUE),
+      home_pts_sd     = sd(home_pts, na.rm = TRUE),
+      home_pts_p5     = quantile(home_pts, 0.05, na.rm = TRUE),
+      home_pts_p95    = quantile(home_pts, 0.95, na.rm = TRUE),
+      home_tov_mean   = mean(home_tov, na.rm = TRUE),
+      home_reb_mean   = mean(home_reb, na.rm = TRUE),
+      home_ast_mean   = mean(home_ast, na.rm = TRUE),
+      home_blk_mean   = mean(home_blk, na.rm = TRUE),
+      home_stl_mean   = mean(home_stl, na.rm = TRUE),
       
-      home_tov_mean = mean(home_tov, na.rm = TRUE),
-      home_reb_mean = mean(home_reb, na.rm = TRUE),
-      home_ast_mean = mean(home_ast, na.rm = TRUE),
-      home_blk_mean = mean(home_blk, na.rm = TRUE),
-      home_stl_mean = mean(home_stl, na.rm = TRUE),
-      
-      # Away team stats
-      away_pts_mean = mean(away_pts, na.rm = TRUE),
+      away_pts_mean   = mean(away_pts, na.rm = TRUE),
       away_pts_median = median(away_pts, na.rm = TRUE),
-      away_pts_sd = sd(away_pts, na.rm = TRUE),
-      away_pts_p5 = quantile(away_pts, 0.05, na.rm = TRUE),
-      away_pts_p95 = quantile(away_pts, 0.95, na.rm = TRUE),
+      away_pts_sd     = sd(away_pts, na.rm = TRUE),
+      away_pts_p5     = quantile(away_pts, 0.05, na.rm = TRUE),
+      away_pts_p95    = quantile(away_pts, 0.95, na.rm = TRUE),
+      away_tov_mean   = mean(away_tov, na.rm = TRUE),
+      away_reb_mean   = mean(away_reb, na.rm = TRUE),
+      away_ast_mean   = mean(away_ast, na.rm = TRUE),
+      away_blk_mean   = mean(away_blk, na.rm = TRUE),
+      away_stl_mean   = mean(away_stl, na.rm = TRUE),
       
-      away_tov_mean = mean(away_tov, na.rm = TRUE),
-      away_reb_mean = mean(away_reb, na.rm = TRUE),
-      away_ast_mean = mean(away_ast, na.rm = TRUE),
-      away_blk_mean = mean(away_blk, na.rm = TRUE),
-      away_stl_mean = mean(away_stl, na.rm = TRUE),
-      
-      # Win probability
-      home_wins = sum(home_pts > away_pts, na.rm = TRUE),
-      away_wins = sum(away_pts > home_pts, na.rm = TRUE),
-      ties = sum(home_pts == away_pts, na.rm = TRUE),
-      
-      home_win_prob = home_wins / n_sims,
+      home_wins     = sum(home_pts > away_pts, na.rm = TRUE),
+      away_wins     = sum(away_pts > home_pts, na.rm = TRUE),
+      ties          = sum(home_pts == away_pts, na.rm = TRUE),
+      home_win_prob = pmin(0.98, pmax(0.02, home_wins / n_sims)),
       away_win_prob = away_wins / n_sims,
       
-      # Spread and total
-      spread_mean = mean(home_pts - away_pts, na.rm = TRUE),
+      spread_mean   = mean(home_pts - away_pts, na.rm = TRUE),
       spread_median = median(home_pts - away_pts, na.rm = TRUE),
-      spread_sd = sd(home_pts - away_pts, na.rm = TRUE),
-      
-      total_mean = mean(home_pts + away_pts, na.rm = TRUE),
-      total_median = median(home_pts + away_pts, na.rm = TRUE),
-      total_sd = sd(home_pts + away_pts, na.rm = TRUE),
+      spread_sd     = sd(home_pts - away_pts, na.rm = TRUE),
+      total_mean    = mean(home_pts + away_pts, na.rm = TRUE),
+      total_median  = median(home_pts + away_pts, na.rm = TRUE),
+      total_sd      = sd(home_pts + away_pts, na.rm = TRUE),
       
       .groups = "drop"
     )
-  
-  summary
 }
 
 # --------------------------------------------------
 # Helper: Calculate Quarter-by-Quarter Breakdown
 # --------------------------------------------------
 calculate_quarter_breakdown <- function(sim_results) {
-  
-  quarter_stats <- sim_results %>%
+  sim_results %>%
     group_by(game_id, game_date, team_id, qtr) %>%
     summarise(
-      pts_mean = mean(pts_proj_q, na.rm = TRUE),
+      pts_mean   = mean(pts_proj_q,   na.rm = TRUE),
       pts_median = median(pts_proj_q, na.rm = TRUE),
-      pts_sd = sd(pts_proj_q, na.rm = TRUE),
-      
-      tov_mean = mean(tov_proj_q, na.rm = TRUE),
-      reb_mean = mean(reb_proj_q, na.rm = TRUE),
-      ast_mean = mean(ast_proj_q, na.rm = TRUE),
-      blk_mean = mean(blk_proj_q, na.rm = TRUE),
-      stl_mean = mean(stl_proj_q, na.rm = TRUE),
+      pts_sd     = sd(pts_proj_q,     na.rm = TRUE),
+      tov_mean   = mean(tov_proj_q,   na.rm = TRUE),
+      reb_mean   = mean(reb_proj_q,   na.rm = TRUE),
+      ast_mean   = mean(ast_proj_q,   na.rm = TRUE),
+      blk_mean   = mean(blk_proj_q,   na.rm = TRUE),
+      stl_mean   = mean(stl_proj_q,   na.rm = TRUE),
       fouls_mean = mean(fouls_proj_q, na.rm = TRUE),
-      
       .groups = "drop"
     ) %>%
     arrange(game_id, team_id, qtr)
-  
-  quarter_stats
 }
 
 # --------------------------------------------------
@@ -8202,12 +9592,11 @@ calculate_quarter_breakdown <- function(sim_results) {
 # --------------------------------------------------
 calculate_calibration <- function(summary, nba_games_canon_season) {
   
-  # Join with actual results
   calibration_data <- summary %>%
     inner_join(
       nba_games_canon_season %>%
         transmute(
-          game_id = as.character(game_id),
+          game_id         = as.character(game_id),
           actual_home_pts = as.numeric(home_score),
           actual_away_pts = as.numeric(away_score),
           actual_home_win = home_winner
@@ -8216,14 +9605,11 @@ calculate_calibration <- function(summary, nba_games_canon_season) {
     ) %>%
     mutate(
       predicted_winner = if_else(home_win_prob > 0.5, "home", "away"),
-      actual_winner = if_else(actual_home_win, "home", "away"),
-      correct_pick = predicted_winner == actual_winner,
-      
-      home_pts_error = home_pts_mean - actual_home_pts,
-      away_pts_error = away_pts_mean - actual_away_pts,
-      
-      # Assign to win probability buckets
-      win_prob_bucket = case_when(
+      actual_winner    = if_else(actual_home_win, "home", "away"),
+      correct_pick     = predicted_winner == actual_winner,
+      home_pts_error   = home_pts_mean - actual_home_pts,
+      away_pts_error   = away_pts_mean - actual_away_pts,
+      win_prob_bucket  = case_when(
         home_win_prob < 0.10 ~ "0.00-0.10",
         home_win_prob < 0.20 ~ "0.10-0.20",
         home_win_prob < 0.30 ~ "0.20-0.30",
@@ -8233,17 +9619,16 @@ calculate_calibration <- function(summary, nba_games_canon_season) {
         home_win_prob < 0.70 ~ "0.60-0.70",
         home_win_prob < 0.80 ~ "0.70-0.80",
         home_win_prob < 0.90 ~ "0.80-0.90",
-        TRUE ~ "0.90-1.00"
+        TRUE                 ~ "0.90-1.00"
       )
     )
   
-  # Calculate calibration by bucket
   calibration_summary <- calibration_data %>%
     group_by(win_prob_bucket) %>%
     summarise(
-      n_games = n(),
-      predicted_win_pct = mean(home_win_prob, na.rm = TRUE),
-      actual_win_pct = mean(actual_home_win, na.rm = TRUE),
+      n_games           = n(),
+      predicted_win_pct = mean(home_win_prob,   na.rm = TRUE),
+      actual_win_pct    = mean(actual_home_win,  na.rm = TRUE),
       calibration_error = actual_win_pct - predicted_win_pct,
       .groups = "drop"
     ) %>%
@@ -8251,19 +9636,99 @@ calculate_calibration <- function(summary, nba_games_canon_season) {
   
   list(
     calibration_summary = calibration_summary,
-    calibration_data = calibration_data
+    calibration_data    = calibration_data
   )
 }
 
+# --------------------------------------------------
+# Player Props Summarizer (raw tibble version)
+# --------------------------------------------------
+# Takes the already-bound raw props tibble collected separately during the sim loop.
+# Replaces the old summarize_player_props() which relied on attr() extraction —
+# that approach was broken because bind_rows() strips attributes.
+# --------------------------------------------------
+summarize_player_props_raw <- function(props_raw) {
+  
+  if (nrow(props_raw) == 0) {
+    message("No player props to summarize.")
+    return(tibble())
+  }
+  
+  # Sum across quarters first (per sim, per player, per game)
+  props_by_sim <- props_raw %>%
+    group_by(game_id, sim_index, ESPN_PLAYER_ID, team_id) %>%
+    summarise(
+      pts  = sum(sim_pts,  na.rm = TRUE),
+      reb  = sum(sim_reb,  na.rm = TRUE),
+      ast  = sum(sim_ast,  na.rm = TRUE),
+      blk  = sum(sim_blk,  na.rm = TRUE),
+      stl  = sum(sim_stl,  na.rm = TRUE),
+      fga  = sum(sim_fga,  na.rm = TRUE),
+      fgm  = sum(sim_fgm,  na.rm = TRUE),
+      fga3 = sum(sim_fga3, na.rm = TRUE),
+      fgm3 = sum(sim_fgm3, na.rm = TRUE),
+      fta  = sum(sim_fta,  na.rm = TRUE),
+      ftm  = sum(sim_ftm,  na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  # Summarise across sims → prop distributions
+  props_by_sim %>%
+    group_by(game_id, ESPN_PLAYER_ID, team_id) %>%
+    summarise(
+      n_sims     = n(),
+      
+      pts_mean   = mean(pts,   na.rm = TRUE),
+      pts_median = median(pts,  na.rm = TRUE),
+      pts_sd     = sd(pts,     na.rm = TRUE),
+      pts_p10    = quantile(pts, 0.10, na.rm = TRUE),
+      pts_p25    = quantile(pts, 0.25, na.rm = TRUE),
+      pts_p75    = quantile(pts, 0.75, na.rm = TRUE),
+      pts_p90    = quantile(pts, 0.90, na.rm = TRUE),
+      
+      reb_mean   = mean(reb,   na.rm = TRUE),
+      reb_median = median(reb,  na.rm = TRUE),
+      reb_p10    = quantile(reb, 0.10, na.rm = TRUE),
+      reb_p90    = quantile(reb, 0.90, na.rm = TRUE),
+      
+      ast_mean   = mean(ast,   na.rm = TRUE),
+      ast_median = median(ast,  na.rm = TRUE),
+      ast_p10    = quantile(ast, 0.10, na.rm = TRUE),
+      ast_p90    = quantile(ast, 0.90, na.rm = TRUE),
+      
+      blk_mean   = mean(blk, na.rm = TRUE),
+      stl_mean   = mean(stl, na.rm = TRUE),
+      
+      fga_mean   = mean(fga,  na.rm = TRUE),
+      fgm_mean   = mean(fgm,  na.rm = TRUE),
+      fg_pct     = mean(ifelse(fga  > 0, fgm  / fga,  NA_real_), na.rm = TRUE),
+      fg3a_mean  = mean(fga3, na.rm = TRUE),
+      fg3m_mean  = mean(fgm3, na.rm = TRUE),
+      fg3_pct    = mean(ifelse(fga3 > 0, fgm3 / fga3, NA_real_), na.rm = TRUE),
+      fta_mean   = mean(fta,  na.rm = TRUE),
+      ftm_mean   = mean(ftm,  na.rm = TRUE),
+      ft_pct     = mean(ifelse(fta  > 0, ftm  / fta,  NA_real_), na.rm = TRUE),
+      
+      .groups = "drop"
+    ) %>%
+    arrange(game_id, desc(pts_mean))
+}
+
 # ===========================================================================
-# SECTION 2: UPDATED run_mc_simulations_batch()
+# run_mc_simulations_batch()
 # ---------------------------------------------------------------------------
-# Identical to original EXCEPT:
-#   - Two new arguments: player_shooting_profile_q, player_usage_profile
-#   - sim_mode toggle: "player" (new) or "team" (original fallback)
-#   - Call sites for simulate_quarter_offense replaced with
-#     simulate_quarter_offense_player
-#   - Player props accumulator added — outputs mc_player_props_raw
+# Changes vs original:
+#   1. Added 7 player profile arguments (5 new box score rate profiles +
+#      the 2 shooting/usage args from the Phase 5 Section 2 draft)
+#   2. Added sim_mode toggle: "player" | "team"
+#   3. In player mode: calls simulate_quarter_offense_player() instead of
+#      simulate_quarter_offense(), and uses result$team_reb/ast/blk/stl/fouls
+#      directly in the quarter results tibble instead of possession math
+#   4. Removed team_assist/block/steal lookups in player mode — redundant
+#      since player sim already computed these from player rate profiles
+#   5. Props collected in separate accumulator per game — NOT via attr()
+#      which gets stripped by bind_rows()
+#   6. Returns list(sim_results = ..., player_props = ...) — caller unpacks
 # ===========================================================================
 
 run_mc_simulations_batch <- function(games_to_simulate,
@@ -8276,37 +9741,56 @@ run_mc_simulations_batch <- function(games_to_simulate,
                                      team_assist_rates_q,
                                      team_block_rates_q,
                                      team_steal_rates_q,
-                                     # ── NEW: player-level inputs ──────────
+                                     # Player-level inputs
                                      player_shooting_profile_q = NULL,
                                      player_usage_profile      = NULL,
-                                     sim_mode = "player",   # "player" | "team"
-                                     # ─────────────────────────────────────
-                                     n_sims     = MC_CONFIG$n_sims_per_game,
+                                     player_apm_profile_q      = NULL,
+                                     player_bpm_profile_q      = NULL,
+                                     player_spm_profile_q      = NULL,
+                                     player_rpm_profile_q      = NULL,
+                                     player_fpm_profile_q      = NULL,
+                                     # Mode toggle
+                                     sim_mode     = "player",  # "player" | "team"
+                                     n_sims       = MC_CONFIG$n_sims_per_game,
                                      use_parallel = TRUE) {
   
-  # Validate sim_mode
   sim_mode <- match.arg(sim_mode, c("player", "team"))
   
-  # If player mode requested but profiles missing, warn and fall back
-  if (sim_mode == "player" && 
-      (is.null(player_shooting_profile_q) || is.null(player_usage_profile))) {
-    warning("sim_mode = 'player' but player profiles not supplied. Falling back to 'team' mode.")
-    sim_mode <- "team"
+  # Validate player mode inputs
+  if (sim_mode == "player") {
+    missing <- c(
+      if (is.null(player_shooting_profile_q)) "player_shooting_profile_q",
+      if (is.null(player_usage_profile))      "player_usage_profile",
+      if (is.null(player_apm_profile_q))      "player_apm_profile_q",
+      if (is.null(player_bpm_profile_q))      "player_bpm_profile_q",
+      if (is.null(player_spm_profile_q))      "player_spm_profile_q",
+      if (is.null(player_rpm_profile_q))      "player_rpm_profile_q",
+      if (is.null(player_fpm_profile_q))      "player_fpm_profile_q"
+    )
+    if (length(missing) > 0) {
+      warning("sim_mode = 'player' but missing: ", paste(missing, collapse = ", "),
+              ". Falling back to 'team' mode.")
+      sim_mode <- "team"
+    }
   }
   
-  n_games <- nrow(games_to_simulate)
+  n_games    <- nrow(games_to_simulate)
+  start_time <- Sys.time()
+  
   cat("🎲 Starting MC simulations for", n_games, "games\n")
   cat("   Simulations per game:", n_sims, "\n")
   cat("   Sim mode:", sim_mode, "\n")
   cat("   Parallel processing:", use_parallel, "\n\n")
   
-  start_time <- Sys.time()
-  
   if (use_parallel) {
     future::plan(future::multisession, workers = parallel::detectCores() - 1)
   }
   
-  all_sim_results <- if (use_parallel) {
+  # Each element of all_game_results is a named list:
+  #   list(sim_rows = <tibble>, props_rows = <tibble or NULL>)
+  # Keeping them separate means bind_rows() on sim_rows never strips props_rows.
+  
+  all_game_results <- if (use_parallel) {
     
     future.apply::future_lapply(
       seq_len(n_games),
@@ -8315,58 +9799,117 @@ run_mc_simulations_batch <- function(games_to_simulate,
         game <- games_to_simulate[i, ]
         
         if (i %% 10 == 0 || i == 1) {
-          elapsed   <- as.numeric(difftime(Sys.time(), start_time, units = "mins"))
-          remaining <- n_games - i
-          rate      <- i / max(elapsed, 0.001)
-          eta       <- remaining / rate
+          elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "mins"))
+          rate    <- i / max(elapsed, 0.001)
+          eta     <- (n_games - i) / rate
           cat(sprintf("  [%d/%d] | Elapsed: %.1f min | ETA: %.1f min\n",
                       i, n_games, elapsed, eta))
         }
         
-        # ── Run n_sims for this game ──────────────────────────────────────
-        sim_rows <- map_dfr(seq_len(n_sims), function(sim_i) {
+        game_sim_rows   <- vector("list", n_sims)
+        game_props_rows <- vector("list", n_sims)
+        
+        for (sim_i in seq_len(n_sims)) {
           
           quarter_results  <- list()
-          player_props_sim <- list()   # NEW: collect player stats per sim
+          player_props_sim <- list()
           
-          # ── Regulation Q1-Q4 ─────────────────────────────────────────
+          # ── Regulation Q1-Q4 ────────────────────────────────────────
           for (qtr in 1:4) {
             
             if (sim_mode == "player") {
               
               home_result <- simulate_quarter_offense_player(
-                team_id                 = game$home_team_id,
-                opp_team_id             = game$away_team_id,
-                qtr                     = qtr,
-                game_id                 = game$game_id,
-                team_offense_adjusted_q = team_offense_adjusted_q,
-                team_poss_profile_q     = team_poss_profile_q,
-                team_rebounding_rates_q = team_rebounding_rates_q,
-                team_turnover_rates_q   = team_turnover_rates_q,
-                team_foul_rates_q       = team_foul_rates_q,
+                team_id                   = game$home_team_id,
+                opp_team_id               = game$away_team_id,
+                qtr                       = qtr,
+                game_id                   = game$game_id,
+                team_offense_adjusted_q   = team_offense_adjusted_q,
+                team_poss_profile_q       = team_poss_profile_q,
+                team_rebounding_rates_q   = team_rebounding_rates_q,
+                team_turnover_rates_q     = team_turnover_rates_q,
+                team_foul_rates_q         = team_foul_rates_q,
                 player_shooting_profile_q = player_shooting_profile_q,
-                player_usage_profile    = player_usage_profile,
-                is_b2b                  = game$home_b2b
+                player_usage_profile      = player_usage_profile,
+                player_apm_profile_q      = player_apm_profile_q,
+                player_bpm_profile_q      = player_bpm_profile_q,
+                player_spm_profile_q      = player_spm_profile_q,
+                player_rpm_profile_q      = player_rpm_profile_q,
+                player_fpm_profile_q      = player_fpm_profile_q,
+                is_b2b                    = game$home_b2b
               )
               
               away_result <- simulate_quarter_offense_player(
-                team_id                 = game$away_team_id,
-                opp_team_id             = game$home_team_id,
-                qtr                     = qtr,
-                game_id                 = game$game_id,
-                team_offense_adjusted_q = team_offense_adjusted_q,
-                team_poss_profile_q     = team_poss_profile_q,
-                team_rebounding_rates_q = team_rebounding_rates_q,
-                team_turnover_rates_q   = team_turnover_rates_q,
-                team_foul_rates_q       = team_foul_rates_q,
+                team_id                   = game$away_team_id,
+                opp_team_id               = game$home_team_id,
+                qtr                       = qtr,
+                game_id                   = game$game_id,
+                team_offense_adjusted_q   = team_offense_adjusted_q,
+                team_poss_profile_q       = team_poss_profile_q,
+                team_rebounding_rates_q   = team_rebounding_rates_q,
+                team_turnover_rates_q     = team_turnover_rates_q,
+                team_foul_rates_q         = team_foul_rates_q,
                 player_shooting_profile_q = player_shooting_profile_q,
-                player_usage_profile    = player_usage_profile,
-                is_b2b                  = game$away_b2b
+                player_usage_profile      = player_usage_profile,
+                player_apm_profile_q      = player_apm_profile_q,
+                player_bpm_profile_q      = player_bpm_profile_q,
+                player_spm_profile_q      = player_spm_profile_q,
+                player_rpm_profile_q      = player_rpm_profile_q,
+                player_fpm_profile_q      = player_fpm_profile_q,
+                is_b2b                    = game$away_b2b
               )
+              
+              # Quarter results: reb/ast/blk/stl/fouls come directly from
+              # player sim totals — no possession math needed
+              quarter_results[[length(quarter_results) + 1]] <- tibble(
+                game_id      = game$game_id,
+                game_date    = game$game_date,
+                sim_index    = sim_i,
+                team_id      = game$home_team_id,
+                opp_id       = game$away_team_id,
+                qtr          = qtr,
+                pts_proj_q   = home_result$points,
+                tov_proj_q   = home_result$turnovers,
+                reb_proj_q   = round(home_result$team_reb),
+                ast_proj_q   = round(home_result$team_ast),
+                blk_proj_q   = round(home_result$team_blk),
+                stl_proj_q   = round(home_result$team_stl),
+                fouls_proj_q = round(home_result$team_fouls)
+              )
+              
+              quarter_results[[length(quarter_results) + 1]] <- tibble(
+                game_id      = game$game_id,
+                game_date    = game$game_date,
+                sim_index    = sim_i,
+                team_id      = game$away_team_id,
+                opp_id       = game$home_team_id,
+                qtr          = qtr,
+                pts_proj_q   = away_result$points,
+                tov_proj_q   = away_result$turnovers,
+                reb_proj_q   = round(away_result$team_reb),
+                ast_proj_q   = round(away_result$team_ast),
+                blk_proj_q   = round(away_result$team_blk),
+                stl_proj_q   = round(away_result$team_stl),
+                fouls_proj_q = round(away_result$team_fouls)
+              )
+              
+              # Collect player props into separate accumulator
+              if (nrow(home_result$player_stats) > 0) {
+                player_props_sim[[length(player_props_sim) + 1]] <-
+                  home_result$player_stats %>%
+                  mutate(game_id = game$game_id, sim_index = sim_i,
+                         team_id = game$home_team_id, qtr = qtr)
+              }
+              if (nrow(away_result$player_stats) > 0) {
+                player_props_sim[[length(player_props_sim) + 1]] <-
+                  away_result$player_stats %>%
+                  mutate(game_id = game$game_id, sim_index = sim_i,
+                         team_id = game$away_team_id, qtr = qtr)
+              }
               
             } else {
               
-              # ── Original team-level simulation (unchanged) ──────────
+              # ── Team mode (unchanged) ────────────────────────────────
               home_result <- simulate_quarter_offense(
                 team_id                 = game$home_team_id,
                 opp_team_id             = game$away_team_id,
@@ -8392,100 +9935,68 @@ run_mc_simulations_batch <- function(games_to_simulate,
                 team_foul_rates_q       = team_foul_rates_q,
                 is_b2b                  = game$away_b2b
               )
-            }
-            
-            # ── Assist / block / steal lookups (unchanged) ────────────
-            home_ast <- team_assist_rates_q %>%
-              filter(ESPN_GAME_ID == game$game_id,
-                     ESPN_TEAM_ID == game$home_team_id, qtr == !!qtr) %>%
-              slice(1) %>% pull(ast_per_poss) %>% num0(0.60)
-            
-            home_blk <- team_block_rates_q %>%
-              filter(ESPN_GAME_ID == game$game_id,
-                     ESPN_TEAM_ID == game$home_team_id, qtr == !!qtr) %>%
-              slice(1) %>% pull(blk_per_poss) %>% num0(0.05)
-            
-            home_stl <- team_steal_rates_q %>%
-              filter(ESPN_GAME_ID == game$game_id,
-                     ESPN_TEAM_ID == game$home_team_id, qtr == !!qtr) %>%
-              slice(1) %>% pull(stl_per_poss) %>% num0(0.08)
-            
-            away_ast <- team_assist_rates_q %>%
-              filter(ESPN_GAME_ID == game$game_id,
-                     ESPN_TEAM_ID == game$away_team_id, qtr == !!qtr) %>%
-              slice(1) %>% pull(ast_per_poss) %>% num0(0.60)
-            
-            away_blk <- team_block_rates_q %>%
-              filter(ESPN_GAME_ID == game$game_id,
-                     ESPN_TEAM_ID == game$away_team_id, qtr == !!qtr) %>%
-              slice(1) %>% pull(blk_per_poss) %>% num0(0.05)
-            
-            away_stl <- team_steal_rates_q %>%
-              filter(ESPN_GAME_ID == game$game_id,
-                     ESPN_TEAM_ID == game$away_team_id, qtr == !!qtr) %>%
-              slice(1) %>% pull(stl_per_poss) %>% num0(0.08)
-            
-            # ── Quarter results rows (unchanged structure) ────────────
-            quarter_results[[length(quarter_results) + 1]] <- tibble(
-              game_id      = game$game_id,
-              game_date    = game$game_date,
-              sim_index    = sim_i,
-              team_id      = game$home_team_id,
-              opp_id       = game$away_team_id,
-              qtr          = qtr,
-              pts_proj_q   = home_result$points,
-              tov_proj_q   = home_result$turnovers,
-              reb_proj_q   = round(home_result$effective_poss * 0.85),
-              ast_proj_q   = round(home_result$effective_poss * home_ast),
-              blk_proj_q   = round(home_result$effective_poss * home_blk),
-              stl_proj_q   = round(home_result$effective_poss * home_stl),
-              fouls_proj_q = round(home_result$effective_poss * 0.20)
-            )
-            
-            quarter_results[[length(quarter_results) + 1]] <- tibble(
-              game_id      = game$game_id,
-              game_date    = game$game_date,
-              sim_index    = sim_i,
-              team_id      = game$away_team_id,
-              opp_id       = game$home_team_id,
-              qtr          = qtr,
-              pts_proj_q   = away_result$points,
-              tov_proj_q   = away_result$turnovers,
-              reb_proj_q   = round(away_result$effective_poss * 0.85),
-              ast_proj_q   = round(away_result$effective_poss * away_ast),
-              blk_proj_q   = round(away_result$effective_poss * away_blk),
-              stl_proj_q   = round(away_result$effective_poss * away_stl),
-              fouls_proj_q = round(away_result$effective_poss * 0.20)
-            )
-            
-            # ── NEW: Collect player-level stats for props ─────────────
-            if (sim_mode == "player") {
               
-              if (nrow(home_result$player_stats) > 0) {
-                player_props_sim[[length(player_props_sim) + 1]] <- 
-                  home_result$player_stats %>%
-                  mutate(
-                    game_id      = game$game_id,
-                    sim_index    = sim_i,
-                    team_id      = game$home_team_id,
-                    qtr          = qtr
-                  )
-              }
+              home_ast <- team_assist_rates_q %>%
+                filter(ESPN_GAME_ID == game$game_id,
+                       ESPN_TEAM_ID == game$home_team_id, qtr == !!qtr) %>%
+                slice(1) %>% pull(ast_per_poss) %>% num0(0.60)
+              home_blk <- team_block_rates_q %>%
+                filter(ESPN_GAME_ID == game$game_id,
+                       ESPN_TEAM_ID == game$home_team_id, qtr == !!qtr) %>%
+                slice(1) %>% pull(blk_per_poss) %>% num0(0.05)
+              home_stl <- team_steal_rates_q %>%
+                filter(ESPN_GAME_ID == game$game_id,
+                       ESPN_TEAM_ID == game$home_team_id, qtr == !!qtr) %>%
+                slice(1) %>% pull(stl_per_poss) %>% num0(0.08)
               
-              if (nrow(away_result$player_stats) > 0) {
-                player_props_sim[[length(player_props_sim) + 1]] <- 
-                  away_result$player_stats %>%
-                  mutate(
-                    game_id      = game$game_id,
-                    sim_index    = sim_i,
-                    team_id      = game$away_team_id,
-                    qtr          = qtr
-                  )
-              }
+              away_ast <- team_assist_rates_q %>%
+                filter(ESPN_GAME_ID == game$game_id,
+                       ESPN_TEAM_ID == game$away_team_id, qtr == !!qtr) %>%
+                slice(1) %>% pull(ast_per_poss) %>% num0(0.60)
+              away_blk <- team_block_rates_q %>%
+                filter(ESPN_GAME_ID == game$game_id,
+                       ESPN_TEAM_ID == game$away_team_id, qtr == !!qtr) %>%
+                slice(1) %>% pull(blk_per_poss) %>% num0(0.05)
+              away_stl <- team_steal_rates_q %>%
+                filter(ESPN_GAME_ID == game$game_id,
+                       ESPN_TEAM_ID == game$away_team_id, qtr == !!qtr) %>%
+                slice(1) %>% pull(stl_per_poss) %>% num0(0.08)
+              
+              quarter_results[[length(quarter_results) + 1]] <- tibble(
+                game_id      = game$game_id,
+                game_date    = game$game_date,
+                sim_index    = sim_i,
+                team_id      = game$home_team_id,
+                opp_id       = game$away_team_id,
+                qtr          = qtr,
+                pts_proj_q   = home_result$points,
+                tov_proj_q   = home_result$turnovers,
+                reb_proj_q   = round(home_result$effective_poss * 0.85),
+                ast_proj_q   = round(home_result$effective_poss * home_ast),
+                blk_proj_q   = round(home_result$effective_poss * home_blk),
+                stl_proj_q   = round(home_result$effective_poss * home_stl),
+                fouls_proj_q = round(home_result$effective_poss * 0.20)
+              )
+              
+              quarter_results[[length(quarter_results) + 1]] <- tibble(
+                game_id      = game$game_id,
+                game_date    = game$game_date,
+                sim_index    = sim_i,
+                team_id      = game$away_team_id,
+                opp_id       = game$home_team_id,
+                qtr          = qtr,
+                pts_proj_q   = away_result$points,
+                tov_proj_q   = away_result$turnovers,
+                reb_proj_q   = round(away_result$effective_poss * 0.85),
+                ast_proj_q   = round(away_result$effective_poss * away_ast),
+                blk_proj_q   = round(away_result$effective_poss * away_blk),
+                stl_proj_q   = round(away_result$effective_poss * away_stl),
+                fouls_proj_q = round(away_result$effective_poss * 0.20)
+              )
             }
           }
           
-          # ── OVERTIME RESOLUTION (unchanged) ──────────────────────────
+          # ── OVERTIME RESOLUTION ──────────────────────────────────────
           reg_df <- bind_rows(quarter_results)
           
           home_reg_pts <- reg_df %>%
@@ -8509,60 +10020,68 @@ run_mc_simulations_batch <- function(games_to_simulate,
             home_ot_poss <- max(0, round(rnorm(1, MC_CONFIG$ot_poss_mean, MC_CONFIG$ot_poss_sd)))
             away_ot_poss <- max(0, round(rnorm(1, MC_CONFIG$ot_poss_mean, MC_CONFIG$ot_poss_sd)))
             
-            # OT reuses Q4 profiles (same as original)
             if (sim_mode == "player") {
               home_ot <- simulate_quarter_offense_player(
                 team_id = game$home_team_id, opp_team_id = game$away_team_id,
                 qtr = 4, game_id = game$game_id,
-                team_offense_adjusted_q = team_offense_adjusted_q,
-                team_poss_profile_q = team_poss_profile_q,
-                team_rebounding_rates_q = team_rebounding_rates_q,
-                team_turnover_rates_q = team_turnover_rates_q,
-                team_foul_rates_q = team_foul_rates_q,
+                team_offense_adjusted_q   = team_offense_adjusted_q,
+                team_poss_profile_q       = team_poss_profile_q,
+                team_rebounding_rates_q   = team_rebounding_rates_q,
+                team_turnover_rates_q     = team_turnover_rates_q,
+                team_foul_rates_q         = team_foul_rates_q,
                 player_shooting_profile_q = player_shooting_profile_q,
-                player_usage_profile = player_usage_profile,
-                is_b2b = game$home_b2b
+                player_usage_profile      = player_usage_profile,
+                player_apm_profile_q      = player_apm_profile_q,
+                player_bpm_profile_q      = player_bpm_profile_q,
+                player_spm_profile_q      = player_spm_profile_q,
+                player_rpm_profile_q      = player_rpm_profile_q,
+                player_fpm_profile_q      = player_fpm_profile_q,
+                is_b2b                    = game$home_b2b
               )
               away_ot <- simulate_quarter_offense_player(
                 team_id = game$away_team_id, opp_team_id = game$home_team_id,
                 qtr = 4, game_id = game$game_id,
-                team_offense_adjusted_q = team_offense_adjusted_q,
-                team_poss_profile_q = team_poss_profile_q,
-                team_rebounding_rates_q = team_rebounding_rates_q,
-                team_turnover_rates_q = team_turnover_rates_q,
-                team_foul_rates_q = team_foul_rates_q,
+                team_offense_adjusted_q   = team_offense_adjusted_q,
+                team_poss_profile_q       = team_poss_profile_q,
+                team_rebounding_rates_q   = team_rebounding_rates_q,
+                team_turnover_rates_q     = team_turnover_rates_q,
+                team_foul_rates_q         = team_foul_rates_q,
                 player_shooting_profile_q = player_shooting_profile_q,
-                player_usage_profile = player_usage_profile,
-                is_b2b = game$away_b2b
+                player_usage_profile      = player_usage_profile,
+                player_apm_profile_q      = player_apm_profile_q,
+                player_bpm_profile_q      = player_bpm_profile_q,
+                player_spm_profile_q      = player_spm_profile_q,
+                player_rpm_profile_q      = player_rpm_profile_q,
+                player_fpm_profile_q      = player_fpm_profile_q,
+                is_b2b                    = game$away_b2b
               )
             } else {
               home_ot <- simulate_quarter_offense(
                 team_id = game$home_team_id, opp_team_id = game$away_team_id,
                 qtr = 4, game_id = game$game_id,
                 team_offense_adjusted_q = team_offense_adjusted_q,
-                team_poss_profile_q = team_poss_profile_q,
+                team_poss_profile_q     = team_poss_profile_q,
                 team_rebounding_rates_q = team_rebounding_rates_q,
-                team_turnover_rates_q = team_turnover_rates_q,
-                team_foul_rates_q = team_foul_rates_q,
-                is_b2b = game$home_b2b
+                team_turnover_rates_q   = team_turnover_rates_q,
+                team_foul_rates_q       = team_foul_rates_q,
+                is_b2b                  = game$home_b2b
               )
               away_ot <- simulate_quarter_offense(
                 team_id = game$away_team_id, opp_team_id = game$home_team_id,
                 qtr = 4, game_id = game$game_id,
                 team_offense_adjusted_q = team_offense_adjusted_q,
-                team_poss_profile_q = team_poss_profile_q,
+                team_poss_profile_q     = team_poss_profile_q,
                 team_rebounding_rates_q = team_rebounding_rates_q,
-                team_turnover_rates_q = team_turnover_rates_q,
-                team_foul_rates_q = team_foul_rates_q,
-                is_b2b = game$away_b2b
+                team_turnover_rates_q   = team_turnover_rates_q,
+                team_foul_rates_q       = team_foul_rates_q,
+                is_b2b                  = game$away_b2b
               )
             }
             
-            ot_scale     <- home_ot_poss / max(home_ot$base_poss, 1)
-            home_ot_pts  <- max(0, round(home_ot$points * ot_scale))
-            ot_scale     <- away_ot_poss / max(away_ot$base_poss, 1)
-            away_ot_pts  <- max(0, round(away_ot$points * ot_scale))
+            home_ot_pts <- max(0, round(home_ot$points * (home_ot_poss / max(home_ot$base_poss, 1))))
+            away_ot_pts <- max(0, round(away_ot$points * (away_ot_poss / max(away_ot$base_poss, 1))))
             
+            # Force a winner if still tied after max OT
             if (ot_period == MC_CONFIG$max_ot_periods && home_ot_pts == away_ot_pts) {
               if (runif(1) > 0.5) home_ot_pts <- home_ot_pts + 1L else away_ot_pts <- away_ot_pts + 1L
             }
@@ -8577,7 +10096,6 @@ run_mc_simulations_batch <- function(games_to_simulate,
               reb_proj_q = 0L, ast_proj_q = 0L, blk_proj_q = 0L,
               stl_proj_q = 0L, fouls_proj_q = 0L
             )
-            
             quarter_results[[length(quarter_results) + 1]] <- tibble(
               game_id = game$game_id, game_date = game$game_date,
               sim_index = sim_i, team_id = game$away_team_id, opp_id = game$home_team_id,
@@ -8587,28 +10105,23 @@ run_mc_simulations_batch <- function(games_to_simulate,
             )
           }
           
-          # ── Combine quarter results + attach player props ─────────────
-          qtr_df <- bind_rows(quarter_results)
+          # Store sim rows and props rows separately
+          game_sim_rows[[sim_i]]   <- bind_rows(quarter_results)
+          game_props_rows[[sim_i]] <- if (length(player_props_sim) > 0)
+            bind_rows(player_props_sim) else NULL
           
-          if (sim_mode == "player" && length(player_props_sim) > 0) {
-            attr(qtr_df, "player_props") <- bind_rows(player_props_sim)
-          }
-          
-          qtr_df
-        })
+        } # end sim loop
         
-        sim_rows
+        list(
+          sim_rows   = bind_rows(game_sim_rows),
+          props_rows = bind_rows(Filter(Negate(is.null), game_props_rows))
+        )
       },
       future.seed = TRUE
     )
     
   } else {
-    
-    lapply(seq_len(n_games), function(i) {
-      # Non-parallel version identical to parallel — omitted for brevity
-      # Replace with same logic above if needed
-      stop("Non-parallel mode not implemented in Phase 5. Set use_parallel = TRUE.")
-    })
+    stop("Non-parallel mode not implemented. Set use_parallel = TRUE.")
   }
   
   if (use_parallel) future::plan(future::sequential)
@@ -8616,7 +10129,19 @@ run_mc_simulations_batch <- function(games_to_simulate,
   total_time <- as.numeric(difftime(Sys.time(), start_time, units = "mins"))
   
   cat("\n✅ Combining results...\n")
-  all_results <- bind_rows(all_sim_results)
+  
+  all_sim_rows   <- lapply(all_game_results, `[[`, "sim_rows")
+  all_props_rows <- lapply(all_game_results, `[[`, "props_rows")
+  
+  all_results <- bind_rows(all_sim_rows)
+  
+  player_props_summary <- if (sim_mode == "player") {
+    cat("📊 Summarizing player props distributions...\n")
+    props_raw <- bind_rows(Filter(function(x) !is.null(x) && nrow(x) > 0, all_props_rows))
+    if (nrow(props_raw) > 0) summarize_player_props_raw(props_raw) else tibble()
+  } else {
+    tibble()
+  }
   
   cat("=", rep("=", 60), "\n", sep = "")
   cat("✅ MC SIMULATIONS COMPLETE!\n")
@@ -8625,13 +10150,18 @@ run_mc_simulations_batch <- function(games_to_simulate,
   cat("  Total sims:", n_games * n_sims, "\n")
   cat("  Total rows:", nrow(all_results), "\n")
   cat("  Total time:", round(total_time, 1), "minutes\n")
-  cat("  Rate:", round(n_games / total_time, 1), "games/min\n\n")
+  cat("  Rate:", round(n_games / total_time, 1), "games/min\n")
+  if (sim_mode == "player") cat("  Player props rows:", nrow(player_props_summary), "\n")
+  cat("\n")
   
-  all_results
+  list(
+    sim_results  = all_results,
+    player_props = player_props_summary
+  )
 }
 
 # ==========================================================================================================
-# SETUP PARALLEL PROCESSING - 8 CORES
+# SETUP PARALLEL PROCESSING
 # ==========================================================================================================
 
 suppressPackageStartupMessages({
@@ -8639,28 +10169,23 @@ suppressPackageStartupMessages({
   library(future.apply)
 })
 
-# Set to 8 cores explicitly
 cores_to_use <- 7
 cat("🚀 Configuring parallel processing with", cores_to_use, "cores\n\n")
-
-# Set up parallel plan
 future::plan(future::multisession, workers = cores_to_use)
-
-# Verify setup
 cat("✓ Parallel backend configured with", cores_to_use, "workers\n\n")
-
 
 # ==========================================================================================================
 # EXECUTE BACKTEST MC SIMULATIONS
 # ==========================================================================================================
 
+if (mode == "backtest") {
+  
 cat("=", rep("=", 80), "\n", sep = "")
 cat("BACKTEST MC SIMULATIONS - STARTING\n")
 cat("=", rep("=", 80), "\n\n", sep = "")
 
-
 # --------------------------------------------------
-# STEP 1: Build rest features from BaseStats_Player_MC
+# STEP 1: Build rest features
 # --------------------------------------------------
 cat("📈 Building rest day features...\n")
 
@@ -8682,64 +10207,55 @@ game_rest_features <- BaseStats_Player_MC %>%
   mutate(is_home = ESPN_TEAM_ID == home_team_id) %>%
   select(ESPN_GAME_ID, ESPN_TEAM_ID, TOT_RST_DYS, IS_B2B, is_home) %>%
   pivot_wider(
-    id_cols = ESPN_GAME_ID,
-    names_from = is_home,
+    id_cols     = ESPN_GAME_ID,
+    names_from  = is_home,
     values_from = c(TOT_RST_DYS, IS_B2B)
   ) %>%
   rename(
-    game_id = ESPN_GAME_ID,
+    game_id        = ESPN_GAME_ID,
     home_rest_days = TOT_RST_DYS_TRUE,
     away_rest_days = TOT_RST_DYS_FALSE,
-    home_b2b = IS_B2B_TRUE,
-    away_b2b = IS_B2B_FALSE
+    home_b2b       = IS_B2B_TRUE,
+    away_b2b       = IS_B2B_FALSE
   ) %>%
   mutate(
     home_rest_days = as.numeric(home_rest_days),
     away_rest_days = as.numeric(away_rest_days),
-    home_b2b = as.integer(home_b2b),
-    away_b2b = as.integer(away_b2b),
-    rest_diff = home_rest_days - away_rest_days
+    home_b2b       = as.integer(home_b2b),
+    away_b2b       = as.integer(away_b2b),
+    rest_diff      = home_rest_days - away_rest_days
   )
 
 cat("✅ Rest features built for", nrow(game_rest_features), "games\n\n")
 
 # --------------------------------------------------
-# STEP 1: Prepare games to simulate
+# STEP 2: Prepare games to simulate
 # --------------------------------------------------
 cat("📋 Preparing historical games...\n")
 
 games_backtest <- nba_games_canon_season %>%
   filter(as.Date(game_date) < as.Date(as_of_date)) %>%
   transmute(
-    game_id = as.character(game_id),
-    game_date = as.Date(game_date),
+    game_id      = as.character(game_id),
+    game_date    = as.Date(game_date),
     home_team_id = as.character(home_team_id),
     away_team_id = as.character(away_team_id)
   ) %>%
   distinct() %>%
   left_join(
-    game_rest_features %>%
-      mutate(game_id = as.character(game_id)),
+    game_rest_features %>% mutate(game_id = as.character(game_id)),
     by = "game_id"
   )
 
 cat("✓ Found", nrow(games_backtest), "historical games to simulate\n\n")
 
-# ===========================================================================
-# SECTION 3: UPDATED EXECUTION BLOCK
-# ---------------------------------------------------------------------------
-# Replace the existing run_mc_simulations_batch() call at line ~8103
-# with this. Everything after it (aggregation, calibration, Platt) is
-# completely unchanged.
-# ===========================================================================
-
 # --------------------------------------------------
-# Run simulation — PLAYER MODE
+# STEP 3: Run simulation
 # --------------------------------------------------
-mc_sims_backtest_q <- run_mc_simulations_batch(
+mc_output <- run_mc_simulations_batch(
   games_to_simulate = games_backtest,
   
-  # Team-level profiles (unchanged)
+  # Team-level profiles
   team_offense_adjusted_q = team_offense_adjusted_q,
   team_poss_profile_q     = team_poss_profile_q_backtest,
   team_rebounding_rates_q = team_rebounding_rates_q,
@@ -8750,138 +10266,62 @@ mc_sims_backtest_q <- run_mc_simulations_batch(
   team_block_rates_q      = team_block_rates_q,
   team_steal_rates_q      = team_steal_rates_q,
   
-  # NEW: Player-level profiles
-  player_shooting_profile_q = player_shooting_profile_q,   # from player script
-  player_usage_profile      = player_usage_profile_backtest, # from player script
-  sim_mode                  = "player",
+  # Player-level profiles
+  player_shooting_profile_q = player_shooting_profile_q,
+  player_usage_profile      = player_usage_profile_backtest,
+  player_apm_profile_q      = player_apm_profile_q,
+  player_bpm_profile_q      = player_bpm_profile_q,
+  player_spm_profile_q      = player_spm_profile_q,
+  player_rpm_profile_q      = player_rpm_profile_q,
+  player_fpm_profile_q      = player_fpm_profile_q,
   
-  n_sims       = 1000,
+  sim_mode     = "player",
+  n_sims       = n_sims,
   use_parallel = TRUE
 )
 
-# --------------------------------------------------
-# NEW: Extract player props (run after mc_sims_backtest_q)
-# --------------------------------------------------
-# mc_player_props <- summarize_player_props(all_sim_results)
-# NOTE: See implementation note below about extracting attrs from parallel results
+# Unpack
+mc_sims_backtest_q <- mc_output$sim_results   # Quarter rows for aggregation
+mc_player_props    <- mc_output$player_props  # Player prop distributions
+
+cat("✅ mc_sims_backtest_q:", nrow(mc_sims_backtest_q), "rows\n")
+cat("✅ mc_player_props:   ", nrow(mc_player_props),    "player-game rows\n\n")
 
 # --------------------------------------------------
-# Everything below this line is UNCHANGED
+# STEP 4: Aggregate results
 # --------------------------------------------------
-# aggregate_quarter_results(), calculate_summary_stats(),
-# calculate_calibration(), Platt scaling — all identical
-
-# Then run aggregation and calibration as before
-# --------------------------------------------------
-# STEP 3: Aggregate results
-# --------------------------------------------------
-
-
-# ===========================================================================
-# SECTION 4: PLAYER PROPS SUMMARIZER
-# ---------------------------------------------------------------------------
-# After running simulations, call this to collapse player_stats across
-# all sims into per-player prop distributions (mean, median, p5, p95).
-#
-# Input:  mc_sims_backtest_q  (output of run_mc_simulations_batch)
-# Output: mc_player_props     (one row per player per game)
-# ===========================================================================
-
-summarize_player_props <- function(sim_results) {
-  
-  # Extract player_props attributes from each sim chunk
-  props_list <- lapply(sim_results, function(chunk) {
-    attr(chunk, "player_props")
-  })
-  props_list <- Filter(Negate(is.null), props_list)
-  
-  if (length(props_list) == 0) {
-    message("No player props found in sim results. Was sim_mode = 'player'?")
-    return(tibble())
-  }
-  
-  props_raw <- bind_rows(props_list)
-  
-  # Aggregate across quarters first (per sim, per player, per game)
-  props_by_sim <- props_raw %>%
-    group_by(game_id, sim_index, ESPN_PLAYER_ID, team_id) %>%
-    summarise(
-      pts  = sum(sim_pts,  na.rm = TRUE),
-      fga  = sum(sim_fga,  na.rm = TRUE),
-      fgm  = sum(sim_fgm,  na.rm = TRUE),
-      fga3 = sum(sim_fga3, na.rm = TRUE),
-      fgm3 = sum(sim_fgm3, na.rm = TRUE),
-      fta  = sum(sim_fta,  na.rm = TRUE),
-      ftm  = sum(sim_ftm,  na.rm = TRUE),
-      .groups = "drop"
-    )
-  
-  # Summarise across sims → prop distributions
-  mc_player_props <- props_by_sim %>%
-    group_by(game_id, ESPN_PLAYER_ID, team_id) %>%
-    summarise(
-      n_sims    = n(),
-      
-      pts_mean  = mean(pts,  na.rm = TRUE),
-      pts_median= median(pts, na.rm = TRUE),
-      pts_sd    = sd(pts,    na.rm = TRUE),
-      pts_p10   = quantile(pts, 0.10, na.rm = TRUE),
-      pts_p25   = quantile(pts, 0.25, na.rm = TRUE),
-      pts_p75   = quantile(pts, 0.75, na.rm = TRUE),
-      pts_p90   = quantile(pts, 0.90, na.rm = TRUE),
-      
-      fga_mean  = mean(fga,  na.rm = TRUE),
-      fgm_mean  = mean(fgm,  na.rm = TRUE),
-      fg_pct    = mean(ifelse(fga > 0, fgm / fga, NA_real_), na.rm = TRUE),
-      
-      fg3a_mean = mean(fga3, na.rm = TRUE),
-      fg3m_mean = mean(fgm3, na.rm = TRUE),
-      fg3_pct   = mean(ifelse(fga3 > 0, fgm3 / fga3, NA_real_), na.rm = TRUE),
-      
-      fta_mean  = mean(fta,  na.rm = TRUE),
-      ftm_mean  = mean(ftm,  na.rm = TRUE),
-      ft_pct    = mean(ifelse(fta > 0, ftm / fta, NA_real_), na.rm = TRUE),
-      
-      .groups = "drop"
-    ) %>%
-    arrange(game_id, desc(pts_mean))
-  
-  mc_player_props
-}
-
-
 cat("\n📊 Calculating summary statistics...\n")
 
 mc_game_totals_backtest <- aggregate_quarter_results(mc_sims_backtest_q)
 
 mc_results_summary <- calculate_summary_stats(
-  mc_game_totals_backtest, 
+  mc_game_totals_backtest,
   nba_games_canon_season
 )
 
 mc_results_quarters <- calculate_quarter_breakdown(mc_sims_backtest_q)
 
 # --------------------------------------------------
-# STEP 4: Calculate calibration
+# STEP 5: Calibration
 # --------------------------------------------------
 cat("📈 Calculating calibration analysis...\n")
 
 calibration_results <- calculate_calibration(
-  mc_results_summary, 
+  mc_results_summary,
   nba_games_canon_season
 )
 
-mc_calibration <- calibration_results$calibration_summary
+mc_calibration         <- calibration_results$calibration_summary
 mc_backtest_validation <- calibration_results$calibration_data
 
 # --------------------------------------------------
-# STEP 5: Reset parallel plan
+# STEP 6: Reset parallel plan
 # --------------------------------------------------
 future::plan(future::sequential)
 cat("✓ Parallel processing shut down\n\n")
 
 # --------------------------------------------------
-# STEP 6: Display results
+# STEP 7: Display results
 # --------------------------------------------------
 cat("=", rep("=", 80), "\n", sep = "")
 cat("✅ BACKTEST COMPLETE!\n")
@@ -8890,18 +10330,18 @@ cat("=", rep("=", 80), "\n\n", sep = "")
 cat("RESULTS SUMMARY:\n")
 cat("  Total games simulated:", nrow(mc_results_summary), "\n")
 cat("  Total simulation rows:", nrow(mc_sims_backtest_q), "\n")
-cat("  Simulations per game:", 1000, "\n\n")
+cat("  Simulations per game: 500\n\n")
 
 cat("CALIBRATION ANALYSIS:\n")
 print(mc_calibration)
 cat("\n")
 
 cat("MODEL ACCURACY:\n")
-cat("  Overall win probability accuracy:", 
+cat("  Overall win probability accuracy:",
     round(mean(mc_backtest_validation$correct_pick, na.rm = TRUE) * 100, 1), "%\n")
-cat("  Mean absolute error (home pts):", 
+cat("  Mean absolute error (home pts):",
     round(mean(abs(mc_backtest_validation$home_pts_error), na.rm = TRUE), 2), "points\n")
-cat("  Mean absolute error (away pts):", 
+cat("  Mean absolute error (away pts):",
     round(mean(abs(mc_backtest_validation$away_pts_error), na.rm = TRUE), 2), "points\n\n")
 
 cat("OUTPUT DATAFRAMES CREATED:\n")
@@ -8909,29 +10349,112 @@ cat("  mc_results_summary       - Game-level predictions\n")
 cat("  mc_results_quarters      - Quarter-by-quarter breakdown\n")
 cat("  mc_sims_backtest_q       - Full simulation data\n")
 cat("  mc_calibration           - Calibration analysis\n")
-cat("  mc_backtest_validation   - Predicted vs actual comparison\n\n")
+cat("  mc_backtest_validation   - Predicted vs actual comparison\n")
+cat("  mc_player_props          - Player prop distributions\n\n")
 
 cat("View results with: View(mc_results_summary)\n\n")
 
-
-# 1. How many games simulated?
+# Quick accuracy checks
 nrow(mc_results_summary)
-
-# 2. Overall accuracy
 mean(mc_backtest_validation$correct_pick, na.rm = TRUE) * 100
-
-# 3. Point prediction error
 mean(abs(mc_backtest_validation$home_pts_error), na.rm = TRUE)
-
-# 4. Calibration table
 print(mc_calibration)
 
-# 5. Sample predictions vs actuals
 mc_backtest_validation %>%
-  select(home_team_id, away_team_id, 
+  select(home_team_id, away_team_id,
          home_win_prob, predicted_winner, actual_winner, correct_pick,
          home_pts_mean, actual_home_pts, home_pts_error) %>%
   head(20)
+
+}  # end mode == "backtest"
+
+# ==========================================================================================================
+# EXECUTE PRODUCTION MC SIMULATIONS (TODAY'S SLATE)
+# ==========================================================================================================
+
+if (mode == "production") {
+  
+  cat("=", rep("=", 80), "\n", sep = "")
+  cat("PRODUCTION MC SIMULATIONS - STARTING\n")
+  cat("=", rep("=", 80), "\n\n")
+  
+  # Build games to simulate from today's canon
+  games_today <- canon_today %>%
+    transmute(
+      game_id      = as.character(game_id),
+      game_date    = as.Date(game_date),
+      home_team_id = as.character(home_team_id),
+      away_team_id = as.character(away_team_id)
+    ) %>%
+    distinct() %>%
+    mutate(home_b2b = 0L, away_b2b = 0L)  # TODO: wire in actual B2B from rest features
+  
+  cat("✓ Found", nrow(games_today), "games to simulate for", as.character(as_of_date), "\n\n")
+  
+  # Run simulation
+  mc_output_today <- run_mc_simulations_batch(
+    games_to_simulate = games_today,
+    
+    # Team-level profiles (today versions)
+    team_offense_adjusted_q = team_offense_adjusted_q_today,
+    team_poss_profile_q     = team_poss_profile_q_today,
+    team_rebounding_rates_q = team_rebounding_rates_q_today,
+    team_turnover_rates_q   = team_turnover_rates_q_today,
+    team_foul_rates_q       = team_foul_rates_q_today,
+    team_shooting_params_q  = team_shooting_params_q_today,
+    team_assist_rates_q     = team_assist_rates_q_today,
+    team_block_rates_q      = team_block_rates_q_today,
+    team_steal_rates_q      = team_steal_rates_q_today,
+    
+    # Player-level profiles (today versions)
+    player_shooting_profile_q = player_shooting_profile_q_today,
+    player_usage_profile      = player_usage_profile_today,
+    player_apm_profile_q      = player_apm_profile_q_today,
+    player_bpm_profile_q      = player_bpm_profile_q_today,
+    player_spm_profile_q      = player_spm_profile_q_today,
+    player_rpm_profile_q      = player_rpm_profile_q_today,
+    player_fpm_profile_q      = player_fpm_profile_q_today,
+    
+    sim_mode     = "player",
+    n_sims       = n_sims,
+    use_parallel = TRUE
+  )
+  
+  # Unpack
+  mc_sims_today_q       <- mc_output_today$sim_results
+  mc_player_props_today <- mc_output_today$player_props
+  
+  cat("✅ mc_sims_today_q:      ", nrow(mc_sims_today_q), "rows\n")
+  cat("✅ mc_player_props_today:", nrow(mc_player_props_today), "player-game rows\n\n")
+  
+  # Aggregate results
+  cat("📊 Calculating summary statistics...\n")
+  
+  mc_game_totals_today <- aggregate_quarter_results(mc_sims_today_q)
+  
+  mc_results_summary_today <- calculate_summary_stats(
+    mc_game_totals_today,
+    nba_games_canon_season
+  )
+  
+  mc_results_quarters_today <- calculate_quarter_breakdown(mc_sims_today_q)
+  
+  # Reset parallel
+  future::plan(future::sequential)
+  
+  # Display
+  cat("\n=", rep("=", 80), "\n", sep = "")
+  cat("✅ PRODUCTION SIMULATION COMPLETE!\n")
+  cat("=", rep("=", 80), "\n\n")
+  cat("  Games simulated:", nrow(mc_results_summary_today), "\n")
+  cat("  Sims per game: 10,000\n")
+  cat("  Total sim rows:", nrow(mc_sims_today_q), "\n\n")
+  
+  print(mc_results_summary_today %>%
+          select(game_id, home_team_id, away_team_id, 
+                 home_win_prob, home_pts_mean, away_pts_mean, spread_mean))
+  
+}  # end mode == "production"
 
 # 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
 # 🎲🎲🎲 END: MC Simulation Runner
@@ -8943,43 +10466,37 @@ mc_backtest_validation %>%
 # 🎲🎲🎲 START: MC Simulation Reviewer
 # 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
 
-# Key accuracy metrics
-cat("Mean home pts predicted:", mean(mc_results_summary$home_pts_mean, na.rm = TRUE), "\n")
-cat("Mean away pts predicted:", mean(mc_results_summary$away_pts_mean, na.rm = TRUE), "\n")
-
-cat("Overall accuracy:", round(mean(mc_backtest_validation$correct_pick, na.rm = TRUE) * 100, 1), "%\n")
-cat("MAE home:", round(mean(abs(mc_backtest_validation$home_pts_error), na.rm = TRUE), 2), "\n")
-cat("MAE away:", round(mean(abs(mc_backtest_validation$away_pts_error), na.rm = TRUE), 2), "\n")
-
-
-mean(mc_results_summary$home_pts_mean, na.rm = TRUE)
-
-
-player_minutes_params_backtest %>%
-  filter(is_active == 1) %>%
-  group_by(date_key, ESPN_TEAM_ID) %>%
-  summarise(total_Q1 = sum(mins_mean_Q1, na.rm = TRUE), .groups = "drop") %>%
-  summarise(mean_Q1 = mean(total_Q1), max_Q1 = max(total_Q1))
-
-
-MC_CONFIG$tov_reduction_pct
-MC_CONFIG$foul_bonus_leverage
-MC_CONFIG$oreb_bonus_pct
-
-
-# Build error analysis dataframe
-error_analysis <- mc_backtest_validation %>%
-  mutate(
-    home_pts_error = home_pts_mean - actual_home_pts,
-    abs_error = abs(home_pts_error),
-    game_number = row_number(),  # proxy for time in season
-    is_high_conf = home_win_prob > 0.70 | home_win_prob < 0.30
-  )
-
-# Linear regression on what predicts error magnitude
-error_model <- lm(abs_error ~ home_win_prob + game_number + is_high_conf, 
-                  data = error_analysis)
-summary(error_model)
+if (mode == "backtest") {
+  
+  # Key accuracy metrics
+  cat("Mean home pts predicted:", mean(mc_results_summary$home_pts_mean, na.rm = TRUE), "\n")
+  cat("Mean away pts predicted:", mean(mc_results_summary$away_pts_mean, na.rm = TRUE), "\n")
+  cat("Overall accuracy:", round(mean(mc_backtest_validation$correct_pick, na.rm = TRUE) * 100, 1), "%\n")
+  cat("MAE home:", round(mean(abs(mc_backtest_validation$home_pts_error), na.rm = TRUE), 2), "\n")
+  cat("MAE away:", round(mean(abs(mc_backtest_validation$away_pts_error), na.rm = TRUE), 2), "\n")
+  mean(mc_results_summary$home_pts_mean, na.rm = TRUE)
+  player_minutes_params_backtest %>%
+    filter(is_active == 1) %>%
+    group_by(date_key, ESPN_TEAM_ID) %>%
+    summarise(total_Q1 = sum(mins_mean_Q1, na.rm = TRUE), .groups = "drop") %>%
+    summarise(mean_Q1 = mean(total_Q1), max_Q1 = max(total_Q1))
+  MC_CONFIG$tov_reduction_pct
+  MC_CONFIG$foul_bonus_leverage
+  MC_CONFIG$oreb_bonus_pct
+  # Build error analysis dataframe
+  error_analysis <- mc_backtest_validation %>%
+    mutate(
+      home_pts_error = home_pts_mean - actual_home_pts,
+      abs_error = abs(home_pts_error),
+      game_number = row_number(),  # proxy for time in season
+      is_high_conf = home_win_prob > 0.70 | home_win_prob < 0.30
+    )
+  # Linear regression on what predicts error magnitude
+  error_model <- lm(abs_error ~ home_win_prob + game_number + is_high_conf, 
+                    data = error_analysis)
+  summary(error_model)
+  
+}  # end mode == "backtest"
 
 # 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
 # 🎲🎲🎲 END: MC Simulation Reviewer
@@ -9015,6 +10532,8 @@ summary(error_model)
 # 🧬🧬🧬 START: Platt Scaling Calibration
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
 
+if (mode == "backtest") {
+  
 # --------------------------------------------------
 # STEP 2: Join rest features to validation data
 # --------------------------------------------------
@@ -9043,9 +10562,16 @@ summary(platt_model_full)
 # --------------------------------------------------
 mc_backtest_validation <- mc_backtest_validation %>%
   mutate(
-    home_win_prob_calibrated = predict(platt_model_full, type = "response")
+    home_win_prob_calibrated = ifelse(
+      !is.na(rest_diff) & !is.na(home_b2b) & !is.na(away_b2b),
+      predict(platt_model_full, newdata = ., type = "response"),
+      predict(platt_model_full, 
+              newdata = data.frame(
+                home_win_prob = home_win_prob,
+                rest_diff = 0, home_b2b = 0, away_b2b = 0
+              ), type = "response")
+    )
   )
-
 # --------------------------------------------------
 # STEP 5: Compare accuracy before and after
 # --------------------------------------------------
@@ -9103,6 +10629,1904 @@ cat("Calibrated win prob for 0.50 raw:", round(apply_calibration(0.50), 3), "\n"
 
 cat("✅ Platt calibration model saved\n\n")
 
+}  # end mode == "backtest"
+
+
+# Load saved Platt model for production
+if (mode == "production" && !exists("platt_model_full")) {
+  platt_model_full <- readRDS(file.path(base_path, "platt_calibration_model.rds"))
+  
+  apply_calibration <- function(raw_win_prob, rest_diff = 0,
+                                home_b2b = 0, away_b2b = 0,
+                                model = platt_model_full) {
+    predict(model,
+            newdata = data.frame(
+              home_win_prob = raw_win_prob,
+              rest_diff = rest_diff,
+              home_b2b = home_b2b,
+              away_b2b = away_b2b
+            ),
+            type = "response")
+  }
+  
+  cat("📈 Loaded saved Platt model for production\n")
+}
+
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
 # 🧬🧬🧬 END: Platt Scaling Calibration
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+
+
+
+# 🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍
+# 🔍🔍🔍 START: Error Decomposition Analysis
+# 🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍
+# ==========================================================================================================
+# ERROR DECOMPOSITION — WHY DID ONYX GET IT WRONG?
+# ----------------------------------------------------------------------------------------------------------
+# After each backtest, this section analyzes the games ONYX predicted incorrectly
+# to identify systematic weaknesses. It decomposes errors into categories:
+#
+#   1. CONFIDENCE ANALYSIS — Does ONYX fail more when it's confident or uncertain?
+#   2. SCORING ENVIRONMENT — Does ONYX fail more in high/low scoring games?
+#   3. GAME TYPE ANALYSIS — Home/away, B2B, rest, blowouts vs close games
+#   4. TEAM-LEVEL PATTERNS — Which teams does ONYX consistently mispredict?
+#   5. TEMPORAL PATTERNS — Is ONYX better early or late season?
+#   6. SHOOTING VARIANCE — Did teams shoot way above/below their averages?
+#   7. MARGIN ANALYSIS — How far off are we when we're wrong?
+#   8. UNDERDOG ANALYSIS — How do we perform on dogs specifically?
+#
+# OUTPUT:
+#   error_decomposition — summary list of all findings
+#   Printed diagnostic report
+# ==========================================================================================================
+
+if (exists("mc_backtest_validation") && nrow(mc_backtest_validation) > 0) {
+  
+  cat("\n")
+  cat("=", rep("=", 70), "\n", sep = "")
+  cat("🔍 ONYX ERROR DECOMPOSITION ANALYSIS\n")
+  cat("=", rep("=", 70), "\n\n")
+  
+  # --------------------------------------------------
+  # SETUP: Build analysis dataframe
+  # --------------------------------------------------
+  error_df <- mc_backtest_validation %>%
+    as_tibble() %>%
+    mutate(
+      # Core metrics
+      correct          = correct_pick,
+      predicted_margin = home_pts_mean - away_pts_mean,
+      actual_margin    = actual_home_pts - actual_away_pts,
+      margin_miss      = predicted_margin - actual_margin,
+      abs_margin_miss  = abs(margin_miss),
+      confidence       = abs(home_win_prob - 0.5),
+      
+      # Scoring environment
+      actual_total     = actual_home_pts + actual_away_pts,
+      sim_total        = home_pts_mean + away_pts_mean,
+      total_miss       = sim_total - actual_total,
+      
+      # Game type flags
+      was_blowout      = abs(actual_margin) > 15,
+      was_close        = abs(actual_margin) <= 5,
+      home_won         = actual_winner == "home",
+      picked_home      = home_win_prob > 0.5,
+      
+      # Confidence buckets
+      conf_bucket = case_when(
+        confidence < 0.05 ~ "Toss-up (45-55%)",
+        confidence < 0.15 ~ "Lean (55-65%)",
+        confidence < 0.25 ~ "Confident (65-75%)",
+        confidence < 0.35 ~ "Strong (75-85%)",
+        TRUE              ~ "Lock (85%+)"
+      ),
+      
+      # Scoring buckets
+      scoring_bucket = case_when(
+        actual_total < 210 ~ "Low (<210)",
+        actual_total < 220 ~ "Below avg (210-220)",
+        actual_total < 230 ~ "Average (220-230)",
+        actual_total < 240 ~ "Above avg (230-240)",
+        TRUE               ~ "High (240+)"
+      ),
+      
+      # Game number (proxy for season progression)
+      game_idx = row_number(),
+      season_third = case_when(
+        game_idx <= nrow(mc_backtest_validation) / 3 ~ "Early",
+        game_idx <= 2 * nrow(mc_backtest_validation) / 3 ~ "Mid",
+        TRUE ~ "Late"
+      )
+    )
+  error_df <- error_df %>% filter(!is.na(correct))
+  wrong <- error_df %>% filter(!correct)
+  right <- error_df %>% filter(correct)
+  
+  cat("  Total games:", nrow(error_df), "\n")
+  cat("  Correct:", nrow(right), "(", round(nrow(right)/nrow(error_df)*100, 1), "%)\n")
+  cat("  Wrong:", nrow(wrong), "(", round(nrow(wrong)/nrow(error_df)*100, 1), "%)\n\n")
+  
+  # --------------------------------------------------
+  # 1. CONFIDENCE ANALYSIS
+  # --------------------------------------------------
+  cat("─── 1. CONFIDENCE ANALYSIS ───\n")
+  cat("  Does ONYX fail more when confident or uncertain?\n\n")
+  
+  conf_analysis <- error_df %>%
+    group_by(conf_bucket) %>%
+    summarise(
+      n_games   = n(),
+      accuracy  = round(mean(correct) * 100, 1),
+      mean_margin_miss = round(mean(abs_margin_miss), 1),
+      .groups = "drop"
+    ) %>%
+    arrange(desc(accuracy))
+  
+  print(as.data.frame(conf_analysis), row.names = FALSE)
+  
+  cat("\n  Takeaway: ")
+  early_acc <- temporal_analysis$accuracy[temporal_analysis$season_third == "Early"]
+  late_acc  <- temporal_analysis$accuracy[temporal_analysis$season_third == "Late"]
+  if (length(early_acc) > 0 && length(late_acc) > 0 && !is.na(early_acc) && !is.na(late_acc)) {
+    if (late_acc > early_acc) {
+      cat("ONYX improves as the season progresses (more data = better profiles).\n\n")
+    } else {
+      cat("ONYX was more accurate early season. Possible overfitting to early patterns or roster changes mid-season.\n\n")
+    }
+  } else {
+    cat("Not enough data to assess temporal trend.\n\n")
+  }
+  
+  # --------------------------------------------------
+  # 2. SCORING ENVIRONMENT
+  # --------------------------------------------------
+  cat("─── 2. SCORING ENVIRONMENT ───\n")
+  cat("  Does ONYX fail more in high or low scoring games?\n\n")
+  
+  scoring_analysis <- error_df %>%
+    group_by(scoring_bucket) %>%
+    summarise(
+      n_games   = n(),
+      accuracy  = round(mean(correct) * 100, 1),
+      mean_total_miss = round(mean(total_miss), 1),
+      .groups = "drop"
+    )
+  
+  print(as.data.frame(scoring_analysis), row.names = FALSE)
+  
+  cat("\n  Mean sim total:", round(mean(error_df$sim_total), 1), 
+      "vs actual:", round(mean(error_df$actual_total), 1),
+      "(gap:", round(mean(error_df$total_miss), 1), ")\n\n")
+  
+  # --------------------------------------------------
+  # 3. GAME TYPE ANALYSIS
+  # --------------------------------------------------
+  cat("─── 3. GAME TYPE ANALYSIS ───\n\n")
+  
+  # Home vs Away picks
+  home_pick_acc <- error_df %>%
+    filter(picked_home) %>%
+    summarise(n = n(), acc = round(mean(correct) * 100, 1))
+  
+  away_pick_acc <- error_df %>%
+    filter(!picked_home) %>%
+    summarise(n = n(), acc = round(mean(correct) * 100, 1))
+  
+  cat("  Home picks:", home_pick_acc$n, "games,", home_pick_acc$acc, "% accurate\n")
+  cat("  Away picks:", away_pick_acc$n, "games,", away_pick_acc$acc, "% accurate\n\n")
+  
+  # Close games vs blowouts
+  close_acc <- error_df %>%
+    filter(was_close) %>%
+    summarise(n = n(), acc = round(mean(correct) * 100, 1))
+  
+  blowout_acc <- error_df %>%
+    filter(was_blowout) %>%
+    summarise(n = n(), acc = round(mean(correct) * 100, 1))
+  
+  mid_acc <- error_df %>%
+    filter(!was_close, !was_blowout) %>%
+    summarise(n = n(), acc = round(mean(correct) * 100, 1))
+  
+  cat("  Close games (<=5 pts):", close_acc$n, "games,", close_acc$acc, "% accurate\n")
+  cat("  Mid-range (6-15 pts):", mid_acc$n, "games,", mid_acc$acc, "% accurate\n")
+  cat("  Blowouts (>15 pts):", blowout_acc$n, "games,", blowout_acc$acc, "% accurate\n\n")
+  
+  # B2B analysis (if rest features available)
+  if ("home_b2b" %in% names(error_df) && !all(is.na(error_df$home_b2b))) {
+    b2b_analysis <- error_df %>%
+      filter(!is.na(home_b2b), !is.na(away_b2b)) %>%
+      mutate(
+        b2b_type = case_when(
+          home_b2b == 1 & away_b2b == 0 ~ "Home on B2B",
+          home_b2b == 0 & away_b2b == 1 ~ "Away on B2B",
+          home_b2b == 1 & away_b2b == 1 ~ "Both on B2B",
+          TRUE ~ "Neither on B2B"
+        )
+      ) %>%
+      group_by(b2b_type) %>%
+      summarise(n = n(), acc = round(mean(correct) * 100, 1), .groups = "drop")
+    
+    cat("  Back-to-back breakdown:\n")
+    print(as.data.frame(b2b_analysis), row.names = FALSE)
+    cat("\n")
+  }
+  
+  # --------------------------------------------------
+  # 4. TEAM-LEVEL PATTERNS
+  # --------------------------------------------------
+  cat("─── 4. TEAM-LEVEL PATTERNS ───\n")
+  cat("  Which teams does ONYX consistently mispredict?\n\n")
+  
+  # Accuracy when team is home
+  team_home_acc <- error_df %>%
+    group_by(home_team_id) %>%
+    summarise(
+      n_home_games = n(),
+      home_acc     = round(mean(correct) * 100, 1),
+      mean_margin_miss = round(mean(margin_miss), 1),
+      .groups = "drop"
+    ) %>%
+    filter(n_home_games >= 10)
+  
+  # Accuracy when team is away
+  team_away_acc <- error_df %>%
+    group_by(away_team_id) %>%
+    summarise(
+      n_away_games = n(),
+      away_acc     = round(mean(correct) * 100, 1),
+      .groups = "drop"
+    ) %>%
+    filter(n_away_games >= 10)
+  
+  # Combine for overall team accuracy
+  # Get team abbreviations from schedule if available
+  if (exists("nba_games_canon_season")) {
+    team_abv_map <- nba_games_canon_season %>%
+      as_tibble() %>%
+      select(home_team_id, home_team) %>%
+      distinct() %>%
+      rename(team_id = home_team_id, team_abv = home_team)
+  } else {
+    team_abv_map <- tibble(team_id = character(), team_abv = character())
+  }
+  
+  # Build per-team accuracy (all games involving this team)
+  all_teams <- unique(c(error_df$home_team_id, error_df$away_team_id))
+  
+  team_accuracy_list <- lapply(all_teams, function(tid) {
+    games_involving <- error_df %>%
+      filter(home_team_id == tid | away_team_id == tid)
+    
+    if (nrow(games_involving) < 10) return(NULL)
+    
+    tibble(
+      team_id    = tid,
+      n_games    = nrow(games_involving),
+      accuracy   = round(mean(games_involving$correct) * 100, 1),
+      mean_total_miss = round(mean(games_involving$total_miss), 1)
+    )
+  })
+  
+  team_accuracy <- bind_rows(team_accuracy_list) %>%
+    left_join(team_abv_map, by = "team_id") %>%
+    arrange(accuracy)
+  
+  cat("  WORST predicted teams (ONYX struggles with):\n")
+  print(as.data.frame(head(team_accuracy, 10)), row.names = FALSE)
+  
+  cat("\n  BEST predicted teams (ONYX nails):\n")
+  print(as.data.frame(tail(team_accuracy, 10)), row.names = FALSE)
+  cat("\n")
+  
+  # --------------------------------------------------
+  # 5. TEMPORAL PATTERNS
+  # --------------------------------------------------
+  cat("─── 5. TEMPORAL PATTERNS ───\n")
+  cat("  Is ONYX better early or late in the season?\n\n")
+  
+  temporal_analysis <- error_df %>%
+    group_by(season_third) %>%
+    summarise(
+      n_games  = n(),
+      accuracy = round(mean(correct) * 100, 1),
+      mean_mae = round(mean(abs_margin_miss), 1),
+      .groups = "drop"
+    )
+  
+  print(as.data.frame(temporal_analysis), row.names = FALSE)
+  
+  cat("\n  Takeaway: ")
+  if (temporal_analysis$accuracy[temporal_analysis$season_third == "Late"] > 
+      temporal_analysis$accuracy[temporal_analysis$season_third == "Early"]) {
+    cat("ONYX improves as the season progresses (more data = better profiles).\n\n")
+  } else {
+    cat("ONYX was more accurate early season. Possible overfitting to early patterns or roster changes mid-season.\n\n")
+  }
+  
+  # --------------------------------------------------
+  # 6. SHOOTING VARIANCE ANALYSIS
+  # --------------------------------------------------
+  cat("─── 6. WHERE DID THE POINTS GO WRONG? ───\n")
+  cat("  Decomposing the scoring miss into components.\n\n")
+  
+  # Overall scoring direction
+  over_predicted <- error_df %>% filter(total_miss > 0)
+  under_predicted <- error_df %>% filter(total_miss < 0)
+  
+  cat("  Games where ONYX over-predicted total:", nrow(over_predicted), 
+      "(mean miss: +", round(mean(over_predicted$total_miss), 1), ")\n")
+  cat("  Games where ONYX under-predicted total:", nrow(under_predicted), 
+      "(mean miss:", round(mean(under_predicted$total_miss), 1), ")\n\n")
+  
+  # Margin direction on wrong picks
+  cat("  When ONYX picks WRONG:\n")
+  cat("    Mean predicted margin:", round(mean(wrong$predicted_margin), 1), "\n")
+  cat("    Mean actual margin:", round(mean(wrong$actual_margin), 1), "\n")
+  cat("    Mean margin miss:", round(mean(wrong$margin_miss), 1), "\n")
+  cat("    Median margin miss:", round(median(wrong$margin_miss), 1), "\n\n")
+  
+  cat("  When ONYX picks RIGHT:\n")
+  cat("    Mean predicted margin:", round(mean(right$predicted_margin), 1), "\n")
+  cat("    Mean actual margin:", round(mean(right$actual_margin), 1), "\n")
+  cat("    Mean margin miss:", round(mean(right$margin_miss), 1), "\n\n")
+  
+  # --------------------------------------------------
+  # 7. UPSET ANALYSIS
+  # --------------------------------------------------
+  cat("─── 7. UPSET ANALYSIS ───\n")
+  cat("  How does ONYX handle favorites vs underdogs?\n\n")
+  
+  # Define favorite as team with higher win prob
+  fav_analysis <- error_df %>%
+    mutate(
+      fav_win_prob = pmax(home_win_prob, 1 - home_win_prob),
+      fav_won = (home_win_prob > 0.5 & home_won) | (home_win_prob < 0.5 & !home_won),
+      upset = !fav_won,
+      fav_bucket = case_when(
+        fav_win_prob < 0.55 ~ "Slight fav (50-55%)",
+        fav_win_prob < 0.65 ~ "Moderate fav (55-65%)",
+        fav_win_prob < 0.75 ~ "Strong fav (65-75%)",
+        fav_win_prob < 0.85 ~ "Heavy fav (75-85%)",
+        TRUE                ~ "Massive fav (85%+)"
+      )
+    )
+  
+  upset_rate <- fav_analysis %>%
+    group_by(fav_bucket) %>%
+    summarise(
+      n_games    = n(),
+      upset_rate = round(mean(upset) * 100, 1),
+      onyx_acc   = round(mean(correct) * 100, 1),
+      .groups = "drop"
+    )
+  
+  print(as.data.frame(upset_rate), row.names = FALSE)
+  
+  cat("\n  Overall upset rate:", round(mean(fav_analysis$upset) * 100, 1), "%\n")
+  cat("  ONYX predicted the upset correctly:", 
+      round(mean(fav_analysis$correct[fav_analysis$upset]) * 100, 1), "% of the time\n\n")
+  
+  # --------------------------------------------------
+  # 8. UNDERDOG SPECIFIC (for betting strategy)
+  # --------------------------------------------------
+  if ("home_ml_odds" %in% names(error_df) && any(!is.na(error_df$home_ml_odds))) {
+    
+    cat("─── 8. UNDERDOG BETTING ANALYSIS ───\n")
+    cat("  Performance on underdogs (+ moneyline) specifically.\n\n")
+    
+    dog_analysis <- error_df %>%
+      filter(!is.na(home_ml_odds)) %>%
+      mutate(
+        home_is_dog = home_ml_odds > 0,
+        away_is_dog = away_ml_odds > 0,
+        dog_ml = ifelse(home_is_dog, home_ml_odds, away_ml_odds),
+        dog_won = ifelse(home_is_dog, home_won, !home_won),
+        onyx_picked_dog = ifelse(home_is_dog, picked_home, !picked_home),
+        dog_bucket = case_when(
+          dog_ml < 110  ~ "Small dog (+100 to +110)",
+          dog_ml < 150  ~ "Moderate dog (+110 to +150)",
+          dog_ml < 200  ~ "Solid dog (+150 to +200)",
+          dog_ml < 300  ~ "Big dog (+200 to +300)",
+          TRUE          ~ "Massive dog (+300+)"
+        )
+      )
+    
+    dog_summary <- dog_analysis %>%
+      group_by(dog_bucket) %>%
+      summarise(
+        n_games = n(),
+        dog_win_rate = round(mean(dog_won) * 100, 1),
+        onyx_picked_dog_pct = round(mean(onyx_picked_dog) * 100, 1),
+        onyx_dog_pick_correct = round(
+          mean(correct[onyx_picked_dog], na.rm = TRUE) * 100, 1
+        ),
+        .groups = "drop"
+      )
+    
+    print(as.data.frame(dog_summary), row.names = FALSE)
+    
+    cat("\n  Overall: Dogs won", round(mean(dog_analysis$dog_won) * 100, 1), "% of games\n")
+    cat("  ONYX picked the dog", round(mean(dog_analysis$onyx_picked_dog) * 100, 1), "% of the time\n")
+    cat("  When ONYX picked the dog, correct", 
+        round(mean(dog_analysis$correct[dog_analysis$onyx_picked_dog]) * 100, 1), "%\n\n")
+  }
+  
+  # --------------------------------------------------
+  # 9. BIGGEST MISSES (Learning opportunities)
+  # --------------------------------------------------
+  cat("─── 9. BIGGEST MISSES ───\n")
+  cat("  Games where ONYX was most wrong (high confidence, wrong pick).\n\n")
+  
+  biggest_misses <- error_df %>%
+    filter(!correct) %>%
+    mutate(
+      miss_severity = confidence * abs_margin_miss  # confidence × how wrong
+    ) %>%
+    arrange(desc(miss_severity)) %>%
+    select(any_of(c("home_team_id", "away_team_id", "game_date",
+                    "home_win_prob", "actual_winner",
+                    "home_pts_mean", "actual_home_pts",
+                    "away_pts_mean", "actual_away_pts",
+                    "margin_miss"))) %>%
+    head(15)
+  
+  # Try to add team names
+  if (exists("nba_games_canon_season")) {
+    biggest_misses <- biggest_misses %>%
+      left_join(team_abv_map %>% rename(home_team_id = team_id, home_abv = team_abv), by = "home_team_id") %>%
+      left_join(team_abv_map %>% rename(away_team_id = team_id, away_abv = team_abv), by = "away_team_id")
+  }
+  
+  print(as.data.frame(biggest_misses), row.names = FALSE)
+  
+  # --------------------------------------------------
+  # 10. ACTIONABLE SUMMARY
+  # --------------------------------------------------
+  cat("\n\n")
+  cat("=", rep("=", 70), "\n", sep = "")
+  cat("🔍 ACTIONABLE FINDINGS\n")
+  cat("=", rep("=", 70), "\n\n")
+  
+  # Scoring bias
+  mean_total_miss <- mean(error_df$total_miss, na.rm = TRUE)
+  if (abs(mean_total_miss) > 3) {
+    if (mean_total_miss > 0) {
+      cat("⚠️  SCORING BIAS: ONYX over-predicts totals by", round(mean_total_miss, 1), 
+          "points on average. Consider reducing shooting efficiency or pace.\n\n")
+    } else {
+      cat("⚠️  SCORING BIAS: ONYX under-predicts totals by", round(abs(mean_total_miss), 1), 
+          "points on average. Consider increasing shooting efficiency or pace.\n\n")
+    }
+  } else {
+    cat("✅ SCORING: Total prediction gap is only", round(abs(mean_total_miss), 1), 
+        "points — well calibrated.\n\n")
+  }
+  
+  # Confidence calibration
+  high_conf_wrong <- error_df %>% filter(confidence > 0.25, !correct)
+  if (nrow(high_conf_wrong) > nrow(error_df) * 0.05) {
+    cat("⚠️  OVERCONFIDENCE:", nrow(high_conf_wrong), "games where ONYX was >75% confident and WRONG.",
+        "That's", round(nrow(high_conf_wrong)/nrow(error_df)*100, 1), "% of all games.\n\n")
+  } else {
+    cat("✅ CONFIDENCE: Only", nrow(high_conf_wrong), "high-confidence misses — acceptable.\n\n")
+  }
+  
+  # Close game performance
+  if (close_acc$acc < 55) {
+    cat("⚠️  CLOSE GAMES: Only", close_acc$acc, "% accuracy in games decided by 5 or fewer points.",
+        "These are essentially coinflips — consider reducing confidence on projected close games.\n\n")
+  } else {
+    cat("✅ CLOSE GAMES:", close_acc$acc, "% accuracy — ONYX has an edge even in tight games.\n\n")
+  }
+  
+  # Temporal trend
+  early_acc <- temporal_analysis$accuracy[temporal_analysis$season_third == "Early"]
+  late_acc <- temporal_analysis$accuracy[temporal_analysis$season_third == "Late"]
+  if (!is.na(early_acc) && !is.na(late_acc)) {
+    if (late_acc > early_acc + 3) {
+      cat("✅ TREND: Accuracy improving over the season (", early_acc, "% → ", late_acc, 
+          "%). More data = better profiles.\n\n", sep = "")
+    } else if (early_acc > late_acc + 3) {
+      cat("⚠️  TREND: Accuracy declining over the season (", early_acc, "% → ", late_acc,
+          "%). Possible mid-season roster changes or trade deadline effects.\n\n", sep = "")
+    } else {
+      cat("✅ TREND: Accuracy stable across the season. Model is consistent.\n\n")
+    }
+  }
+  
+  # Team blind spots
+  worst_teams <- team_accuracy %>% filter(accuracy < 50) 
+  if (nrow(worst_teams) > 0) {
+    cat("⚠️  TEAM BLIND SPOTS: ONYX is below 50% accuracy on these teams:\n")
+    for (i in seq_len(nrow(worst_teams))) {
+      cat("   ", ifelse(!is.na(worst_teams$team_abv[i]), worst_teams$team_abv[i], worst_teams$team_id[i]),
+          "—", worst_teams$accuracy[i], "% across", worst_teams$n_games[i], "games\n")
+    }
+    cat("  These teams may have unique playing styles the model doesn't capture well.\n\n")
+  }
+  
+  cat("=", rep("=", 70), "\n", sep = "")
+  cat("🔍 END ERROR DECOMPOSITION\n")
+  cat("=", rep("=", 70), "\n\n")
+  
+  # --------------------------------------------------
+  # SAVE: Store decomposition results
+  # --------------------------------------------------
+  error_decomposition <- list(
+    conf_analysis     = conf_analysis,
+    scoring_analysis  = scoring_analysis,
+    temporal_analysis = temporal_analysis,
+    team_accuracy     = team_accuracy,
+    upset_rate        = upset_rate,
+    biggest_misses    = biggest_misses,
+    mean_total_miss   = mean_total_miss,
+    n_wrong           = nrow(wrong),
+    n_right           = nrow(right),
+    timestamp         = Sys.time()
+  )
+  
+} else {
+  cat("⚠️  mc_backtest_validation not found — skipping error decomposition\n")
+}
+
+# 🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍
+# 🔍🔍🔍 END: Error Decomposition Analysis
+# 🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍
+
+
+
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+#
+#
+#      .oooooo.         .o8        .o8                ooooo           o8o                                    
+#     d8P'  `Y8b       "888       "888                `888'           `"'                                    
+#    888      888   .oooo888   .oooo888   .oooo.o       888          oooo  ooo. .oo.    .ooooo.   .oooo.o    
+#    888      888  d88' `888  d88' `888  d88(  "8       888          `888  `888P"Y88b  d88' `88b d88(  "8    
+#    888      888  888   888  888   888  `"Y88b.        888           888   888   888  888ooo888 `"Y88b.     
+#    `88b    d88'  888   888  888   888  o.  )88b       888       o   888   888   888  888    .o o.  )88b    
+#     `Y8bood8P'   `Y8bod88P" `Y8bod88P" 8""888P'     o888ooooood8  o888o o888o o888o `Y8bod8P' 8""888P'    
+#
+#
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+# ==========================================================================================================
+# ODDS LINES INTEGRATION
+# ----------------------------------------------------------------------------------------------------------
+# This section loads historical FanDuel odds (moneylines, spreads, totals) and joins them to the
+# backtest validation data to enable edge/EV calculation.
+#
+# APPROACH:
+#   1. Filter to FanDuel only (sharpest retail book)
+#   2. Take the LAST snapshot before game time per game/market (closing line)
+#   3. Pivot to one row per game with home/away moneyline, spread, and total
+#   4. Convert American odds to implied probabilities and decimal odds
+#   5. Join to mc_backtest_validation for edge analysis
+#   6. Calculate EV for model picks vs closing lines
+#
+# OUTPUT:
+#   odds_game_level     — one row per game with closing FanDuel lines
+#   mc_backtest_validation — enriched with odds + edge columns
+#   edge_summary        — summary of model edge by confidence bucket
+# ==========================================================================================================
+
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+# 💰💰💰 START: Odds Lines Integration
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(data.table)
+  library(tibble)
+})
+
+cat("💰 Loading and processing odds data...\n\n")
+
+# --------------------------------------------------
+# STEP 1: Load odds data
+# --------------------------------------------------
+odds_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/8. Historical Odds (Odds API)"
+odds_raw <- fread(file.path(odds_dir, paste0("nba_historical_odds_", season_token, ".csv")),
+                  colClasses = "character", encoding = "UTF-8")
+
+cat("  Raw odds rows:", nrow(odds_raw), "\n")
+
+# --------------------------------------------------
+# STEP 2: Filter to FanDuel only + clean up types
+# --------------------------------------------------
+odds_fd <- odds_raw %>%
+  filter(bookmaker == "fanduel") %>%
+  mutate(
+    espn_team_id_home = as.character(espn_team_id_home),
+    espn_team_id_away = as.character(espn_team_id_away),
+    spread_or_total   = as.numeric(spread_or_total),
+    odds              = as.numeric(odds),
+    commence_date_est = as.Date(commence_date_est),
+    snapshot_dt       = as.POSIXct(snapshot_datetime_utc, tz = "UTC")
+  ) %>%
+  filter(!is.na(odds), !is.na(commence_date_est))
+
+cat("  FanDuel odds rows:", nrow(odds_fd), "\n")
+
+# Build team name mapping from odds data
+odds_team_map <- odds_fd %>%
+  select(espn_team_id_home, home_team) %>%
+  distinct() %>%
+  rename(odds_espn_id = espn_team_id_home, team_full_name = home_team)
+
+# --------------------------------------------------
+# STEP 3: Get closing lines (last snapshot per game/market/outcome)
+# --------------------------------------------------
+# Create a unique game key from home + away + date
+odds_fd <- odds_fd %>%
+  mutate(game_key = paste0(espn_team_id_home, "_", espn_team_id_away, "_", commence_date_est))
+
+# Take the last snapshot per game/market/outcome_team
+odds_closing <- odds_fd %>%
+  group_by(game_key, market, outcome_team) %>%
+  arrange(desc(snapshot_dt)) %>%
+  slice(1) %>%
+  ungroup()
+
+cat("  Closing line rows:", nrow(odds_closing), "\n\n")
+
+# --------------------------------------------------
+# STEP 4: Helper — Convert American odds to implied probability
+# --------------------------------------------------
+american_to_implied <- function(odds) {
+  odds <- as.numeric(odds)
+  ifelse(
+    is.na(odds), NA_real_,
+    ifelse(
+      odds > 0,
+      100 / (odds + 100),    # Underdog: +150 → 100/250 = 0.40
+      abs(odds) / (abs(odds) + 100)  # Favorite: -200 → 200/300 = 0.667
+    )
+  )
+}
+
+# Helper — Convert American odds to decimal odds (for EV calculation)
+american_to_decimal <- function(odds) {
+  odds <- as.numeric(odds)
+  ifelse(
+    is.na(odds), NA_real_,
+    ifelse(
+      odds > 0,
+      (odds / 100) + 1,      # +150 → 2.50
+      (100 / abs(odds)) + 1  # -200 → 1.50
+    )
+  )
+}
+
+# --------------------------------------------------
+# STEP 5: Pivot moneylines to one row per game
+# --------------------------------------------------
+cat("  Building game-level moneyline lines...\n")
+
+ml_home <- odds_closing %>%
+  filter(market == "h2h") %>%
+  mutate(is_home_outcome = (outcome_team == home_team)) %>%
+  filter(is_home_outcome) %>%
+  transmute(
+    game_key,
+    espn_team_id_home,
+    espn_team_id_away,
+    commence_date_est,
+    home_ml_odds     = odds,
+    home_ml_implied  = american_to_implied(odds),
+    home_ml_decimal  = american_to_decimal(odds)
+  )
+
+ml_away <- odds_closing %>%
+  filter(market == "h2h") %>%
+  mutate(is_away_outcome = (outcome_team == away_team)) %>%
+  filter(is_away_outcome) %>%
+  transmute(
+    game_key,
+    away_ml_odds     = odds,
+    away_ml_implied  = american_to_implied(odds),
+    away_ml_decimal  = american_to_decimal(odds)
+  )
+
+ml_game <- ml_home %>%
+  left_join(ml_away, by = "game_key") %>%
+  mutate(
+    # Remove vig to get fair probabilities
+    total_implied    = home_ml_implied + away_ml_implied,
+    home_ml_fair     = home_ml_implied / total_implied,
+    away_ml_fair     = away_ml_implied / total_implied
+  )
+
+cat("  Moneyline games:", nrow(ml_game), "\n")
+
+# --------------------------------------------------
+# STEP 6: Pivot spreads to one row per game (home perspective)
+# --------------------------------------------------
+cat("  Building game-level spread lines...\n")
+
+spread_home <- odds_closing %>%
+  filter(market == "spreads") %>%
+  mutate(is_home_outcome = (outcome_team == home_team)) %>%
+  filter(is_home_outcome) %>%
+  transmute(
+    game_key,
+    home_spread      = spread_or_total,
+    home_spread_odds = odds
+  )
+
+spread_game <- spread_home %>%
+  distinct(game_key, .keep_all = TRUE)
+
+cat("  Spread games:", nrow(spread_game), "\n")
+
+# --------------------------------------------------
+# STEP 7: Pivot totals to one row per game
+# --------------------------------------------------
+cat("  Building game-level total lines...\n")
+
+totals_over <- odds_closing %>%
+  filter(market == "totals", outcome_team == "Over") %>%
+  transmute(
+    game_key,
+    total_line     = spread_or_total,
+    over_odds      = odds,
+    over_decimal   = american_to_decimal(odds)
+  ) %>%
+  distinct(game_key, .keep_all = TRUE)
+
+totals_under <- odds_closing %>%
+  filter(market == "totals", outcome_team == "Under") %>%
+  transmute(
+    game_key,
+    under_odds     = odds,
+    under_decimal  = american_to_decimal(odds)
+  ) %>%
+  distinct(game_key, .keep_all = TRUE)
+
+totals_game <- totals_over %>%
+  left_join(totals_under, by = "game_key")
+
+cat("  Totals games:", nrow(totals_game), "\n\n")
+
+# --------------------------------------------------
+# STEP 8: Combine all markets into one game-level table
+# --------------------------------------------------
+odds_game_level <- ml_game %>%
+  left_join(spread_game, by = "game_key") %>%
+  left_join(totals_game, by = "game_key")
+
+cat("  Combined odds_game_level:", nrow(odds_game_level), "games\n")
+cat("  Columns:", paste(names(odds_game_level), collapse = ", "), "\n\n")
+
+
+if (mode == "backtest") {
+  
+# --------------------------------------------------
+# STEP 9: Join odds to mc_backtest_validation
+# --------------------------------------------------
+cat("  Joining odds to backtest validation...\n")
+
+# Crosswalk: full team name → your 1-30 ID
+team_name_to_id <- tribble(
+  ~team_full_name,            ~your_id,
+  "Atlanta Hawks",            "1",
+  "Boston Celtics",           "2",
+  "New Orleans Pelicans",     "3",
+  "Chicago Bulls",            "4",
+  "Cleveland Cavaliers",      "5",
+  "Dallas Mavericks",         "6",
+  "Denver Nuggets",           "7",
+  "Detroit Pistons",          "8",
+  "Golden State Warriors",    "9",
+  "Houston Rockets",          "10",
+  "Indiana Pacers",           "11",
+  "Los Angeles Clippers",     "12",
+  "Los Angeles Lakers",       "13",
+  "Miami Heat",               "14",
+  "Milwaukee Bucks",          "15",
+  "Minnesota Timberwolves",   "16",
+  "Brooklyn Nets",            "17",
+  "New York Knicks",          "18",
+  "Orlando Magic",            "19",
+  "Philadelphia 76ers",       "20",
+  "Phoenix Suns",             "21",
+  "Portland Trail Blazers",   "22",
+  "Sacramento Kings",         "23",
+  "San Antonio Spurs",        "24",
+  "Oklahoma City Thunder",    "25",
+  "Utah Jazz",                "26",
+  "Washington Wizards",       "27",
+  "Toronto Raptors",          "28",
+  "Memphis Grizzlies",        "29",
+  "Charlotte Hornets",        "30"
+)
+
+# Map odds ESPN IDs → full names → your IDs (home)
+home_id_map <- odds_team_map %>%
+  left_join(team_name_to_id, by = "team_full_name") %>%
+  transmute(espn_team_id_home = odds_espn_id, your_home_id = your_id)
+
+# Map odds ESPN IDs → full names → your IDs (away)
+away_id_map <- odds_team_map %>%
+  left_join(team_name_to_id, by = "team_full_name") %>%
+  transmute(espn_team_id_away = odds_espn_id, your_away_id = your_id)
+
+# Remap odds_game_level to your IDs
+odds_game_level <- odds_game_level %>%
+  left_join(home_id_map, by = "espn_team_id_home") %>%
+  left_join(away_id_map, by = "espn_team_id_away") %>%
+  mutate(
+    corrected_game_key = paste0(your_home_id, "_", your_away_id, "_", commence_date_est)
+  )
+
+# Build matching key in validation data
+mc_backtest_validation <- mc_backtest_validation %>%
+  mutate(
+    odds_game_key = paste0(home_team_id, "_", away_team_id, "_", as.Date(game_date))
+  )
+
+# Join
+mc_backtest_validation <- mc_backtest_validation %>%
+  left_join(
+    odds_game_level %>%
+      select(
+        corrected_game_key,
+        home_ml_odds, away_ml_odds,
+        home_ml_implied, away_ml_implied,
+        home_ml_fair, away_ml_fair,
+        home_ml_decimal, away_ml_decimal,
+        home_spread, home_spread_odds,
+        total_line, over_odds, under_odds
+      ),
+    by = c("odds_game_key" = "corrected_game_key")
+  )
+
+n_with_odds <- sum(!is.na(mc_backtest_validation$home_ml_odds))
+cat("  Games with odds joined:", n_with_odds, "of", nrow(mc_backtest_validation), "\n")
+cat("  Match rate:", round(n_with_odds / nrow(mc_backtest_validation) * 100, 1), "%\n\n")
+
+# --------------------------------------------------
+# STEP 10: Calculate edge and EV
+# --------------------------------------------------
+cat("  Calculating edge and expected value...\n\n")
+
+mc_backtest_validation <- mc_backtest_validation %>%
+  mutate(
+    # Model's calibrated probability vs market's fair probability
+    home_edge = home_win_prob_calibrated - home_ml_fair,
+    away_edge = (1 - home_win_prob_calibrated) - away_ml_fair,
+    
+    # Which side does the model prefer?
+    model_pick = ifelse(home_win_prob_calibrated > 0.5, "home", "away"),
+    
+    # Model's edge on its preferred side
+    model_edge = ifelse(
+      model_pick == "home",
+      home_edge,
+      away_edge
+    ),
+    
+    # Decimal odds for the model's pick
+    model_pick_decimal = ifelse(
+      model_pick == "home",
+      home_ml_decimal,
+      away_ml_decimal
+    ),
+    
+    # Expected Value: (prob × payout) - (1 - prob) × stake
+    # EV = (model_prob × decimal_odds) - 1
+    model_prob = ifelse(
+      model_pick == "home",
+      home_win_prob_calibrated,
+      1 - home_win_prob_calibrated
+    ),
+    
+    model_ev = (model_prob * model_pick_decimal) - 1,
+    
+    # Did the model's pick actually win?
+    model_pick_won = ifelse(
+      model_pick == "home",
+      actual_winner == "home",
+      actual_winner == "away"
+    ),
+    
+    # Actual profit/loss on $100 bet (flat betting)
+    actual_pnl = ifelse(
+      model_pick_won,
+      (model_pick_decimal - 1) * 100,  # Won: profit = (decimal - 1) × stake
+      -100                              # Lost: lose stake
+    ),
+    
+    # Edge buckets for analysis
+    edge_bucket = case_when(
+      is.na(model_edge) ~ NA_character_,
+      model_edge < -0.05 ~ "Negative (<-5%)",
+      model_edge < 0     ~ "Slight negative (-5% to 0%)",
+      model_edge < 0.03  ~ "No edge (0% to 3%)",
+      model_edge < 0.05  ~ "Small edge (3% to 5%)",
+      model_edge < 0.10  ~ "Medium edge (5% to 10%)",
+      TRUE               ~ "Large edge (>10%)"
+    )
+  )
+
+# --------------------------------------------------
+# STEP 11: Edge summary by bucket
+# --------------------------------------------------
+edge_summary <- mc_backtest_validation %>%
+  filter(!is.na(model_edge)) %>%
+  group_by(edge_bucket) %>%
+  summarise(
+    n_games     = n(),
+    mean_edge   = round(mean(model_edge, na.rm = TRUE) * 100, 2),
+    win_rate    = round(mean(model_pick_won, na.rm = TRUE) * 100, 1),
+    mean_ev     = round(mean(model_ev, na.rm = TRUE) * 100, 2),
+    total_pnl   = round(sum(actual_pnl, na.rm = TRUE)),
+    roi_pct     = round(sum(actual_pnl, na.rm = TRUE) / (n() * 100) * 100, 2),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(mean_edge))
+
+# --------------------------------------------------
+# STEP 12: Overall betting performance
+# --------------------------------------------------
+overall_betting <- mc_backtest_validation %>%
+  filter(!is.na(model_edge)) %>%
+  summarise(
+    total_games     = n(),
+    games_bet       = n(),
+    model_win_rate  = round(mean(model_pick_won, na.rm = TRUE) * 100, 1),
+    mean_edge       = round(mean(model_edge, na.rm = TRUE) * 100, 2),
+    mean_ev         = round(mean(model_ev, na.rm = TRUE) * 100, 2),
+    total_pnl       = round(sum(actual_pnl, na.rm = TRUE)),
+    total_wagered   = n() * 100,
+    roi_pct         = round(sum(actual_pnl, na.rm = TRUE) / (n() * 100) * 100, 2)
+  )
+
+# Positive edge only
+positive_edge_betting <- mc_backtest_validation %>%
+  filter(!is.na(model_edge), model_edge > 0) %>%
+  summarise(
+    games_bet       = n(),
+    model_win_rate  = round(mean(model_pick_won, na.rm = TRUE) * 100, 1),
+    mean_edge       = round(mean(model_edge, na.rm = TRUE) * 100, 2),
+    mean_ev         = round(mean(model_ev, na.rm = TRUE) * 100, 2),
+    total_pnl       = round(sum(actual_pnl, na.rm = TRUE)),
+    total_wagered   = n() * 100,
+    roi_pct         = round(sum(actual_pnl, na.rm = TRUE) / (n() * 100) * 100, 2)
+  )
+
+# Large edge only (>5%)
+large_edge_betting <- mc_backtest_validation %>%
+  filter(!is.na(model_edge), model_edge > 0.05) %>%
+  summarise(
+    games_bet       = n(),
+    model_win_rate  = round(mean(model_pick_won, na.rm = TRUE) * 100, 1),
+    mean_edge       = round(mean(model_edge, na.rm = TRUE) * 100, 2),
+    mean_ev         = round(mean(model_ev, na.rm = TRUE) * 100, 2),
+    total_pnl       = round(sum(actual_pnl, na.rm = TRUE)),
+    total_wagered   = n() * 100,
+    roi_pct         = round(sum(actual_pnl, na.rm = TRUE) / (n() * 100) * 100, 2)
+  )
+
+# --------------------------------------------------
+# STEP 13: Model vs Market comparison
+# --------------------------------------------------
+model_vs_market <- mc_backtest_validation %>%
+  filter(!is.na(home_ml_fair)) %>%
+  mutate(
+    market_correct = ifelse(
+      home_ml_fair > 0.5,
+      actual_winner == "home",
+      actual_winner == "away"
+    )
+  ) %>%
+  summarise(
+    model_accuracy  = round(mean(correct_pick, na.rm = TRUE) * 100, 1),
+    market_accuracy = round(mean(market_correct, na.rm = TRUE) * 100, 1),
+    model_edge_vs_market = round(
+      mean(correct_pick, na.rm = TRUE) * 100 - mean(market_correct, na.rm = TRUE) * 100, 1
+    )
+  )
+
+# --------------------------------------------------
+# STEP 14: Print results
+# --------------------------------------------------
+cat("=", rep("=", 70), "\n", sep = "")
+cat("💰 ODDS INTEGRATION COMPLETE\n")
+cat("=", rep("=", 70), "\n\n", sep = "")
+
+cat("📊 OVERALL BETTING PERFORMANCE (All Games with Odds):\n")
+print(as.data.frame(overall_betting))
+
+cat("\n📊 POSITIVE EDGE ONLY (Model Edge > 0%):\n")
+print(as.data.frame(positive_edge_betting))
+
+cat("\n📊 LARGE EDGE ONLY (Model Edge > 5%):\n")
+print(as.data.frame(large_edge_betting))
+
+cat("\n📊 EDGE SUMMARY BY BUCKET:\n")
+print(as.data.frame(edge_summary))
+
+cat("\n📊 MODEL vs MARKET ACCURACY:\n")
+print(as.data.frame(model_vs_market))
+
+cat("\n📊 SPREAD ANALYSIS:\n")
+mc_backtest_validation %>%
+  filter(!is.na(home_spread)) %>%
+  mutate(
+    sim_spread     = spread_mean,
+    spread_diff    = sim_spread - as.numeric(home_spread),
+    model_covers   = case_when(
+      spread_diff > 0 & (home_pts_mean - away_pts_mean) > as.numeric(home_spread) ~ TRUE,
+      spread_diff < 0 & (away_pts_mean - home_pts_mean) > abs(as.numeric(home_spread)) ~ TRUE,
+      TRUE ~ FALSE
+    )
+  ) %>%
+  summarise(
+    n_games = n(),
+    mean_sim_spread = round(mean(sim_spread, na.rm = TRUE), 1),
+    mean_book_spread = round(mean(as.numeric(home_spread), na.rm = TRUE), 1),
+    mean_spread_diff = round(mean(spread_diff, na.rm = TRUE), 1),
+    cor_sim_vs_book = round(cor(sim_spread, as.numeric(home_spread), use = "complete.obs"), 3)
+  ) %>%
+  print()
+
+cat("\n📊 TOTAL ANALYSIS:\n")
+mc_backtest_validation %>%
+  filter(!is.na(total_line)) %>%
+  mutate(
+    sim_total   = home_pts_mean + away_pts_mean,
+    actual_total = actual_home_pts + actual_away_pts,
+    total_diff  = sim_total - as.numeric(total_line)
+  ) %>%
+  summarise(
+    n_games = n(),
+    mean_sim_total = round(mean(sim_total, na.rm = TRUE), 1),
+    mean_book_total = round(mean(as.numeric(total_line), na.rm = TRUE), 1),
+    mean_total_diff = round(mean(total_diff, na.rm = TRUE), 1),
+    cor_sim_vs_book = round(cor(sim_total, as.numeric(total_line), use = "complete.obs"), 3)
+  ) %>%
+  print()
+
+cat("\nOUTPUT OBJECTS:\n")
+cat("  odds_game_level          — one row per game with closing FanDuel lines\n")
+cat("  mc_backtest_validation   — enriched with odds + edge + EV columns\n")
+cat("  edge_summary             — edge analysis by confidence bucket\n")
+cat("  overall_betting          — flat betting P&L across all games\n")
+cat("  positive_edge_betting    — P&L on positive edge games only\n")
+cat("  large_edge_betting       — P&L on large edge (>5%) games only\n")
+cat("  model_vs_market          — model accuracy vs FanDuel market accuracy\n\n")
+
+}  # end mode == "backtest"
+
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+# 💰💰💰 END: Odds Lines Integration
+# 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰
+
+
+
+# 🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯
+# 🎯🎯🎯 START: Production Output — Tomorrow's Picks
+# 🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯
+# ==========================================================================================================
+# PRODUCTION OUTPUT
+# ----------------------------------------------------------------------------------------------------------
+# Builds a clean picks table for tomorrow's slate:
+#   1. Calibrates raw sim probabilities using saved Platt model
+#   2. Pulls FanDuel closing/current lines from odds_raw
+#   3. Calculates edge vs market for each game
+#   4. Assigns Core/Axis/Satellite tier based on edge magnitude
+#   5. Outputs a single table ready for betting decisions
+#
+# REQUIRES:
+#   mc_results_summary_today  — today sim output (from MC Sim Runner)
+#   canon_today               — today's schedule
+#   platt_model_full          — fitted Platt calibration model (from backtest or loaded RDS)
+#   odds_raw                  — historical odds file (already loaded in Section 0)
+#   team_name_to_id           — crosswalk from odds integration
+#   odds_team_map             — team name mapping from odds integration
+# ==========================================================================================================
+# --------------------------------------------------
+# Team Name to ONYX ID Crosswalk (static, never changes)
+# --------------------------------------------------
+team_name_to_id <- tibble(
+  team_full_name = c("Atlanta Hawks", "Boston Celtics", "New Orleans Pelicans", "Chicago Bulls",
+                     "Cleveland Cavaliers", "Dallas Mavericks", "Denver Nuggets", "Detroit Pistons",
+                     "Golden State Warriors", "Houston Rockets", "Indiana Pacers", "Los Angeles Clippers",
+                     "Los Angeles Lakers", "Miami Heat", "Milwaukee Bucks", "Minnesota Timberwolves",
+                     "Brooklyn Nets", "New York Knicks", "Orlando Magic", "Philadelphia 76ers",
+                     "Phoenix Suns", "Portland Trail Blazers", "Sacramento Kings", "San Antonio Spurs",
+                     "Oklahoma City Thunder", "Utah Jazz", "Washington Wizards", "Toronto Raptors",
+                     "Memphis Grizzlies", "Charlotte Hornets"),
+  your_id = as.character(1:30)
+)
+
+if (mode == "production" && exists("mc_results_summary_today") && nrow(mc_results_summary_today) > 0) {
+  
+  cat("🎯 Building production picks for", as.character(as_of_date), "...\n\n")
+  
+  # --------------------------------------------------
+  # STEP 1: Load Platt model (use current session or saved RDS)
+  # --------------------------------------------------
+  if (!exists("platt_model_full")) {
+    platt_path <- file.path(base_path, "platt_calibration_model.rds")
+    if (file.exists(platt_path)) {
+      platt_model_full <- readRDS(platt_path)
+      cat("  📈 Loaded saved Platt model from:", platt_path, "\n")
+    } else {
+      warning("⚠️  No Platt model found — using raw probabilities")
+    }
+  }
+  
+  # --------------------------------------------------
+  # STEP 2: Build picks table with calibrated probabilities
+  # --------------------------------------------------
+  # Only bring in team NAMES from canon_today (IDs already exist in mc_results_summary_today)
+  picks_today <- mc_results_summary_today %>%
+    left_join(
+      canon_today %>%
+        transmute(
+          game_id    = as.character(game_id),
+          home_team  = as.character(home_team),
+          away_team  = as.character(away_team)
+        ),
+      by = "game_id"
+    )
+  
+  # Apply Platt calibration
+  if (exists("platt_model_full")) {
+    # Check if rest features are available
+    if (exists("game_rest_features_today") && nrow(game_rest_features_today) > 0) {
+      picks_today <- picks_today %>%
+        left_join(game_rest_features_today, by = "game_id") %>%
+        mutate(
+          home_win_prob_cal = predict(
+            platt_model_full,
+            newdata = data.frame(
+              home_win_prob = home_win_prob,
+              rest_diff = ifelse(is.na(rest_diff), 0, rest_diff),
+              home_b2b  = ifelse(is.na(home_b2b), 0, home_b2b),
+              away_b2b  = ifelse(is.na(away_b2b), 0, away_b2b)
+            ),
+            type = "response"
+          )
+        )
+    } else {
+      picks_today <- picks_today %>%
+        mutate(
+          home_win_prob_cal = predict(
+            platt_model_full,
+            newdata = data.frame(
+              home_win_prob = home_win_prob,
+              rest_diff = 0, home_b2b = 0, away_b2b = 0
+            ),
+            type = "response"
+          )
+        )
+    }
+  } else {
+    picks_today <- picks_today %>%
+      mutate(home_win_prob_cal = home_win_prob)
+  }
+  
+  picks_today <- picks_today %>%
+    mutate(
+      away_win_prob_cal = 1 - home_win_prob_cal,
+      model_pick      = ifelse(home_win_prob_cal > 0.5, home_team, away_team),
+      model_pick_side = ifelse(home_win_prob_cal > 0.5, "HOME", "AWAY"),
+      model_pick_prob = pmax(home_win_prob_cal, away_win_prob_cal)
+    )
+  
+  # --------------------------------------------------
+  # STEP 3: Pull FanDuel lines for today's games
+  # --------------------------------------------------
+  cat("  💰 Pulling FanDuel lines...\n")
+  
+  # Helper functions (same as odds integration)
+  american_to_implied <- function(odds) {
+    odds <- as.numeric(odds)
+    ifelse(is.na(odds), NA_real_,
+           ifelse(odds > 0, 100 / (odds + 100), abs(odds) / (abs(odds) + 100)))
+  }
+  
+  american_to_decimal <- function(odds) {
+    odds <- as.numeric(odds)
+    ifelse(is.na(odds), NA_real_,
+           ifelse(odds > 0, (odds / 100) + 1, (100 / abs(odds)) + 1))
+  }
+  
+  # Filter odds to FanDuel + today's date
+  target_date <- as.Date(as_of_date)
+  
+  odds_fd_today <- odds_raw %>%
+    filter(bookmaker == "fanduel") %>%
+    mutate(
+      commence_date_est = as.Date(commence_date_est),
+      odds              = as.numeric(odds),
+      spread_or_total   = as.numeric(spread_or_total),
+      snapshot_dt       = as.POSIXct(snapshot_datetime_utc, tz = "UTC"),
+      espn_team_id_home = as.character(espn_team_id_home),
+      espn_team_id_away = as.character(espn_team_id_away)
+    ) %>%
+    filter(commence_date_est == target_date, !is.na(odds))
+  
+  cat("  FanDuel rows for", as.character(target_date), ":", nrow(odds_fd_today), "\n")
+  
+  odds_joined <- FALSE
+  
+  if (nrow(odds_fd_today) > 0) {
+    
+    # Get closing lines (latest snapshot)
+    odds_fd_today <- odds_fd_today %>%
+      mutate(game_key = paste0(espn_team_id_home, "_", espn_team_id_away, "_", commence_date_est))
+    
+    odds_closing_today <- odds_fd_today %>%
+      group_by(game_key, market, outcome_team) %>%
+      arrange(desc(snapshot_dt)) %>%
+      slice(1) %>%
+      ungroup()
+    
+    # Pivot moneylines
+    ml_home_today <- odds_closing_today %>%
+      filter(market == "h2h", outcome_team == home_team) %>%
+      transmute(game_key, espn_team_id_home, espn_team_id_away, home_ml_odds = odds,
+                home_ml_implied = american_to_implied(odds), home_ml_decimal = american_to_decimal(odds))
+    
+    ml_away_today <- odds_closing_today %>%
+      filter(market == "h2h", outcome_team == away_team) %>%
+      transmute(game_key, away_ml_odds = odds,
+                away_ml_implied = american_to_implied(odds), away_ml_decimal = american_to_decimal(odds))
+    
+    ml_today <- ml_home_today %>%
+      left_join(ml_away_today, by = "game_key") %>%
+      mutate(
+        total_implied = home_ml_implied + away_ml_implied,
+        home_ml_fair  = home_ml_implied / total_implied,
+        away_ml_fair  = away_ml_implied / total_implied
+      )
+    
+    # Pivot spreads
+    spread_today <- odds_closing_today %>%
+      filter(market == "spreads", outcome_team == home_team) %>%
+      transmute(game_key, home_spread = spread_or_total, home_spread_odds = odds) %>%
+      distinct(game_key, .keep_all = TRUE)
+    
+    # Pivot totals
+    totals_today <- odds_closing_today %>%
+      filter(market == "totals", outcome_team == "Over") %>%
+      transmute(game_key, total_line = spread_or_total, over_odds = odds) %>%
+      distinct(game_key, .keep_all = TRUE)
+    
+    # Combine
+    odds_today_game <- ml_today %>%
+      left_join(spread_today, by = "game_key") %>%
+      left_join(totals_today, by = "game_key")
+    
+    # Map odds ESPN IDs to your IDs using crosswalk
+    if (exists("team_name_to_id") && exists("odds_team_map")) {
+      home_id_map <- odds_team_map %>%
+        left_join(team_name_to_id, by = "team_full_name") %>%
+        transmute(espn_team_id_home = odds_espn_id, your_home_id = your_id)
+      
+      away_id_map <- odds_team_map %>%
+        left_join(team_name_to_id, by = "team_full_name") %>%
+        transmute(espn_team_id_away = odds_espn_id, your_away_id = your_id)
+      
+      odds_today_game <- odds_today_game %>%
+        left_join(home_id_map, by = "espn_team_id_home") %>%
+        left_join(away_id_map, by = "espn_team_id_away") %>%
+        mutate(odds_join_key = paste0(your_home_id, "_", your_away_id, "_", target_date))
+    }
+    
+    # Join odds to picks
+    picks_today <- picks_today %>%
+      mutate(odds_join_key = paste0(home_team_id, "_", away_team_id, "_", as.Date(as_of_date))) %>%
+      left_join(
+        odds_today_game %>%
+          select(odds_join_key,
+                 home_ml_odds, away_ml_odds,
+                 home_ml_implied, away_ml_implied,
+                 home_ml_fair, away_ml_fair,
+                 home_ml_decimal, away_ml_decimal,
+                 home_spread, total_line),
+        by = "odds_join_key"
+      )
+    
+    n_with_odds <- sum(!is.na(picks_today$home_ml_odds))
+    cat("  Games with odds matched:", n_with_odds, "of", nrow(picks_today), "\n\n")
+    
+    if (n_with_odds > 0) odds_joined <- TRUE
+    
+  } else {
+    cat("  ⚠️  No FanDuel odds found for", as.character(target_date), "\n")
+    cat("  Outputting picks without edge calculation\n\n")
+  }
+  
+  # --------------------------------------------------
+  # STEP 4: Calculate edge and assign bet tiers
+  # --------------------------------------------------
+  if (odds_joined) {
+    
+    picks_today <- picks_today %>%
+      mutate(
+        # Edge calculation
+        home_edge = home_win_prob_cal - home_ml_fair,
+        away_edge = away_win_prob_cal - away_ml_fair,
+        
+        model_edge = ifelse(
+          model_pick_side == "HOME",
+          home_edge,
+          away_edge
+        ),
+        
+        # Decimal odds for model's pick
+        model_pick_decimal = ifelse(
+          model_pick_side == "HOME",
+          home_ml_decimal,
+          away_ml_decimal
+        ),
+        
+        # American odds for model's pick
+        model_pick_ml = ifelse(
+          model_pick_side == "HOME",
+          home_ml_odds,
+          away_ml_odds
+        ),
+        
+        # Expected value
+        model_ev = (model_pick_prob * model_pick_decimal) - 1,
+        
+        # Bet tier (Core/Axis/Satellite framework)
+        bet_tier = case_when(
+          is.na(model_edge)  ~ "NO ODDS",
+          model_edge > 0.10  ~ "CORE",
+          model_edge > 0.05  ~ "AXIS",
+          model_edge > 0.03  ~ "SATELLITE",
+          model_edge > 0     ~ "LEAN",
+          TRUE               ~ "NO BET"
+        ),
+        
+        # Is this an underdog pick?
+        is_dog = ifelse(
+          model_pick_side == "HOME",
+          home_ml_odds > 0,
+          away_ml_odds > 0
+        )
+      )
+    
+  } else {
+    
+    picks_today <- picks_today %>%
+      mutate(
+        home_edge          = NA_real_,
+        away_edge          = NA_real_,
+        model_edge         = NA_real_,
+        model_pick_decimal = NA_real_,
+        model_pick_ml      = NA_real_,
+        model_ev           = NA_real_,
+        bet_tier           = "NO ODDS",
+        is_dog             = NA,
+        home_ml_odds       = NA_real_,
+        away_ml_odds       = NA_real_,
+        home_spread        = NA_real_,
+        total_line         = NA_real_
+      )
+  }
+  
+  # --------------------------------------------------
+  # STEP 5: Build clean output table
+  # --------------------------------------------------
+  picks_output <- picks_today %>%
+    select(
+      home_team, away_team,
+      home_win_prob_cal, away_win_prob_cal,
+      model_pick, model_pick_side, model_pick_prob,
+      model_pick_ml, model_edge, model_ev, bet_tier, is_dog,
+      home_pts_mean, away_pts_mean, spread_mean,
+      home_ml_odds, away_ml_odds, home_spread, total_line
+    ) %>%
+    mutate(
+      home_win_prob_cal = round(home_win_prob_cal * 100, 1),
+      away_win_prob_cal = round(away_win_prob_cal * 100, 1),
+      model_pick_prob   = round(model_pick_prob * 100, 1),
+      model_edge        = round(model_edge * 100, 1),
+      model_ev          = round(model_ev * 100, 1),
+      home_pts_mean     = round(home_pts_mean, 1),
+      away_pts_mean     = round(away_pts_mean, 1),
+      spread_mean       = round(spread_mean, 1)
+    ) %>%
+    arrange(desc(model_edge))
+  
+  # --------------------------------------------------
+  # STEP 6: Print results
+  # --------------------------------------------------
+  cat("=", rep("=", 70), "\n", sep = "")
+  cat("🎯 ONYX PRODUCTION PICKS —", as.character(as_of_date), "\n")
+  cat("=", rep("=", 70), "\n\n")
+  
+  # All picks
+  cat("📊 FULL SLATE:\n\n")
+  print(as.data.frame(picks_output), row.names = FALSE)
+  
+  # Actionable bets only
+  bets_only <- picks_output %>% filter(bet_tier %in% c("CORE", "AXIS", "SATELLITE"))
+  
+  if (nrow(bets_only) > 0) {
+    cat("\n\n🔥 ACTIONABLE BETS (Core/Axis/Satellite):\n\n")
+    print(as.data.frame(bets_only), row.names = FALSE)
+    
+    cat("\n  CORE picks:", sum(bets_only$bet_tier == "CORE"), "\n")
+    cat("  AXIS picks:", sum(bets_only$bet_tier == "AXIS"), "\n")
+    cat("  SATELLITE picks:", sum(bets_only$bet_tier == "SATELLITE"), "\n")
+    cat("  Dog picks:", sum(bets_only$is_dog, na.rm = TRUE), "\n")
+  } else {
+    cat("\n  ⚠️  No actionable bets found for this slate\n")
+  }
+  
+  # Dogs of the day
+  dogs_today <- picks_output %>% filter(is_dog == TRUE, model_edge > 0)
+  
+  if (nrow(dogs_today) > 0) {
+    cat("\n\n🐕 DOGS OF THE DAY (Underdog picks with positive edge):\n\n")
+    print(as.data.frame(dogs_today), row.names = FALSE)
+  }
+  
+  # Parlay candidates (Mode 1: Pure Dogs)
+  parlay_dogs <- picks_output %>% filter(is_dog == TRUE, bet_tier %in% c("CORE", "AXIS", "SATELLITE"))
+  
+  if (nrow(parlay_dogs) > 0) {
+    cat("\n\n🎰 PARLAY CANDIDATES (Mode 1: Pure Dogs):\n\n")
+    print(as.data.frame(parlay_dogs %>% select(model_pick, model_pick_ml, model_pick_prob, model_edge, bet_tier)), row.names = FALSE)
+  }
+  
+  cat("\n\n📋 LEGEND:\n")
+  cat("  CORE      = Model edge >10% — highest confidence\n")
+  cat("  AXIS      = Model edge 5-10% — strong confidence\n")
+  cat("  SATELLITE = Model edge 3-5% — moderate confidence\n")
+  cat("  LEAN      = Model edge 0-3% — slight edge, proceed with caution\n")
+  cat("  NO BET    = Market agrees or disagrees with model\n\n")
+  
+  # --------------------------------------------------
+  # STEP 7: Save picks
+  # --------------------------------------------------
+  pred_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/team_predictions"
+  timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+  
+  saveRDS(picks_today, file.path(pred_dir, paste0("picks_today_", timestamp, ".rds")))
+  
+  # Also save as CSV for easy viewing
+  write.csv(picks_output, file.path(pred_dir, paste0("picks_today_", timestamp, ".csv")), row.names = FALSE)
+  
+  cat("💾 Picks saved to:", pred_dir, "\n")
+  cat("   RDS:", paste0("picks_today_", timestamp, ".rds"), "\n")
+  cat("   CSV:", paste0("picks_today_", timestamp, ".csv"), "\n\n")
+  
+} else {
+  if (mode != "production") {
+    cat("ℹ️  Mode is '", mode, "' — skipping production output\n")
+  } else {
+    cat("⚠️  No today simulation results found — cannot build picks\n")
+  }
+}
+
+# 🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯
+# 🎯🎯🎯 END: Production Output — Tomorrow's Picks
+# 🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯
+
+
+
+# 🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯
+# 🎯🎯🎯 START: Production Output — Player Props
+# 🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯
+# ==========================================================================================================
+# PLAYER PROPS PRODUCTION OUTPUT
+# ----------------------------------------------------------------------------------------------------------
+# Builds a clean player props table for tomorrow's slate:
+#   1. Pulls player-level sim distributions from mc_player_props_today
+#   2. Calculates probability of hitting over/under for each prop
+#   3. Pulls FanDuel player prop lines from odds data
+#   4. Compares ONYX probability vs book implied probability
+#   5. Flags props with positive edge
+#
+# REQUIRES:
+#   mc_player_props_today  — player-level sim output (from MC Sim Runner)
+#   odds_raw               — historical odds file with player props
+#   player_odds_enrich_df  — player odds enrichment (if available)
+# ==========================================================================================================
+
+if (mode == "production" && exists("mc_player_props_today") && nrow(mc_player_props_today) > 0) {
+  
+  cat("\n🎯 Building player props analysis for", as.character(as_of_date), "...\n\n")
+  
+  # --------------------------------------------------
+  # STEP 1: Understand mc_player_props_today structure
+  # --------------------------------------------------
+  cat("  Player props rows:", nrow(mc_player_props_today), "\n")
+  cat("  Columns:", paste(names(mc_player_props_today), collapse = ", "), "\n\n")
+  
+  # --------------------------------------------------
+  # STEP 2: Build player prop distributions
+  # --------------------------------------------------
+  # mc_player_props_today should have per-sim player stats
+  # We need to calculate the distribution for each player's key stats
+  
+  # Check if we have sim-level data or summary data
+  has_sim_level <- "sim_id" %in% names(mc_player_props_today) | "sim" %in% names(mc_player_props_today)
+  
+  if (has_sim_level) {
+    
+    cat("  📊 Building distributions from sim-level data...\n")
+    
+    # Identify the sim ID column
+    sim_col <- if ("sim_id" %in% names(mc_player_props_today)) "sim_id" else "sim"
+    
+    # Build distributions for PTS, AST, REB
+    prop_distributions <- mc_player_props_today %>%
+      as_tibble() %>%
+      group_by(ESPN_PLAYER_ID) %>%
+      summarise(
+        n_sims = n(),
+        
+        # Points distribution
+        pts_mean   = round(mean(as.numeric(pts_sim), na.rm = TRUE), 1),
+        pts_median = round(median(as.numeric(pts_sim), na.rm = TRUE), 1),
+        pts_sd     = round(sd(as.numeric(pts_sim), na.rm = TRUE), 1),
+        pts_min    = round(min(as.numeric(pts_sim), na.rm = TRUE), 1),
+        pts_max    = round(max(as.numeric(pts_sim), na.rm = TRUE), 1),
+        
+        # Assist distribution (if available)
+        ast_mean   = if ("ast_sim" %in% names(.)) round(mean(as.numeric(ast_sim), na.rm = TRUE), 1) else NA_real_,
+        ast_sd     = if ("ast_sim" %in% names(.)) round(sd(as.numeric(ast_sim), na.rm = TRUE), 1) else NA_real_,
+        
+        # Rebound distribution (if available)
+        reb_mean   = if ("reb_sim" %in% names(.)) round(mean(as.numeric(reb_sim), na.rm = TRUE), 1) else NA_real_,
+        reb_sd     = if ("reb_sim" %in% names(.)) round(sd(as.numeric(reb_sim), na.rm = TRUE), 1) else NA_real_,
+        
+        # 3-pointers made distribution (if available)
+        threes_mean = if ("fg3m_sim" %in% names(.)) round(mean(as.numeric(fg3m_sim), na.rm = TRUE), 1) else NA_real_,
+        threes_sd   = if ("fg3m_sim" %in% names(.)) round(sd(as.numeric(fg3m_sim), na.rm = TRUE), 1) else NA_real_,
+        
+        .groups = "drop"
+      ) %>%
+      filter(pts_mean > 0)  # Only players who actually score
+    
+  } else {
+    
+    cat("  📊 Using summary-level player props data...\n")
+    
+    # If mc_player_props_today is already summarized, use it directly
+    prop_distributions <- mc_player_props_today %>%
+      as_tibble() %>%
+      mutate(
+        ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+        pts_mean  = round(as.numeric(pts_mean), 1),
+        pts_sd    = round(as.numeric(pts_sd), 1)
+      ) %>%
+      filter(pts_mean > 0)
+  }
+  
+  # --------------------------------------------------
+  # STEP 3: Get player names
+  # --------------------------------------------------
+  # Try to attach player names from BaseStats
+  if (exists("BaseStats_Player_MC")) {
+    player_names <- BaseStats_Player_MC %>%
+      as_tibble() %>%
+      select(ESPN_PLAYER_ID, PLAYER_NAME) %>%
+      distinct()
+    
+    prop_distributions <- prop_distributions %>%
+      left_join(player_names, by = "ESPN_PLAYER_ID")
+  }
+  
+  # --------------------------------------------------
+  # STEP 4: Pull FanDuel player prop lines
+  # --------------------------------------------------
+  cat("  💰 Pulling FanDuel player prop lines...\n")
+  
+  # Check if player_odds_enrich_df has today's props
+  fd_props_today <- NULL
+  
+  if (exists("player_odds_enrich_df") && nrow(player_odds_enrich_df) > 0) {
+    
+    fd_props_today <- player_odds_enrich_df %>%
+      as_tibble() %>%
+      filter(as.Date(GAME_DATE_CTR, format = "%m/%d/%Y") == as.Date(as_of_date))
+    
+    cat("  Player odds rows for today:", nrow(fd_props_today), "\n")
+  }
+  
+  # Also check odds_raw for player props
+  if ((is.null(fd_props_today) || nrow(fd_props_today) == 0) && exists("odds_raw")) {
+    
+    # Check if odds_raw has player-level markets
+    player_markets <- odds_raw %>%
+      filter(
+        bookmaker == "fanduel",
+        as.Date(commence_date_est) == as.Date(as_of_date),
+        !market %in% c("h2h", "spreads", "totals")
+      )
+    
+    if (nrow(player_markets) > 0) {
+      cat("  Found", nrow(player_markets), "player prop rows in odds_raw\n")
+      fd_props_today <- player_markets
+    }
+  }
+  
+  # --------------------------------------------------
+  # STEP 5: Match props to ONYX distributions
+  # --------------------------------------------------
+  
+  # If we have FD lines, build the comparison
+  if (!is.null(fd_props_today) && nrow(fd_props_today) > 0) {
+    
+    cat("  🔗 Matching FanDuel lines to ONYX distributions...\n\n")
+    
+    # Try to extract PTS lines
+    pts_lines <- fd_props_today %>%
+      filter(grepl("PTS|points|player_points", market, ignore.case = TRUE)) %>%
+      mutate(
+        ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+        line = as.numeric(spread_or_total),
+        odds = as.numeric(odds),
+        side = ifelse(grepl("Over|over", outcome_team), "OVER", "UNDER")
+      ) %>%
+      filter(!is.na(line), !is.na(odds))
+    
+    if (nrow(pts_lines) > 0 && has_sim_level) {
+      
+      # For each player with a line, calculate ONYX probability of going over
+      props_with_edge <- pts_lines %>%
+        filter(side == "OVER") %>%
+        select(ESPN_PLAYER_ID, line, odds) %>%
+        distinct(ESPN_PLAYER_ID, .keep_all = TRUE) %>%
+        left_join(
+          # Calculate over probability from sim data
+          mc_player_props_today %>%
+            as_tibble() %>%
+            group_by(ESPN_PLAYER_ID) %>%
+            summarise(
+              n_sims = n(),
+              pts_over = function(line_val) mean(as.numeric(pts_sim) > line_val, na.rm = TRUE),
+              pts_mean = mean(as.numeric(pts_sim), na.rm = TRUE),
+              .groups = "drop"
+            ),
+          by = "ESPN_PLAYER_ID"
+        )
+      
+      # This is complex because each player has a different line
+      # Build it row by row
+      prop_edge_list <- list()
+      
+      for (i in seq_len(nrow(pts_lines %>% filter(side == "OVER") %>% distinct(ESPN_PLAYER_ID, .keep_all = TRUE)))) {
+        row <- (pts_lines %>% filter(side == "OVER") %>% distinct(ESPN_PLAYER_ID, .keep_all = TRUE))[i, ]
+        pid <- row$ESPN_PLAYER_ID
+        line_val <- row$line
+        book_odds <- row$odds
+        
+        # Get this player's sim distribution
+        player_sims <- mc_player_props_today %>%
+          as_tibble() %>%
+          filter(ESPN_PLAYER_ID == pid)
+        
+        if (nrow(player_sims) > 0 && "pts_sim" %in% names(player_sims)) {
+          pts_vals <- as.numeric(player_sims$pts_sim)
+          onyx_over_pct <- mean(pts_vals > line_val, na.rm = TRUE)
+          onyx_under_pct <- 1 - onyx_over_pct
+          book_implied <- american_to_implied(book_odds)
+          
+          # Determine best side
+          if (onyx_over_pct > book_implied) {
+            edge <- onyx_over_pct - book_implied
+            best_side <- "OVER"
+            onyx_pct <- onyx_over_pct
+          } else {
+            # Check under
+            under_row <- pts_lines %>%
+              filter(ESPN_PLAYER_ID == pid, side == "UNDER") %>%
+              slice(1)
+            if (nrow(under_row) > 0) {
+              under_implied <- american_to_implied(under_row$odds)
+              edge <- onyx_under_pct - under_implied
+              best_side <- "UNDER"
+              onyx_pct <- onyx_under_pct
+              book_implied <- under_implied
+            } else {
+              edge <- onyx_over_pct - book_implied
+              best_side <- "OVER"
+              onyx_pct <- onyx_over_pct
+            }
+          }
+          
+          prop_edge_list[[i]] <- data.frame(
+            ESPN_PLAYER_ID = pid,
+            prop = "PTS",
+            line = line_val,
+            side = best_side,
+            onyx_pct = round(onyx_pct * 100, 1),
+            book_pct = round(book_implied * 100, 1),
+            edge = round(edge * 100, 1),
+            pts_mean = round(mean(pts_vals, na.rm = TRUE), 1),
+            stringsAsFactors = FALSE
+          )
+        }
+      }
+      
+      if (length(prop_edge_list) > 0) {
+        props_edge_table <- bind_rows(prop_edge_list) %>%
+          left_join(player_names, by = "ESPN_PLAYER_ID") %>%
+          arrange(desc(edge))
+      }
+    }
+    
+  } else {
+    cat("  ⚠️  No FanDuel player prop lines found for today\n")
+    cat("  Outputting ONYX projections without edge comparison\n\n")
+  }
+  
+  # --------------------------------------------------
+  # STEP 6: Build clean props output (with or without book lines)
+  # --------------------------------------------------
+  
+  # Always output ONYX projections
+  props_output <- prop_distributions %>%
+    select(
+      any_of(c("PLAYER_NAME", "ESPN_PLAYER_ID", "pts_mean", "pts_sd", "pts_median",
+               "ast_mean", "ast_sd", "reb_mean", "reb_sd", "threes_mean", "threes_sd",
+               "n_sims"))
+    ) %>%
+    arrange(desc(pts_mean))
+  
+  # --------------------------------------------------
+  # STEP 7: Print results
+  # --------------------------------------------------
+  cat("=", rep("=", 70), "\n", sep = "")
+  cat("🎯 ONYX PLAYER PROJECTIONS —", as.character(as_of_date), "\n")
+  cat("=", rep("=", 70), "\n\n")
+  
+  # Top scorers
+  cat("📊 TOP PROJECTED SCORERS:\n\n")
+  print(as.data.frame(
+    props_output %>%
+      select(any_of(c("PLAYER_NAME", "pts_mean", "pts_sd", "pts_median", "ast_mean", "reb_mean", "threes_mean"))) %>%
+      head(30)
+  ), row.names = FALSE)
+  
+  # Props with edge (if available)
+  if (exists("props_edge_table") && nrow(props_edge_table) > 0) {
+    
+    cat("\n\n🔥 PLAYER PROPS WITH EDGE (vs FanDuel):\n\n")
+    
+    positive_edge_props <- props_edge_table %>% filter(edge > 0)
+    
+    if (nrow(positive_edge_props) > 0) {
+      print(as.data.frame(
+        positive_edge_props %>%
+          select(PLAYER_NAME, prop, line, side, onyx_pct, book_pct, edge, pts_mean)
+      ), row.names = FALSE)
+      
+      cat("\n  Total props with edge:", nrow(positive_edge_props), "\n")
+      cat("  Mean edge:", round(mean(positive_edge_props$edge), 1), "%\n")
+      
+      # Strong edge props (>5%)
+      strong_props <- positive_edge_props %>% filter(edge > 5)
+      if (nrow(strong_props) > 0) {
+        cat("\n\n⭐ STRONG EDGE PROPS (>5%):\n\n")
+        print(as.data.frame(strong_props %>% select(PLAYER_NAME, prop, line, side, onyx_pct, book_pct, edge)), row.names = FALSE)
+      }
+      
+    } else {
+      cat("  No props with positive edge found\n")
+    }
+    
+  } else {
+    cat("\n\n  ℹ️  No FanDuel prop lines available for edge comparison\n")
+    cat("  Use the projections above to manually compare against book lines\n")
+  }
+  
+  # Prop distribution summary for key players
+  cat("\n\n📋 HOW TO USE:\n")
+  cat("  1. Compare ONYX pts_mean against the book's points line\n")
+  cat("  2. If ONYX projects 24.5 and the line is 22.5, lean OVER\n")
+  cat("  3. pts_sd shows variance — low SD = more consistent, higher confidence\n")
+  cat("  4. For parlays: pair prop bets with correlated game outcomes\n")
+  cat("     (e.g., Dog ML + star player OVER if upset requires big performance)\n\n")
+  
+  # --------------------------------------------------
+  # STEP 8: Save props output
+  # --------------------------------------------------
+  pred_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/team_predictions"
+  timestamp_props <- format(Sys.time(), "%Y%m%d_%H%M%S")
+  
+  saveRDS(props_output, file.path(pred_dir, paste0("props_output_", timestamp_props, ".rds")))
+  write.csv(props_output, file.path(pred_dir, paste0("props_output_", timestamp_props, ".csv")), row.names = FALSE)
+  
+  if (exists("props_edge_table") && nrow(props_edge_table) > 0) {
+    saveRDS(props_edge_table, file.path(pred_dir, paste0("props_edge_", timestamp_props, ".rds")))
+    write.csv(props_edge_table, file.path(pred_dir, paste0("props_edge_", timestamp_props, ".csv")), row.names = FALSE)
+  }
+  
+  cat("💾 Props saved to:", pred_dir, "\n\n")
+  
+} else {
+  if (mode != "production") {
+    cat("ℹ️  Mode is '", mode, "' — skipping player props output\n")
+  } else {
+    cat("⚠️  No player props data found — cannot build props analysis\n")
+  }
+}
+
+# 🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯
+# 🎯🎯🎯 END: Production Output — Player Props
+# 🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯🎯
+
+
+
+# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
+# START SAVE RUN OUTPUTS
+# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
+
+cat("💾 Saving run outputs...\n\n")
+
+pred_dir <- "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/team_predictions"
+timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+
+save_rds <- function(obj, name) {
+  path <- file.path(pred_dir, paste0(name, "_", timestamp, ".rds"))
+  saveRDS(obj, path)
+  cat("  ✅", name, "→", basename(path), "\n")
+}
+
+# Core simulation outputs
+save_rds(mc_results_summary,       "mc_results_summary")
+save_rds(mc_backtest_validation,   "mc_backtest_validation")
+save_rds(mc_sims_backtest_q,       "mc_sims_backtest_q")
+save_rds(mc_results_quarters,      "mc_results_quarters")
+save_rds(mc_calibration,           "mc_calibration")
+save_rds(mc_player_props,          "mc_player_props")
+
+# Odds & edge analysis
+if (exists("odds_game_level"))        save_rds(odds_game_level,        "odds_game_level")
+if (exists("edge_summary"))           save_rds(edge_summary,           "edge_summary")
+
+# Calibration model
+if (exists("platt_model_full"))       save_rds(platt_model_full,       "platt_model_full")
+
+# Key profiles (for debugging / audit)
+save_rds(player_minutes_params_backtest, "player_minutes_params_backtest")
+save_rds(player_projections_backtest,    "player_projections_backtest")
+
+# Production picks (if available)
+if (exists("picks_today") && nrow(picks_today) > 0) {
+  save_rds(picks_today,  "picks_today")
+  save_rds(picks_output, "picks_output")
+}
+
+# Today simulation outputs (if available)
+if (exists("mc_results_summary_today") && nrow(mc_results_summary_today) > 0) {
+  save_rds(mc_results_summary_today, "mc_results_summary_today")
+}
+if (exists("mc_player_props_today") && nrow(mc_player_props_today) > 0) {
+  save_rds(mc_player_props_today, "mc_player_props_today")
+}
+
+# Config snapshot
+run_config <- list(
+  as_of_date = as_of_date,
+  mode       = mode,
+  n_sims     = 500,
+  MC_CONFIG  = MC_CONFIG,
+  MC_VAR     = MC_VAR,
+  HCA        = HCA,
+  timestamp  = Sys.time()
+)
+save_rds(run_config, "run_config")
+
+cat("\n💾 All outputs saved to:", pred_dir, "\n")
+cat("   Timestamp:", timestamp, "\n\n")
+
+# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
+# END SAVE RUN OUTPUTS
+# 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾

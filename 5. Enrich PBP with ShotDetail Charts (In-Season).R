@@ -59,7 +59,35 @@ if (file.exists(base_stats_path) && file.info(base_stats_path)$size > 0) {
   BaseStats_Team <- data.frame()
 }
 
+# ── Bridge: map ESPN game_id → nba_game_id onto PBP ──────────────────────────
+game_id_map <- BaseStats_Team %>%
+  dplyr::mutate(
+    espn_game_id = as.character(espn_game_id),
+    nba_game_id  = as.character(nba_game_id)
+  ) %>%
+  dplyr::distinct(espn_game_id, nba_game_id) %>%
+  dplyr::filter(!is.na(espn_game_id), !is.na(nba_game_id), nzchar(nba_game_id))
 
+# Drop existing nba_game_id if it exists to avoid .x/.y conflict
+nbapbp_df <- nbapbp_df %>%
+  dplyr::select(-dplyr::any_of("nba_game_id"))
+
+# Step 1: join first
+nbapbp_df <- nbapbp_df %>%
+  dplyr::mutate(game_id = as.character(game_id)) %>%
+  dplyr::left_join(game_id_map, by = c("game_id" = "espn_game_id"))
+
+# Step 2: mutate AFTER join so nba_game_id exists
+nbapbp_df <- nbapbp_df %>%
+  dplyr::mutate(
+    nba_game_id = ifelse(
+      startsWith(as.character(nba_game_id), "00"),
+      as.character(nba_game_id),
+      paste0("00", as.character(nba_game_id))
+    )
+  )
+
+cat("nba_game_id populated:", sum(!is.na(nbapbp_df$nba_game_id)), "of", nrow(nbapbp_df), "\n")
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # ==== START: SHOT ZONE BASIC EXIST Section ====
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
@@ -316,13 +344,16 @@ if (!"SHOT_ZONE_BASIC" %in% names(nbapbp_df)) {
   
   # Patch existing columns from *_sc
   nbapbp_df <- nbapbp_df %>%
-    dplyr::left_join(df_sc_renamed, by = c("nba_game_id","sequence_number")) %>%
-    dplyr::mutate(
-      dplyr::across(
-        dplyr::all_of(patch_cols),
-        ~ dplyr::coalesce(.x, get(paste0(cur_column(), "_sc")))
-      )
-    ) %>%
+    dplyr::left_join(df_sc_renamed, by = c("nba_game_id","sequence_number"))
+  
+  for (col in patch_cols) {
+    sc_col <- paste0(col, "_sc")
+    if (sc_col %in% names(nbapbp_df)) {
+      nbapbp_df[[col]] <- dplyr::coalesce(nbapbp_df[[col]], nbapbp_df[[sc_col]])
+    }
+  }
+  
+  nbapbp_df <- nbapbp_df %>%
     dplyr::select(-dplyr::ends_with("_sc"))
 }
 
@@ -338,3 +369,12 @@ print("✅ All shot location and detail data successfully merged into nbapbp.csv
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # ==== END: Pull NBAPBP data and enrich it with shotchartdetail for shot locations and types# ==== 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+# Direct test - does the join actually produce nba_game_id?
+test <- nbapbp_df %>%
+  dplyr::mutate(game_id = as.character(game_id)) %>%
+  dplyr::left_join(game_id_map, by = c("game_id" = "espn_game_id"))
+
+cat("nba_game_id in test:", "nba_game_id" %in% names(test), "\n")
+cat("nba_game_id non-NA:", sum(!is.na(test$nba_game_id)), "of", nrow(test), "\n")
+cat("test names:", names(test)[1:10], "\n")
+cat("nba_game_id already in nbapbp_df:", "nba_game_id" %in% names(nbapbp_df), "\n")

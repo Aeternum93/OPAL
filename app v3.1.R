@@ -2215,11 +2215,20 @@ server <- function(input, output, session) {
                     home = tagList(uiOutput("home_page_ui")),
                     
                     # Prediction section
+                    # Prediction section
                     prediction = tagList(
                       tags$div(class="section-intro", tags$h2("Prediction"), tags$p("// MODEL SELECTION — CHOOSE A PREDICTION ENGINE")),
                       tags$div(class="cards-grid",
                                opal_card("Run LogReg<br>AVITUS","Model 01"),
-                               opal_card("Run Monte Carlo<br>AURELIUS","Model 02"),
+                               tags$div(class = "opal-card", style = "padding:0; overflow:hidden; position:relative; min-height:180px;",
+                                        tags$img(src = base64enc::dataURI(
+                                          file = paste0(WWW_PATH, "ONYX.png"), mime = "image/png"),
+                                          style = "width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; opacity:0.7;"),
+                                        tags$div(style = "position:relative; z-index:1; display:flex; flex-direction:column; justify-content:flex-end; height:100%; padding:16px; background:linear-gradient(to top, rgba(0,0,0,.7) 0%, transparent 60%);",
+                                                 tags$div(class = "card-label", style = "color:#fff; font-size:16px;", "ONYX }{ MC"),
+                                                 tags$div(class = "card-tag", "Model 02")
+                                        )
+                               ),
                                opal_card("DFS Datahub","Model 03")
                       )
                     ),

@@ -1,5 +1,5 @@
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-# === START: Injury Data Aggregation Script ====
+# === START: Injury Update Script — current_date only (nbainjuries) ====
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 
 
@@ -27,17 +27,21 @@ rm(list = setdiff(ls(), c(
 )))
 
 
-library(httr)
-library(jsonlite)
 library(data.table)
 library(dplyr)
-library(purrr)
+library(reticulate)
 
 
 # ============================================================
-# 1. RAPID API KEY
+# 1. PYTHON SETUP
 # ============================================================
-api_key <- "2fc0c14f17msh807fad54364a128p1f9a5ajsn4d9fea0e9a3c"
+if (!reticulate::py_module_available("nbainjuries")) {
+  reticulate::py_install("nbainjuries", pip = TRUE)
+}
+
+nbainjuries <- import("nbainjuries")
+py_datetime <- import("datetime")
+injury_mod  <- nbainjuries$injury
 
 
 # ============================================================
@@ -59,76 +63,82 @@ dir.create(dirname(injury_path), recursive = TRUE, showWarnings = FALSE)
 # ====  START: Pull Injury Data for current_date ====
 #🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 
-# ============================================================
-# 3. FUNCTION: PULL INJURIES FOR ONE DATE
-# ============================================================
-get_injuries_for_date <- function(dt) {
-  url <- paste0(
-    "https://nba-injuries-reports.p.rapidapi.com/injuries/nba/",
-    dt
-  )
-  
-  resp <- GET(
-    url,
-    add_headers(
-      "X-RapidAPI-Key"  = api_key,
-      "X-RapidAPI-Host" = "nba-injuries-reports.p.rapidapi.com"
-    )
-  )
-  
-  snapshot_utc <- format(Sys.time(), tz = "UTC", usetz = TRUE)
-  
-  # If API fails, return empty tibble
-  if (http_error(resp)) {
-    message("Error pulling date: ", dt)
-    return(tibble(
-      date = character(), team = character(), player = character(),
-      status = character(), reason = character(), reportTime = character(),
-      pulled_date = dt, snapshot_datetime_utc = snapshot_utc
-    ))
-  }
-  
-  dat <- content(resp, "text", encoding = "UTF-8") %>%
-    fromJSON(simplifyDataFrame = TRUE)
-  
-  df <- as_tibble(dat)
-  
-  if (nrow(df) == 0) {
-    df <- tibble(
-      date = character(), team = character(), player = character(),
-      status = character(), reason = character(), reportTime = character()
-    )
-  }
-  
-  df %>%
-    mutate(
-      pulled_date = dt,
-      snapshot_datetime_utc = snapshot_utc
-    )
-}
-
-
-# ============================================================
-# 4. PULL INJURIES FOR current_date
-# ============================================================
 message("Pulling injury data for current_date: ", current_date)
 
-injuries_all <- get_injuries_for_date(current_date)
+parts <- as.integer(strsplit(as.character(current_date), "-")[[1]])
+snapshot_utc <- format(Sys.time(), tz = "UTC", usetz = TRUE)
 
-# ------------------------------------------------------------
-# Name corrections for known API weirdness
-# ------------------------------------------------------------
-injuries_all <- injuries_all %>%
-  mutate(
-    player = case_when(
-      grepl("^Karl\\s*-\\s*Towns$", player, ignore.case = TRUE)       ~ "Karl-Anthony Towns",
-      grepl("^Eli\\s+Ndiaye$", player, ignore.case = TRUE)            ~ "Eli John Ndiaye",
-      grepl("^Yanic\\s+Niederhauser$", player, ignore.case = TRUE)    ~ "Yanic Konan Niederhauser",
-      grepl("^Olivier\\s*-\\s*Prosper$", player, ignore.case = TRUE)  ~ "Olivier-Maxence Prosper",
-      grepl("^Shai\\s+Alexander$", player, ignore.case = TRUE) ~ "Shai Gilgeous-Alexander",
-      TRUE ~ player
-    )
+injuries_all <- tryCatch({
+  py_dt <- py_datetime$datetime(
+    year   = parts[1],
+    month  = parts[2],
+    day    = parts[3],
+    hour   = 17L,
+    minute = 0L
   )
+  
+  df_py <- injury_mod$get_reportdata(py_dt, return_df = TRUE)
+  df_r  <- as.data.frame(df_py)
+  
+  if (nrow(df_r) == 0) {
+    message("No injury data returned for ", current_date)
+    data.table(
+      game_date = character(), game_time = character(),
+      matchup = character(), team = character(),
+      player = character(), status = character(),
+      reason = character(), pulled_date = current_date,
+      snapshot_datetime_utc = snapshot_utc
+    )
+  } else {
+    # Standardize column names
+    colnames(df_r) <- tolower(gsub("\\s+", "_", trimws(colnames(df_r))))
+    
+    # Rename to match Injury_Database schema
+    if ("player_name"    %in% names(df_r)) names(df_r)[names(df_r) == "player_name"]    <- "player"
+    if ("current_status" %in% names(df_r)) names(df_r)[names(df_r) == "current_status"] <- "status"
+    
+    df_r$pulled_date           <- current_date
+    df_r$snapshot_datetime_utc <- snapshot_utc
+    
+    as.data.table(df_r)
+  }
+  
+}, error = function(e) {
+  message("Error pulling injuries for ", current_date, " -- ", conditionMessage(e))
+  data.table(
+    game_date = character(), game_time = character(),
+    matchup = character(), team = character(),
+    player = character(), status = character(),
+    reason = character(), pulled_date = current_date,
+    snapshot_datetime_utc = snapshot_utc
+  )
+})
+
+
+# ============================================================
+# 3. PLAYER NAME CORRECTIONS
+# ============================================================
+if (nrow(injuries_all) > 0 && "player" %in% names(injuries_all)) {
+  
+  # nbainjuries returns "Last, First" — convert to "First Last"
+  has_comma <- grepl(",", injuries_all$player)
+  if (any(has_comma)) {
+    split_names <- strsplit(injuries_all$player[has_comma], ",\\s*")
+    injuries_all$player[has_comma] <- vapply(split_names, function(x) {
+      if (length(x) == 2) paste(x[2], x[1]) else paste(x, collapse = " ")
+    }, character(1))
+  }
+  
+  # Known name fixes
+  injuries_all[, player := fcase(
+    grepl("^Karl\\s*-\\s*Towns$",          player, ignore.case = TRUE), "Karl-Anthony Towns",
+    grepl("^Eli\\s+Ndiaye$",              player, ignore.case = TRUE), "Eli John Ndiaye",
+    grepl("^Yanic\\s+Niederhauser$",      player, ignore.case = TRUE), "Yanic Konan Niederhauser",
+    grepl("^Olivier\\s*-\\s*Prosper$",    player, ignore.case = TRUE), "Olivier-Maxence Prosper",
+    grepl("^Shai\\s+Alexander$",          player, ignore.case = TRUE), "Shai Gilgeous-Alexander",
+    rep(TRUE, .N), player
+  )]
+}
 
 message("Pulled ", nrow(injuries_all), " injury rows for ", current_date)
 
@@ -143,11 +153,7 @@ message("Pulled ", nrow(injuries_all), " injury rows for ", current_date)
 # ====  START: Append pulled injuries to Injury_Database ====
 #🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 
-# ============================================================
-# 5. SAVE / APPEND: Injury_Database_<season_token>.csv
-# ============================================================
-
-new_dt <- as.data.table(injuries_all)
+new_dt <- copy(injuries_all)
 
 # Force all columns to character
 for (nm in names(new_dt)) {
@@ -155,8 +161,8 @@ for (nm in names(new_dt)) {
 }
 
 required_cols <- c(
-  "date","team","player","status","reason",
-  "reportTime","pulled_date","snapshot_datetime_utc"
+  "game_date","game_time","matchup","team","player","status","reason",
+  "pulled_date","snapshot_datetime_utc"
 )
 for (col in required_cols) {
   if (!col %in% names(new_dt)) new_dt[, (col) := ""]
@@ -179,7 +185,7 @@ if (file.exists(injury_path) && file.info(injury_path)$size > 0) {
   combined_dt <- rbindlist(list(old_dt, new_dt), use.names = TRUE, fill = TRUE)
   
   # Dedupe
-  dedupe_key <- c("pulled_date","team","player","status","reason","reportTime")
+  dedupe_key <- c("pulled_date","team","player","status","reason")
   dedupe_key <- dedupe_key[dedupe_key %in% names(combined_dt)]
   
   if (length(dedupe_key) > 0) {
@@ -375,5 +381,5 @@ fwrite(
 message("Saved Injury_Database with patched espn_player_id + team columns: ", injury_path)
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-# === END: Injury Data Aggregation Script ====
+# === END: Injury Update Script ====
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀

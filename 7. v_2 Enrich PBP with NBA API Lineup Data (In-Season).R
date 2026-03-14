@@ -1,6 +1,6 @@
 # 🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿
 # 🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿
-# ==== START: Pull NBAPBP data and enrich it with Popcorn Machine Lineup Data for each play of the game ====
+# ==== START: Pull NBAPBP data and enrich it with Golden Lineup Lineup Data for each play of the game ====
 # 🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿
 # 🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿
 
@@ -45,7 +45,7 @@ pbp_path <- paste0("C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0
 nba_pbp <- fread(pbp_path, colClasses = "character")
 
 # Load PopcornMachine lineup data
-lineup_path <- paste0("C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/2. Popcorn Machine/pm_lineup_data_", season_token, ".csv")
+lineup_path <- paste0("C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/2. Popcorn Machine/golden_lineup_data_", season_token, ".csv")
 pm_lineup_data <- fread(lineup_path, colClasses = "character")
 
 # Load ESPN team ID mapping
@@ -204,7 +204,14 @@ home_join <- pm_home[
     time_off_sec <  clock_sec
   ),
   nomatch = NULL
-][, .(row_id, home_P1, home_P2, home_P3, home_P4, home_P5)]
+]
+
+# Deduplicate - keep narrowest window per play
+home_join <- home_join[
+  order(time_on_sec - time_off_sec)
+][!duplicated(row_id)][
+  , .(row_id, home_P1, home_P2, home_P3, home_P4, home_P5)
+]
 
 # Join away lineups
 away_join <- pm_away[
@@ -217,8 +224,14 @@ away_join <- pm_away[
     time_off_sec <  clock_sec
   ),
   nomatch = NULL
-][, .(row_id, away_P1, away_P2, away_P3, away_P4, away_P5)]
+]
 
+# Deduplicate - keep narrowest window per play
+away_join <- away_join[
+  order(time_on_sec - time_off_sec)
+][!duplicated(row_id)][
+  , .(row_id, away_P1, away_P2, away_P3, away_P4, away_P5)
+]
 # Initialize empty columns
 for (col in c("home_P1","home_P2","home_P3","home_P4","home_P5",
               "away_P1","away_P2","away_P3","away_P4","away_P5")) {
@@ -298,7 +311,7 @@ name_map <- fread(
 
 # Keep only the columns we need
 name_map <- name_map %>%
-  select(pm_player_name, espn_player_id)
+  select(clean_player_name, espn_player_id)
 
 #------------------------------------------------------------------
 # 2) Map home_P1–home_P5 / away_P1–away_P5 to ESPN IDs in nba_pbp
@@ -324,7 +337,7 @@ pbp_long <- nba_pbp %>%
 
 # Join to name_map to pull espn_player_id
 pbp_long_ids <- pbp_long %>%
-  left_join(name_map, by = "pm_player_name")
+  left_join(name_map, by = c("pm_player_name" = "clean_player_name"))
 
 # Wide form: create *_espn_id columns for each slot
 pbp_id_wide <- pbp_long_ids %>%
@@ -414,6 +427,9 @@ fwrite(
 
 # 🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿
 # 🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿
-# ==== END: Pull NBAPBP data and enrich it with Popcorn Machine Lineup Data for each play of the game ====
+# ==== END: Pull NBAPBP data and enrich it with Golden Lineup Lineup Data for each play of the game ====
 # 🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿
 # 🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿🍿
+
+cat("Duplicate row_ids in home_join:", sum(duplicated(home_join$row_id)), "\n")
+cat("Duplicate row_ids in away_join:", sum(duplicated(away_join$row_id)), "\n")

@@ -417,92 +417,69 @@ rm(succ_crit_df, tie_by_qtr, tie_cgs)
 
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-# START: ============================================================
-# === PROTOTYPE: Player Minutes by Quarter from lineup cols ===
-#     Uses home_P1_espn_id..home_P5_espn_id and away_P1..P5
-#     Credits elapsed seconds between events to those 10 players
-# ============================================================
+# START: Player Minutes by Quarter from Golden Lineup Data
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 library(dplyr)
 library(tidyr)
+library(lubridate)
 
-stopifnot(exists("pm_df"), exists("BaseStats_Player_MC"))
+stopifnot(exists("BaseStats_Player_MC"), exists("season_token"))
 
-# ---- 0) detect the "seconds remaining" column (handles your typo) ----
-sec_col <- dplyr::case_when(
-  "end_quarter_seconds_remaining" %in% names(pm_df) ~ "end_quarter_seconds_remaining",
-  "end_quarter_seconds_reaming"   %in% names(pm_df) ~ "end_quarter_seconds_reaming",
-  TRUE ~ NA_character_
+# ---- 1) Load golden lineup ----
+golden_path <- paste0(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/2. Popcorn Machine/",
+  "golden_lineup_data_2025_2026.csv"
 )
 
-if (is.na(sec_col)) {
-  stop("Could not find end_quarter_seconds_remaining (or end_quarter_seconds_reaming) in pm_df.")
-}
+golden <- data.table::fread(golden_path, encoding = "UTF-8", colClasses = "character") %>%
+  as_tibble()
 
-# ---- 1) define player-id lineup columns we will scan ----
-home_cols <- paste0("home_P", 1:5, "_espn_id")
-away_cols <- paste0("away_P", 1:5, "_espn_id")
-player_cols <- c(home_cols, away_cols)
-
-missing_cols <- setdiff(player_cols, names(pm_df))
-if (length(missing_cols) > 0) {
-  stop("Missing lineup cols in pm_df: ", paste(missing_cols, collapse = ", "))
-}
-
-# ---- 2) prep: coerce needed fields & order within (game_id, qtr) ----
-pbp_for_mins <- pm_df %>%
+# ---- 2) Parse MM:SS times and compute stint minutes ----
+golden_parsed <- golden %>%
   mutate(
-    qtr = suppressWarnings(as.integer(coalesce(as.numeric(qtr), as.numeric(period)))),
-    SEC_REM = suppressWarnings(as.numeric(.data[[sec_col]])),
-    seq = suppressWarnings(as.integer(sequence_number))
+    time_on_mins  = as.numeric(ms(Time_On),  units = "mins"),
+    time_off_mins = as.numeric(ms(Time_Off), units = "mins"),
+    stint_mins    = time_on_mins - time_off_mins,
+    stint_mins    = if_else(is.na(stint_mins) | stint_mins < 0, 0, stint_mins),
+    qtr           = as.integer(gsub("Period ", "", Period)),
+    espn_game_id  = as.character(espn_game_id)
   ) %>%
-  filter(!is.na(game_id), !is.na(qtr), qtr %in% 1:6, !is.na(SEC_REM)) %>%
-  group_by(game_id, qtr) %>%
-  arrange(desc(SEC_REM), seq, .by_group = TRUE) %>%
-  # elapsed seconds to next row (SEC_REM decreases as time passes)
-  mutate(
-    SEC_NEXT = dplyr::lead(SEC_REM),
-    # if next is NA => last row of qtr, run clock to 0
-    SEG_SECONDS = dplyr::if_else(!is.na(SEC_NEXT), SEC_REM - SEC_NEXT, SEC_REM),
-    SEG_SECONDS = dplyr::if_else(is.na(SEG_SECONDS) | SEG_SECONDS < 0, 0, SEG_SECONDS)
-  ) %>%
-  ungroup()
+  filter(!is.na(qtr), qtr %in% 1:6, stint_mins > 0)
 
-# ---- 3) explode 10 players-on-court into long and sum minutes ----
-mins_long <- pbp_for_mins %>%
-  select(game_id, qtr, SEG_SECONDS, all_of(player_cols)) %>%
+# ---- 3) Pivot P1-P5 espn_id cols to long ----
+player_id_cols <- paste0("P", 1:5, "_espn_id")
+
+mins_long <- golden_parsed %>%
+  select(espn_game_id, qtr, stint_mins, all_of(player_id_cols)) %>%
   pivot_longer(
-    cols = all_of(player_cols),
-    names_to = "slot",
+    cols      = all_of(player_id_cols),
+    names_to  = "slot",
     values_to = "ESPN_PLAYER_ID"
   ) %>%
-  mutate(
-    ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID)
-  ) %>%
-  filter(!is.na(ESPN_PLAYER_ID), ESPN_PLAYER_ID != "") %>%
-  group_by(game_id, qtr, ESPN_PLAYER_ID) %>%
-  summarise(
-    SECONDS_ON = sum(SEG_SECONDS, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  mutate(MINS_ON = SECONDS_ON / 60)
+  mutate(ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID)) %>%
+  filter(!is.na(ESPN_PLAYER_ID), ESPN_PLAYER_ID != "", ESPN_PLAYER_ID != "0") %>%
+  group_by(espn_game_id, qtr, ESPN_PLAYER_ID) %>%
+  summarise(MINS_ON = sum(stint_mins, na.rm = TRUE), .groups = "drop")
 
-# ---- 4) pivot to Q1..Q6 + CGS ----
+# ---- 4) Pivot to MINS_Q1..Q6 + MINS_CGS ----
 mins_wide <- mins_long %>%
-  mutate(qtr = as.integer(qtr)) %>%
-  select(game_id, ESPN_PLAYER_ID, qtr, MINS_ON) %>%
   pivot_wider(
-    id_cols = c(game_id, ESPN_PLAYER_ID),
-    names_from = qtr,
-    values_from = MINS_ON,
+    id_cols      = c(espn_game_id, ESPN_PLAYER_ID),
+    names_from   = qtr,
+    values_from  = MINS_ON,
     names_prefix = "MINS_Q",
-    values_fill = 0
+    values_fill  = 0
   ) %>%
   mutate(
     MINS_CGS = rowSums(across(starts_with("MINS_Q")), na.rm = TRUE)
   )
 
-# ---- 5) join back into BaseStats_Player_MC ----
+# ---- 5) Spot check before join ----
+cat("mins_wide rows:", nrow(mins_wide), "\n")
+cat("Sample MINS_CGS values:\n")
+print(head(mins_wide %>% filter(MINS_CGS > 0) %>% select(espn_game_id, ESPN_PLAYER_ID, starts_with("MINS_Q"), MINS_CGS), 5))
+
+# ---- 6) Join back into BaseStats_Player_MC ----
 BaseStats_Player_MC <- BaseStats_Player_MC %>%
   mutate(
     ESPN_GAME_ID   = as.character(ESPN_GAME_ID),
@@ -510,17 +487,26 @@ BaseStats_Player_MC <- BaseStats_Player_MC %>%
   ) %>%
   left_join(
     mins_wide,
-    by = c("ESPN_GAME_ID" = "game_id",
+    by = c("ESPN_GAME_ID" = "espn_game_id",
            "ESPN_PLAYER_ID" = "ESPN_PLAYER_ID")
   ) %>%
   mutate(
     across(matches("^MINS_Q[1-6]$|^MINS_CGS$"), ~ coalesce(., 0))
   )
 
-rm(pbp_for_mins, mins_long, mins_wide, sec_col, missing_cols, home_cols, away_cols, player_cols)
+# ---- 7) Validation ----
+cat("\nMINS_CGS summary after join:\n")
+print(summary(as.numeric(BaseStats_Player_MC$MINS_CGS)))
+
+cat("\nJr. player minutes check:\n")
+BaseStats_Player_MC %>%
+  filter(grepl("Jr\\.", PLAYER_NAME)) %>%
+  select(PLAYER_NAME, MINS_CGS, MINS_Q1, MINS_Q2, MINS_Q3, MINS_Q4) %>%
+  distinct(PLAYER_NAME, .keep_all = TRUE) %>%
+  print(n = 10)
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-# === END: Player Minutes by Quarter from lineup cols ====
+# END: Player Minutes by Quarter from Golden Lineup Data
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 
 
@@ -5786,54 +5772,4 @@ print(paste("BaseStats_Player for Monte Carlo has been exported to:", team_outpu
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # END ==== Write BaseStats Player for Monte Carlo and Data Aggregation ====
-# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-
-
-
-# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-# START ==== Create .rds version of all files ====
-# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-
-folders <- c(
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/1. BaseStats_Team",
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/2. BaseStats_Player",
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/7. MC PBP Data",
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/8. Leauge Standings",
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/9. ShotTracking Data",
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/10. NBA Schedule",
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/11. Player Enriched Odds",
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/12. Player Rotations",
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/1. hoopR/14. Bet History",
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/8. Historical Odds (Odds API)",
-  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/9. Historical Injuries (RapidAPI)"
-)
-
-total <- 0
-
-for (folder in folders) {
-  csv_files <- list.files(folder, pattern = "\\.csv$", full.names = TRUE, ignore.case = TRUE)
-  
-  if (length(csv_files) == 0) {
-    message("No CSVs found in: ", basename(folder))
-    next
-  }
-  
-  for (f in csv_files) {
-    tryCatch({
-      dat <- read.csv(f, stringsAsFactors = FALSE)
-      rds_path <- sub("\\.csv$", ".rds", f, ignore.case = TRUE)
-      saveRDS(dat, rds_path)
-      total <- total + 1
-      message("Converted: ", basename(f))
-    }, error = function(e) {
-      message("ERROR on ", basename(f), ": ", e$message)
-    })
-  }
-}
-
-message("\nDone! Converted ", total, " files.")
-
-
-# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-# END ==== Create .rds version of all files ====
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀

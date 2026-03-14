@@ -148,26 +148,20 @@ cat("Missing dates to pull injuries for:", length(MISSING_DATES), "\n")
 # 3. FUNCTION: Pull injuries for one date via nbainjuries
 # ============================================================
 get_injuries_for_date <- function(dt_str) {
-  # dt_str is "YYYY-MM-DD" character
-  # Pull the 5pm ET snapshot (league-mandated reporting deadline)
-  
+  dt_str <- as.character(dt_str)
   parts <- as.integer(strsplit(dt_str, "-")[[1]])
-  
   snapshot_utc <- format(Sys.time(), tz = "UTC", usetz = TRUE)
   
   result <- tryCatch({
-    py_dt <- py_datetime$datetime(
-      year   = parts[1],
-      month  = parts[2],
-      day    = parts[3],
-      hour   = 17L,
-      minute = 0L
-    )
+    # Run entirely in Python to avoid reticulate type conversion issues
+    py_run_string(sprintf(
+      "from nbainjuries import injury
+from datetime import datetime
+_inj_result = injury.get_reportdata(datetime(%d, %d, %d, 17, 0), return_df=True)",
+      parts[1], parts[2], parts[3]
+    ))
     
-    df_py <- injury_mod$get_reportdata(py_dt, return_df = TRUE)
-    
-    # Convert pandas DataFrame to R data.frame
-    df_r <- as.data.frame(df_py)
+    df_r <- as.data.frame(py$`_inj_result`)
     
     if (nrow(df_r) == 0) {
       return(data.table(
@@ -179,24 +173,13 @@ get_injuries_for_date <- function(dt_str) {
       ))
     }
     
-    # Standardize column names from nbainjuries output
-    # Returns: Game Date, Game Time, Matchup, Team, Player Name, Current Status, Reason
     colnames(df_r) <- tolower(gsub("\\s+", "_", trimws(colnames(df_r))))
     
-    # Rename to match existing Injury_Database schema
-    name_map <- c(
-      "player_name"    = "player",
-      "current_status" = "status"
-    )
+    if ("player_name"    %in% names(df_r)) names(df_r)[names(df_r) == "player_name"]    <- "player"
+    if ("current_status" %in% names(df_r)) names(df_r)[names(df_r) == "current_status"] <- "status"
     
-    for (old_nm in names(name_map)) {
-      if (old_nm %in% names(df_r)) {
-        names(df_r)[names(df_r) == old_nm] <- name_map[old_nm]
-      }
-    }
-    
-    df_r$pulled_date            <- dt_str
-    df_r$snapshot_datetime_utc  <- snapshot_utc
+    df_r$pulled_date           <- dt_str
+    df_r$snapshot_datetime_utc <- snapshot_utc
     
     as.data.table(df_r)
     
