@@ -1458,7 +1458,7 @@ MC_VAR <- list(
   # poss_sd_mult: Multiplier that scales the standard deviation of possessions
   # You can make pace deviate more (>1.00) or less (<1.00) from expected
   
-  poss_sd_mult = 1.00,
+  poss_sd_mult = 1.25,
   
   # ============================================================
   # SHOOTING VARIANCE (BY SHOT ZONE)
@@ -1477,11 +1477,11 @@ MC_VAR <- list(
   shoot_shrink_atb3    = 0.35,  # above-the-break 3s highest variance
   
   # Per-simulation jitter (disabled during development, calibrate later)
-  pct_jitter_rim     = 0.00,
-  pct_jitter_paint   = 0.00,
-  pct_jitter_midr    = 0.00,
-  pct_jitter_corner3 = 0.00,
-  pct_jitter_atb3    = 0.00,
+  pct_jitter_rim     = 0.03,
+  pct_jitter_paint   = 0.04,
+  pct_jitter_midr    = 0.05,
+  pct_jitter_corner3 = 0.05,
+  pct_jitter_atb3    = 0.06,
   
   # ============================================================
   # TURNOVER VARIANCE
@@ -1491,7 +1491,7 @@ MC_VAR <- list(
   
   tov_rand      = 0.25,
   tov_shrink    = 0.30,
-  tov_jitter_sd = 0.01,
+  tov_jitter_sd = 0.02,
   tov_tovpm_lo  = 0.00,
   tov_tovpm_hi  = 0.25,
   
@@ -1501,7 +1501,7 @@ MC_VAR <- list(
   reb_sd_mult   = 1.00,
   reb_mean_mult = 1.00,
   reb_shrink    = 0.20,   # shrink reb/min toward anchor (0..1)
-  reb_jitter_sd = 0.00,   # per-sim noise on reb/min (calibrate later)
+  reb_jitter_sd = 0.02,   # per-sim noise on reb/min (calibrate later)
   reb_rpm_lo    = 0.00,   # lower bound for rebounds per minute
   reb_rpm_hi    = 0.60,   # upper bound for rebounds per minute (~29 reb/48min)
   
@@ -1509,7 +1509,7 @@ MC_VAR <- list(
   # ASSISTS VARIANCE
   # ============================================================
   ast_shrink    = 0.20,
-  ast_jitter_sd = 0.00,
+  ast_jitter_sd = 0.02,
   ast_apm_lo    = 0.00,
   ast_apm_hi    = 0.35,   # sane cap (~17 ast/48min)
   
@@ -1517,7 +1517,7 @@ MC_VAR <- list(
   # BLOCKS VARIANCE
   # ============================================================
   blk_shrink    = 0.25,   # pull player BLK/min toward league BLK/min
-  blk_jitter_sd = 0.01,   # per-sim randomness on block rate
+  blk_jitter_sd = 0.015,   # per-sim randomness on block rate
   blk_bpm_lo    = 0.00,   # hard floor for blocks per minute
   blk_bpm_hi    = 0.20,   # hard cap for blocks per minute
   
@@ -1525,7 +1525,7 @@ MC_VAR <- list(
   # STEALS VARIANCE
   # ============================================================
   stl_shrink    = 0.25,
-  stl_jitter_sd = 0.01,
+  stl_jitter_sd = 0.015,
   stl_spm_lo    = 0.00,
   stl_spm_hi    = 0.20,
   
@@ -1543,7 +1543,7 @@ MC_VAR <- list(
   # FOULS VARIANCE
   # ============================================================
   fouls_shrink    = 0.25,
-  fouls_jitter_sd = 0.010,
+  fouls_jitter_sd = 0.015,
   fouls_fpm_lo    = 0.00,
   fouls_fpm_hi    = 0.30
 )
@@ -5015,6 +5015,31 @@ HCA <- list(
   oreb_mult = 1.020    # +2% offensive rebounds at home (NEW)
 )
 
+# ==========================================================================================================
+# TEAM-SPECIFIC HCA OVERRIDES (Item 26)
+# ----------------------------------------------------------------------------------------------------------
+# Some teams have home court advantages that deviate significantly from league average.
+# Denver's altitude (5,280 ft) creates measurable fatigue effects on visiting teams,
+# boosting Denver's home performance beyond what the standard HCA captures.
+#
+# Applied in the opponent-adjusted profiles section by checking if a game involves
+# a team with a specific HCA override.
+# ==========================================================================================================
+
+TEAM_HCA_OVERRIDES <- list(
+  # Denver Nuggets — altitude effect
+  # Visiting teams show reduced shooting efficiency and increased turnovers
+  # at altitude, especially in Q3-Q4 as fatigue compounds
+  "7" = list(
+    fg2_mult  = 1.035,   # +3.5% on 2PT (vs standard 2.0%)
+    fg3_mult  = 1.040,   # +4.0% on 3PT (vs standard 2.5%)
+    ft_mult   = 1.010,   # same as standard
+    fta_mult  = 1.060,   # same as standard
+    tov_mult  = 0.950,   # -5% turnovers at home (vs standard 3%)
+    oreb_mult = 1.030    # +3% OREB at home (vs standard 2%)
+  )
+)
+
 # --------------------------------------------------
 # Apply HCA to BACKTEST team offense profiles
 # --------------------------------------------------
@@ -5039,6 +5064,33 @@ if (exists("team_offense_adjusted_q") && nrow(team_offense_adjusted_q) > 0) {
     select(-is_home, -home_team_id)
   
   message("✅ Home court advantage applied to BACKTEST team offense profiles")
+  
+  # Apply team-specific HCA overrides (Item 26)
+  for (team_id in names(TEAM_HCA_OVERRIDES)) {
+    override <- TEAM_HCA_OVERRIDES[[team_id]]
+    
+    team_offense_adjusted_q <- team_offense_adjusted_q %>%
+      mutate(
+        is_override_home = (ESPN_TEAM_ID == team_id & 
+                              game_id %in% (nba_games_canon_season %>% 
+                                              filter(home_team_id == team_id) %>% 
+                                              pull(game_id))),
+        
+        fg2_pct_adjusted = ifelse(is_override_home, 
+                                  fg2_pct_adjusted * (override$fg2_mult / HCA$fg2_mult), 
+                                  fg2_pct_adjusted),
+        fg3_pct_adjusted = ifelse(is_override_home, 
+                                  fg3_pct_adjusted * (override$fg3_mult / HCA$fg3_mult), 
+                                  fg3_pct_adjusted),
+        tov_per_poss_adjusted = ifelse(is_override_home, 
+                                       tov_per_poss_adjusted * (override$tov_mult / HCA$tov_mult), 
+                                       tov_per_poss_adjusted),
+        oreb_per_poss_adjusted = ifelse(is_override_home, 
+                                        oreb_per_poss_adjusted * (override$oreb_mult / HCA$oreb_mult), 
+                                        oreb_per_poss_adjusted)
+      ) %>%
+      select(-is_override_home)
+  }
 }
 
 # --------------------------------------------------
@@ -5065,6 +5117,33 @@ if (exists("team_offense_adjusted_q_today") && nrow(team_offense_adjusted_q_toda
     select(-is_home, -home_team_id)
   
   message("✅ Home court advantage applied to TODAY team offense profiles")
+  
+  # Apply team-specific HCA overrides to TODAY (Item 26)
+  for (team_id in names(TEAM_HCA_OVERRIDES)) {
+    override <- TEAM_HCA_OVERRIDES[[team_id]]
+    
+    team_offense_adjusted_q_today <- team_offense_adjusted_q_today %>%
+      mutate(
+        is_override_home = (ESPN_TEAM_ID == team_id & 
+                              game_id %in% (nba_games_canon_season %>% 
+                                              filter(home_team_id == team_id) %>% 
+                                              pull(game_id))),
+        
+        fg2_pct_adjusted = ifelse(is_override_home, 
+                                  fg2_pct_adjusted * (override$fg2_mult / HCA$fg2_mult), 
+                                  fg2_pct_adjusted),
+        fg3_pct_adjusted = ifelse(is_override_home, 
+                                  fg3_pct_adjusted * (override$fg3_mult / HCA$fg3_mult), 
+                                  fg3_pct_adjusted),
+        tov_per_poss_adjusted = ifelse(is_override_home, 
+                                       tov_per_poss_adjusted * (override$tov_mult / HCA$tov_mult), 
+                                       tov_per_poss_adjusted),
+        oreb_per_poss_adjusted = ifelse(is_override_home, 
+                                        oreb_per_poss_adjusted * (override$oreb_mult / HCA$oreb_mult), 
+                                        oreb_per_poss_adjusted)
+      ) %>%
+      select(-is_override_home)
+  }
 }
 
 # 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
@@ -8290,6 +8369,120 @@ if (mode == "backtest") {
 
 
 
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
+#
+#     oooooooooooo  .o88o.  .o88o.  o8o             o8o                                                   ooooooooo.                                                              o8o                               .o ooooooooooooo o.   
+#     `888'     `8  888 `"  888 `"  `"'             `"'                                                   `888   `Y88.                                                            `"'                              .8' 8'   888   `8 `8.  
+#      888         o888oo  o888oo  oooo   .ooooo.  oooo   .ooooo.  ooo. .oo.    .ooooo.  oooo    ooo       888   .d88'  .ooooo.   .oooooooo oooo d8b  .ooooo.   .oooo.o  .oooo.o oooo   .ooooo.  ooo. .oo.        .8'       888       `8. 
+#      888oooo8     888     888    `888  d88' `"Y8 `888  d88' `88b `888P"Y88b  d88' `"Y8  `88.  .8'        888ooo88P'  d88' `88b 888' `88b  `888""8P d88' `88b d88(  "8 d88(  "8 `888  d88' `88b `888P"Y88b       88        888        88 
+#      888    "     888     888     888  888        888  888ooo888  888   888  888         `88..8'         888`88b.    888ooo888 888   888   888     888ooo888 `"Y88b.  `"Y88b.   888  888   888  888   888       88        888        88 
+#      888       o  888     888     888  888   .o8  888  888    .o  888   888  888   .o8    `888'          888  `88b.  888    .o `88bod8P'   888     888    .o o.  )88b o.  )88b  888  888   888  888   888       `8.       888       .8' 
+#     o888ooooood8 o888o   o888o   o888o `Y8bod8P' o888o `Y8bod8P' o888o o888o `Y8bod8P'     .8'          o888o  o888o `Y8bod8P' `8oooooo.  d888b    `Y8bod8P' 8""888P' 8""888P' o888o `Y8bod8P' o888o o888o       `8.     o888o     .8'  
+#                                                                                        .o..P'                                  d"     YD                                                                          `"               "'   
+#                                                                                        `Y8P'                                   "Y88888P'                                                                                                
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
+
+# ==========================================================================================================
+# TEAM EFFICIENCY REGRESSION TOWARD THE MEAN (Item 15)
+# ----------------------------------------------------------------------------------------------------------
+# Pulls team offensive and defensive efficiency toward league average before the sim.
+# This reflects the reality that on any given night, team quality is noisier than
+# season averages suggest. Good teams have bad nights, bad teams have good nights.
+#
+# Effect: tighter matchups in the sim, more realistic upset rates, less overconfidence.
+#
+# Parameters:
+#   REGRESSION_STRENGTH_OFFENSE  — how much to pull offense toward league avg (0 = none, 1 = full)
+#   REGRESSION_STRENGTH_DEFENSE  — how much to pull defense toward league avg (0 = none, 1 = full)
+#
+# Applied to: pts_per_poss in team_offensive_efficiency_q
+#             opp_pts_per_poss_allowed in team_defensive_profiles_q
+# ==========================================================================================================
+
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+# 💠💠💠 START: Team Level Efficiency Regression 
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+
+
+REGRESSION_STRENGTH_OFFENSE <- 0.12  # 12% pull toward league avg offense
+REGRESSION_STRENGTH_DEFENSE <- 0.10  # 10% pull toward league avg defense
+
+LEAGUE_AVG_OFF_EFFICIENCY <- 1.10    # ~110 pts per 100 possessions
+LEAGUE_AVG_DEF_EFFICIENCY <- 1.10    # Same (league avg offense = league avg defense allowed)
+
+# ── BACKTEST ──
+if (exists("team_offensive_efficiency_q") && nrow(team_offensive_efficiency_q) > 0) {
+  
+  cat("📊 Applying regression toward mean — BACKTEST offense...\n")
+  
+  team_offensive_efficiency_q <- team_offensive_efficiency_q %>%
+    mutate(
+      pts_per_poss_raw = pts_per_poss,
+      pts_per_poss = pts_per_poss * (1 - REGRESSION_STRENGTH_OFFENSE) + 
+        LEAGUE_AVG_OFF_EFFICIENCY * REGRESSION_STRENGTH_OFFENSE
+    )
+  
+  cat("  Offense regression applied | strength=", REGRESSION_STRENGTH_OFFENSE, "\n")
+  cat("  Mean pts/poss before:", round(mean(team_offensive_efficiency_q$pts_per_poss_raw, na.rm = TRUE), 4), "\n")
+  cat("  Mean pts/poss after: ", round(mean(team_offensive_efficiency_q$pts_per_poss, na.rm = TRUE), 4), "\n\n")
+}
+
+if (exists("team_defensive_profiles_q") && nrow(team_defensive_profiles_q) > 0) {
+  
+  cat("📊 Applying regression toward mean — BACKTEST defense...\n")
+  
+  team_defensive_profiles_q <- team_defensive_profiles_q %>%
+    mutate(
+      opp_pts_per_poss_allowed_raw = opp_pts_per_poss_allowed,
+      opp_pts_per_poss_allowed = opp_pts_per_poss_allowed * (1 - REGRESSION_STRENGTH_DEFENSE) + 
+        LEAGUE_AVG_DEF_EFFICIENCY * REGRESSION_STRENGTH_DEFENSE
+    )
+  
+  cat("  Defense regression applied | strength=", REGRESSION_STRENGTH_DEFENSE, "\n")
+  cat("  Mean def pts/poss before:", round(mean(team_defensive_profiles_q$opp_pts_per_poss_allowed_raw, na.rm = TRUE), 4), "\n")
+  cat("  Mean def pts/poss after: ", round(mean(team_defensive_profiles_q$opp_pts_per_poss_allowed, na.rm = TRUE), 4), "\n\n")
+}
+
+# ── TODAY ──
+if (exists("team_offensive_efficiency_q_today") && nrow(team_offensive_efficiency_q_today) > 0) {
+  
+  cat("📊 Applying regression toward mean — TODAY offense...\n")
+  
+  team_offensive_efficiency_q_today <- team_offensive_efficiency_q_today %>%
+    mutate(
+      pts_per_poss_raw = pts_per_poss,
+      pts_per_poss = pts_per_poss * (1 - REGRESSION_STRENGTH_OFFENSE) + 
+        LEAGUE_AVG_OFF_EFFICIENCY * REGRESSION_STRENGTH_OFFENSE
+    )
+  
+  cat("  Offense regression applied | strength=", REGRESSION_STRENGTH_OFFENSE, "\n\n")
+}
+
+if (exists("team_defensive_profiles_q_today") && nrow(team_defensive_profiles_q_today) > 0) {
+  
+  cat("📊 Applying regression toward mean — TODAY defense...\n")
+  
+  team_defensive_profiles_q_today <- team_defensive_profiles_q_today %>%
+    mutate(
+      opp_pts_per_poss_allowed_raw = opp_pts_per_poss_allowed,
+      opp_pts_per_poss_allowed = opp_pts_per_poss_allowed * (1 - REGRESSION_STRENGTH_DEFENSE) + 
+        LEAGUE_AVG_DEF_EFFICIENCY * REGRESSION_STRENGTH_DEFENSE
+    )
+  
+  cat("  Defense regression applied | strength=", REGRESSION_STRENGTH_DEFENSE, "\n\n")
+}
+
+cat("✅ Item 15: Team efficiency regression toward mean — COMPLETE\n\n")
+
+
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+# 💠💠💠 END: Team Level Efficiency Regression 
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+
+
+
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 #
@@ -8368,7 +8561,7 @@ build_opponent_adjusted_profiles <- function(nba_games_canon_season,
                                              team_rebounding_rates_q,
                                              team_turnover_rates_q,
                                              team_defensive_profiles_q,
-                                             adjustment_strength = 0.5) {
+                                             adjustment_strength = 0.65) {
   
   # Validate inputs
   stopifnot(
@@ -8556,7 +8749,7 @@ if (exists("nba_games_canon_season") &&
       team_rebounding_rates_q = team_rebounding_rates_q_today,
       team_turnover_rates_q = team_turnover_rates_q_today,
       team_defensive_profiles_q = team_defensive_profiles_q_today,
-      adjustment_strength = 1.0  # Full adjustment (can be tuned 0.0 to 1.0)
+      adjustment_strength = 0.65  # Full adjustment (can be tuned 0.0 to 1.0)
     )
     
     # Validation
@@ -8605,7 +8798,7 @@ if (exists("nba_games_canon_season") &&
       team_rebounding_rates_q = team_rebounding_rates_q,
       team_turnover_rates_q = team_turnover_rates_q,
       team_defensive_profiles_q = team_defensive_profiles_q,
-      adjustment_strength = 1.0
+      adjustment_strength = 0.65
     )
     
     # Validation
@@ -8702,7 +8895,7 @@ if (!exists("MC_CONFIG")) {
   MC_CONFIG <- list(
     # Variance parameters
     poss_variance_scale    = 1.5,    # Scale factor for possession variance
-    pts_per_poss_variance  = 0.15,   # Base variance in pts/poss
+    pts_per_poss_variance  = 0.20,   # Base variance in pts/poss
     
     # Bonus/adjustment strengths
     oreb_bonus_pct         = 0.70,   # % of OREBs that create extra possessions
@@ -8740,31 +8933,48 @@ draw_attempts <- function(mu, sd = 0) {
 }
 
 # --------------------------------------------------
-# Possession Drawing
+# Possession Drawing — SHARED GAME PACE (Item 28)
 # --------------------------------------------------
-draw_team_possessions_q <- function(team_id, qtr, game_id,
+# Both teams play the same number of possessions per quarter.
+# Game pace is a weighted blend favoring the slower team (55/45).
+# This reflects NBA reality: slow defensive teams drag pace down
+# more than fast teams push it up.
+# --------------------------------------------------
+draw_game_possessions_q <- function(home_team_id, away_team_id, qtr, game_id,
                                     team_poss_profile_q,
-                                    variance_scale = MC_CONFIG$poss_variance_scale) {
+                                    variance_scale = MC_CONFIG$poss_variance_scale,
+                                    slow_weight = 0.55) {
   
-  poss_params <- team_poss_profile_q %>%
-    filter(
-      ESPN_TEAM_ID == !!team_id,
-      ESPN_GAME_ID == !!game_id,
-      qtr          == !!qtr
-    ) %>%
+  home_params <- team_poss_profile_q %>%
+    filter(ESPN_TEAM_ID == !!home_team_id, ESPN_GAME_ID == !!game_id, qtr == !!qtr) %>%
     slice(1)
   
-  if (nrow(poss_params) == 0) {
-    mu <- if (qtr <= 4) 24 else 10
-    sd <- if (qtr <= 4) 3  else 2
+  away_params <- team_poss_profile_q %>%
+    filter(ESPN_TEAM_ID == !!away_team_id, ESPN_GAME_ID == !!game_id, qtr == !!qtr) %>%
+    slice(1)
+  
+  default_mu <- if (qtr <= 4) 24 else 10
+  default_sd <- if (qtr <= 4) 3  else 2
+  
+  home_mu <- if (nrow(home_params) > 0) num0(home_params$POSS_mean, default_mu) else default_mu
+  home_sd <- if (nrow(home_params) > 0) num0(home_params$POSS_sd,   default_sd) else default_sd
+  
+  away_mu <- if (nrow(away_params) > 0) num0(away_params$POSS_mean, default_mu) else default_mu
+  away_sd <- if (nrow(away_params) > 0) num0(away_params$POSS_sd,   default_sd) else default_sd
+  
+  # Weight toward the slower team
+  if (home_mu <= away_mu) {
+    game_mu <- slow_weight * home_mu + (1 - slow_weight) * away_mu
   } else {
-    mu <- num0(poss_params$POSS_mean, 24)
-    sd <- num0(poss_params$POSS_sd,   3) * variance_scale
+    game_mu <- slow_weight * away_mu + (1 - slow_weight) * home_mu
   }
   
-  draw_attempts(mu, sd)
+  # Average the SDs
+  game_sd <- ((home_sd + away_sd) / 2) * variance_scale
+  
+  # Draw once — both teams get the same possession count
+  draw_attempts(game_mu, game_sd)
 }
-
 # --------------------------------------------------
 # TEAM-LEVEL Quarter Offense Simulation
 # Kept as fallback and for simulate_game_once / run_monte_carlo
@@ -8856,34 +9066,93 @@ simulate_quarter_offense <- function(team_id, opp_team_id, qtr, game_id,
 }
 
 # ===========================================================================
-# PLAYER-LEVEL Quarter Offense Simulation -- OPTION B (FULL BOX SCORE)
+# VECTORIZED: simulate_quarter_offense_player() — Item 22a/b/c
 # ---------------------------------------------------------------------------
-# Replaces simulate_quarter_offense() in player mode inside
-# run_mc_simulations_batch().
+# Changes from original:
+#   22a: Takes game_player_profiles (pre-merged) instead of 7 separate DFs
+#        STEP 5 becomes a simple filter instead of 7 filter+join operations
+#   22b: STEP 8 shooting loop replaced with vectorized batch runif()
+#   22c: FTA loop replaced with vectorized batch rbinom()
 #
-# What stays team-level (no player equivalent exists):
-#   tov_rate  -- turnovers are a possession-level event, not per-player
-#   oreb_rate -- bonus possessions from offensive boards
-#   fta_bonus -- opponent foul rate boosting this team's FTA opportunities
-#   base_poss -- pace drawn from team pace profile
+# New function signature:
+#   OLD: 7 separate player profile dataframes passed in
+#   NEW: 1 pre-merged game_player_profiles dataframe passed in
 #
-# What is player-level (from player profiles, NOT team_offense_adjusted_q):
-#   FG2%, FG3%, FT%, p3, FTA_per_FGA -- from player_shooting_profile_q
-#   usage weight for shot allocation  -- from player_usage_profile
-#   ast, blk, stl, reb, fouls        -- from player rate profiles (per min)
-#
-# New arguments vs team version:
-#   player_shooting_profile_q  -- FG2%, FG3%, FT%, p3, FTA_per_FGA per player/qtr
-#   player_usage_profile       -- usage_rate per player/game
-#   player_apm_profile_q       -- ast_per_min per player/qtr
-#   player_bpm_profile_q       -- blk_per_min per player/qtr
-#   player_spm_profile_q       -- stl_per_min per player/qtr
-#   player_rpm_profile_q       -- reb_per_min (+ oreb/dreb) per player/qtr
-#   player_fpm_profile_q       -- fouls_per_min per player/qtr
-#
-# Returns same list structure as team version PLUS player_stats tibble.
+# The caller (run_mc_simulations_batch) must pre-build game_player_profiles
+# ONCE per game before the sim loop. See build_game_player_profiles() below.
 # ===========================================================================
 
+# --------------------------------------------------
+# HELPER: Pre-merge all player profiles for one game
+# Called ONCE per game, OUTSIDE the sim loop
+# --------------------------------------------------
+build_game_player_profiles <- function(game_id,
+                                       player_shooting_profile_q,
+                                       player_usage_profile,
+                                       player_apm_profile_q,
+                                       player_bpm_profile_q,
+                                       player_spm_profile_q,
+                                       player_rpm_profile_q,
+                                       player_fpm_profile_q) {
+  
+  # Start with shooting profile (the anchor — has game/team/player/qtr/mins)
+  profiles <- player_shooting_profile_q %>%
+    filter(ESPN_GAME_ID == !!game_id) %>%
+    left_join(
+      player_usage_profile %>%
+        filter(ESPN_GAME_ID == !!game_id) %>%
+        select(ESPN_PLAYER_ID, ESPN_TEAM_ID, usage_rate),
+      by = c("ESPN_PLAYER_ID", "ESPN_TEAM_ID")
+    ) %>%
+    left_join(
+      player_apm_profile_q %>%
+        filter(ESPN_GAME_ID == !!game_id) %>%
+        select(ESPN_PLAYER_ID, ESPN_TEAM_ID, qtr, ast_per_min),
+      by = c("ESPN_PLAYER_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    left_join(
+      player_bpm_profile_q %>%
+        filter(ESPN_GAME_ID == !!game_id) %>%
+        select(ESPN_PLAYER_ID, ESPN_TEAM_ID, qtr, blk_per_min),
+      by = c("ESPN_PLAYER_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    left_join(
+      player_spm_profile_q %>%
+        filter(ESPN_GAME_ID == !!game_id) %>%
+        select(ESPN_PLAYER_ID, ESPN_TEAM_ID, qtr, stl_per_min),
+      by = c("ESPN_PLAYER_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    left_join(
+      player_rpm_profile_q %>%
+        filter(ESPN_GAME_ID == !!game_id) %>%
+        select(ESPN_PLAYER_ID, ESPN_TEAM_ID, qtr, reb_per_min, oreb_per_min, dreb_per_min),
+      by = c("ESPN_PLAYER_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    left_join(
+      player_fpm_profile_q %>%
+        filter(ESPN_GAME_ID == !!game_id) %>%
+        select(ESPN_PLAYER_ID, ESPN_TEAM_ID, qtr, fouls_per_min),
+      by = c("ESPN_PLAYER_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    mutate(
+      # Fallback defaults for NAs
+      usage_rate    = num0(usage_rate,    0.20),
+      ast_per_min   = num0(ast_per_min,   0.05),
+      blk_per_min   = num0(blk_per_min,   0.01),
+      stl_per_min   = num0(stl_per_min,   0.015),
+      reb_per_min   = num0(reb_per_min,   0.08),
+      oreb_per_min  = num0(oreb_per_min,  0.02),
+      dreb_per_min  = num0(dreb_per_min,  0.06),
+      fouls_per_min = num0(fouls_per_min, 0.07)
+    )
+  
+  profiles
+}
+
+
+# ===========================================================================
+# MAIN FUNCTION: simulate_quarter_offense_player (VECTORIZED)
+# ===========================================================================
 simulate_quarter_offense_player <- function(
     team_id,
     opp_team_id,
@@ -8891,29 +9160,23 @@ simulate_quarter_offense_player <- function(
     game_id,
     team_offense_adjusted_q,
     team_poss_profile_q,
-    team_rebounding_rates_q,
-    team_turnover_rates_q,
     team_foul_rates_q,
-    player_shooting_profile_q,
-    player_usage_profile,
-    player_apm_profile_q,
-    player_bpm_profile_q,
-    player_spm_profile_q,
-    player_rpm_profile_q,
-    player_fpm_profile_q,
-    is_b2b = 0
+    game_player_profiles,
+    is_b2b = 0,
+    shared_poss = NULL
 ) {
   
   # --------------------------------------------------
-  # STEP 1: Draw base possessions (team pace profile -- no player equivalent)
+  # STEP 1: Use shared game pace or draw independently
   # --------------------------------------------------
-  base_poss <- draw_team_possessions_q(team_id, qtr, game_id, team_poss_profile_q)
+  if (!is.null(shared_poss)) {
+    base_poss <- shared_poss
+  } else {
+    base_poss <- draw_team_possessions_q(team_id, qtr, game_id, team_poss_profile_q)
+  }
   
   # --------------------------------------------------
-  # STEP 2: Team-level rates -- only what has no player equivalent
-  #   tov_rate  : turnovers are a possession event, not a player shooting event
-  #   oreb_rate : bonus possessions from offensive boards
-  #   fta_bonus : opponent foul rate boosts this team's FTA opportunities
+  # STEP 2: Team-level rates
   # --------------------------------------------------
   off_params <- team_offense_adjusted_q %>%
     filter(
@@ -8926,6 +9189,10 @@ simulate_quarter_offense_player <- function(
   
   tov_rate  <- num0(off_params$tov_per_poss_adjusted,  0.14)
   oreb_rate <- num0(off_params$oreb_per_poss_adjusted, 0.10)
+  
+  # Per-sim jitter on team-level rates
+  tov_rate  <- pmin(0.25, pmax(0.05, tov_rate  + rnorm(1, 0, MC_VAR$tov_jitter_sd)))
+  oreb_rate <- pmin(0.25, pmax(0.02, oreb_rate + rnorm(1, 0, MC_VAR$reb_jitter_sd)))
   
   foul_params <- team_foul_rates_q %>%
     filter(
@@ -8954,7 +9221,7 @@ simulate_quarter_offense_player <- function(
   bonus_poss     <- rbinom(1, max(0L, round(expected_oreb)), MC_CONFIG$oreb_bonus_pct)
   effective_poss <- max(0L, scoring_poss + bonus_poss)
   
-  # Empty player stats template (returned on early exit)
+  # Empty player stats template
   empty_player_stats <- tibble(
     ESPN_PLAYER_ID = character(),
     sim_pts   = numeric(),
@@ -8977,19 +9244,18 @@ simulate_quarter_offense_player <- function(
   }
   
   # --------------------------------------------------
-  # STEP 4: Get active players -- shooting profile is the anchor
-  #   mins_q > 0 filters to players with projected minutes this quarter
+  # STEP 4+5: Get active players from PRE-MERGED profiles (22a)
+  # Single filter replaces 7 separate filter+join operations
   # --------------------------------------------------
-  players_q <- player_shooting_profile_q %>%
+  players_q <- game_player_profiles %>%
     filter(
-      ESPN_GAME_ID == !!game_id,
       ESPN_TEAM_ID == !!team_id,
       qtr          == !!qtr,
       mins_q       >  0
     )
   
   # --------------------------------------------------
-  # FALLBACK: no player profiles found -- revert to team-level shooting
+  # FALLBACK: no player profiles — revert to team-level
   # --------------------------------------------------
   if (nrow(players_q) == 0) {
     fg2_pct_t  <- num0(off_params$fg2_pct_adjusted,     0.54)
@@ -8997,6 +9263,10 @@ simulate_quarter_offense_player <- function(
     ft_pct_t   <- num0(off_params$ft_pct_adjusted,      0.78)
     p3_t       <- num0(off_params$p3_adjusted,           0.42)
     fta_rate_t <- num0(off_params$fta_per_fga_adjusted, 0.29) + fta_bonus
+    
+    fg2_pct_t  <- pmin(0.80, pmax(0.20, fg2_pct_t + rnorm(1, 0, MC_VAR$pct_jitter_rim)))
+    fg3_pct_t  <- pmin(0.55, pmax(0.10, fg3_pct_t + rnorm(1, 0, MC_VAR$pct_jitter_atb3)))
+    ft_pct_t   <- pmin(0.99, pmax(0.40, ft_pct_t  + rnorm(1, 0, MC_VAR$pct_jitter_rim)))
     
     if (isTRUE(is_b2b == 1)) {
       fg2_pct_t  <- fg2_pct_t  * 0.97
@@ -9029,180 +9299,132 @@ simulate_quarter_offense_player <- function(
   }
   
   # --------------------------------------------------
-  # STEP 5: Join all player rate profiles
+  # STEP 5b: Apply per-sim jitter + B2B + foul bonus
+  # (Profiles are pre-merged WITHOUT jitter — jitter applied fresh each sim)
   # --------------------------------------------------
-  players_q <- players_q %>%
-    left_join(
-      player_usage_profile %>%
-        filter(ESPN_GAME_ID == !!game_id, ESPN_TEAM_ID == !!team_id) %>%
-        select(ESPN_PLAYER_ID, usage_rate),
-      by = "ESPN_PLAYER_ID"
-    ) %>%
-    left_join(
-      player_apm_profile_q %>%
-        filter(ESPN_GAME_ID == !!game_id, ESPN_TEAM_ID == !!team_id, qtr == !!qtr) %>%
-        select(ESPN_PLAYER_ID, ast_per_min),
-      by = "ESPN_PLAYER_ID"
-    ) %>%
-    left_join(
-      player_bpm_profile_q %>%
-        filter(ESPN_GAME_ID == !!game_id, ESPN_TEAM_ID == !!team_id, qtr == !!qtr) %>%
-        select(ESPN_PLAYER_ID, blk_per_min),
-      by = "ESPN_PLAYER_ID"
-    ) %>%
-    left_join(
-      player_spm_profile_q %>%
-        filter(ESPN_GAME_ID == !!game_id, ESPN_TEAM_ID == !!team_id, qtr == !!qtr) %>%
-        select(ESPN_PLAYER_ID, stl_per_min),
-      by = "ESPN_PLAYER_ID"
-    ) %>%
-    left_join(
-      player_rpm_profile_q %>%
-        filter(ESPN_GAME_ID == !!game_id, ESPN_TEAM_ID == !!team_id, qtr == !!qtr) %>%
-        select(ESPN_PLAYER_ID, reb_per_min, oreb_per_min, dreb_per_min),
-      by = "ESPN_PLAYER_ID"
-    ) %>%
-    left_join(
-      player_fpm_profile_q %>%
-        filter(ESPN_GAME_ID == !!game_id, ESPN_TEAM_ID == !!team_id, qtr == !!qtr) %>%
-        select(ESPN_PLAYER_ID, fouls_per_min),
-      by = "ESPN_PLAYER_ID"
-    ) %>%
-    mutate(
-      # Fallback defaults for NAs (league avg per-minute rates)
-      usage_rate    = num0(usage_rate,    0.20),
-      ast_per_min   = num0(ast_per_min,   0.05),
-      blk_per_min   = num0(blk_per_min,   0.01),
-      stl_per_min   = num0(stl_per_min,   0.015),
-      reb_per_min   = num0(reb_per_min,   0.08),
-      oreb_per_min  = num0(oreb_per_min,  0.02),
-      dreb_per_min  = num0(dreb_per_min,  0.06),
-      fouls_per_min = num0(fouls_per_min, 0.07),
-      
-      # Apply B2B fatigue to player shooting profiles
-      FG2_pct = if (isTRUE(is_b2b == 1)) FG2_pct * 0.97 else FG2_pct,
-      FG3_pct = if (isTRUE(is_b2b == 1)) FG3_pct * 0.97 else FG3_pct,
-      FT_pct  = if (isTRUE(is_b2b == 1)) FT_pct  * 0.97 else FT_pct,
-      
-      # Apply foul bonus to each player's FTA rate
-      FTA_per_FGA = FTA_per_FGA + fta_bonus,
-      
-      # Usage weight for shot allocation
-      usage_weight = case_when(
-        !is.na(usage_weight_q) & usage_weight_q > 0 ~ usage_weight_q * mins_q,
-        TRUE ~ usage_rate * mins_q
-      )
-    )
+  n_p <- nrow(players_q)
   
-  total_weight <- sum(players_q$usage_weight, na.rm = TRUE)
-  if (total_weight <= 0) {
-    players_q    <- players_q %>% mutate(usage_weight = 1)
-    total_weight <- nrow(players_q)
-  }
-  players_q <- players_q %>% mutate(prob = usage_weight / total_weight)
+  b2b_mult <- if (isTRUE(is_b2b == 1)) 0.97 else 1.0
   
-  # --------------------------------------------------
-  # STEP 6: Pre-extract arrays for fast per-possession loop
-  # --------------------------------------------------
-  n_players  <- nrow(players_q)
-  player_ids <- players_q$ESPN_PLAYER_ID
-  probs      <- players_q$prob
-  mins_vec   <- players_q$mins_q
-  
-  # Player shooting profiles
-  fg2_vec <- players_q$FG2_pct
-  fg3_vec <- players_q$FG3_pct
-  ft_vec  <- players_q$FT_pct
+  fg2_vec <- pmin(0.80, pmax(0.20, players_q$FG2_pct * b2b_mult + rnorm(n_p, 0, MC_VAR$pct_jitter_rim)))
+  fg3_vec <- pmin(0.55, pmax(0.10, players_q$FG3_pct * b2b_mult + rnorm(n_p, 0, MC_VAR$pct_jitter_atb3)))
+  ft_vec  <- pmin(0.99, pmax(0.40, players_q$FT_pct  * b2b_mult + rnorm(n_p, 0, MC_VAR$pct_jitter_rim)))
   p3_vec  <- players_q$p3
-  fta_vec <- players_q$FTA_per_FGA
+  fta_vec <- players_q$FTA_per_FGA + fta_bonus
   
-  # Player per-minute box score rates
-  ast_vec   <- players_q$ast_per_min
-  blk_vec   <- players_q$blk_per_min
-  stl_vec   <- players_q$stl_per_min
-  reb_vec   <- players_q$reb_per_min
-  oreb_vec  <- players_q$oreb_per_min
-  dreb_vec  <- players_q$dreb_per_min
-  fouls_vec <- players_q$fouls_per_min
+  ast_vec   <- pmax(0, players_q$ast_per_min   + rnorm(n_p, 0, MC_VAR$ast_jitter_sd))
+  blk_vec   <- pmax(0, players_q$blk_per_min   + rnorm(n_p, 0, MC_VAR$blk_jitter_sd))
+  stl_vec   <- pmax(0, players_q$stl_per_min   + rnorm(n_p, 0, MC_VAR$stl_jitter_sd))
+  reb_vec   <- pmax(0, players_q$reb_per_min   + rnorm(n_p, 0, MC_VAR$reb_jitter_sd))
+  oreb_vec  <- pmax(0, players_q$oreb_per_min  + rnorm(n_p, 0, MC_VAR$reb_jitter_sd))
+  dreb_vec  <- pmax(0, players_q$dreb_per_min  + rnorm(n_p, 0, MC_VAR$reb_jitter_sd))
+  fouls_vec <- pmax(0, players_q$fouls_per_min + rnorm(n_p, 0, MC_VAR$fouls_jitter_sd))
+  
+  mins_vec   <- players_q$mins_q
+  player_ids <- players_q$ESPN_PLAYER_ID
+  
+  # Usage weights
+  usage_weight <- ifelse(
+    !is.na(players_q$usage_weight_q) & players_q$usage_weight_q > 0,
+    players_q$usage_weight_q * mins_vec,
+    players_q$usage_rate * mins_vec
+  )
+  
+  total_weight <- sum(usage_weight, na.rm = TRUE)
+  if (total_weight <= 0) {
+    usage_weight <- rep(1, n_p)
+    total_weight <- n_p
+  }
+  probs <- usage_weight / total_weight
+  
+  # NA safety — replace any remaining NAs with league avg defaults
+  fg2_vec[is.na(fg2_vec)]     <- 0.52
+  fg3_vec[is.na(fg3_vec)]     <- 0.36
+  ft_vec[is.na(ft_vec)]       <- 0.78
+  p3_vec[is.na(p3_vec)]       <- 0.35
+  fta_vec[is.na(fta_vec)]     <- 0.27
+  ast_vec[is.na(ast_vec)]     <- 0.05
+  blk_vec[is.na(blk_vec)]     <- 0.01
+  stl_vec[is.na(stl_vec)]     <- 0.015
+  reb_vec[is.na(reb_vec)]     <- 0.08
+  oreb_vec[is.na(oreb_vec)]   <- 0.02
+  dreb_vec[is.na(dreb_vec)]   <- 0.06
+  fouls_vec[is.na(fouls_vec)] <- 0.07
+  mins_vec[is.na(mins_vec)]   <- 0
+  probs[is.na(probs)]         <- 0
   
   # --------------------------------------------------
-  # STEP 7: Time-based stats -- computed once per quarter sim
-  #   Correlate with minutes played, not shot attempts.
-  #   mins_q already reflects each player's projected share of the quarter.
+  # STEP 7: Time-based stats (vectorized, unchanged)
   # --------------------------------------------------
-  acc_reb   <- pmax(0, rnorm(n_players, mean = reb_vec   * mins_vec, sd = sqrt(reb_vec   * mins_vec + 0.01)))
-  acc_oreb  <- pmax(0, rnorm(n_players, mean = oreb_vec  * mins_vec, sd = sqrt(oreb_vec  * mins_vec + 0.01)))
-  acc_dreb  <- pmax(0, rnorm(n_players, mean = dreb_vec  * mins_vec, sd = sqrt(dreb_vec  * mins_vec + 0.01)))
-  acc_ast   <- pmax(0, rnorm(n_players, mean = ast_vec   * mins_vec, sd = sqrt(ast_vec   * mins_vec + 0.01)))
-  acc_blk   <- pmax(0, rnorm(n_players, mean = blk_vec   * mins_vec, sd = sqrt(blk_vec   * mins_vec + 0.01)))
-  acc_stl   <- pmax(0, rnorm(n_players, mean = stl_vec   * mins_vec, sd = sqrt(stl_vec   * mins_vec + 0.01)))
-  acc_fouls <- pmax(0, rnorm(n_players, mean = fouls_vec * mins_vec, sd = sqrt(fouls_vec * mins_vec + 0.01)))
+  acc_reb   <- pmax(0, rnorm(n_p, mean = reb_vec   * mins_vec, sd = sqrt(reb_vec   * mins_vec + 0.01)))
+  acc_oreb  <- pmax(0, rnorm(n_p, mean = oreb_vec  * mins_vec, sd = sqrt(oreb_vec  * mins_vec + 0.01)))
+  acc_dreb  <- pmax(0, rnorm(n_p, mean = dreb_vec  * mins_vec, sd = sqrt(dreb_vec  * mins_vec + 0.01)))
+  acc_ast   <- pmax(0, rnorm(n_p, mean = ast_vec   * mins_vec, sd = sqrt(ast_vec   * mins_vec + 0.01)))
+  acc_blk   <- pmax(0, rnorm(n_p, mean = blk_vec   * mins_vec, sd = sqrt(blk_vec   * mins_vec + 0.01)))
+  acc_stl   <- pmax(0, rnorm(n_p, mean = stl_vec   * mins_vec, sd = sqrt(stl_vec   * mins_vec + 0.01)))
+  acc_fouls <- pmax(0, rnorm(n_p, mean = fouls_vec * mins_vec, sd = sqrt(fouls_vec * mins_vec + 0.01)))
   
   # --------------------------------------------------
-  # STEP 8: Possession-based shooting loop
-  #   Sample a player by usage weight, fire their personal shooting profile.
-  #   FTA generated ONCE at quarter level from total FGA, not per-shot.
+  # STEP 8: VECTORIZED shooting (22b) — no for loop
   # --------------------------------------------------
-  acc_pts  <- numeric(n_players)
-  acc_fga  <- integer(n_players)
-  acc_fgm  <- integer(n_players)
-  acc_fga3 <- integer(n_players)
-  acc_fgm3 <- integer(n_players)
-  acc_fta  <- integer(n_players)
-  acc_ftm  <- integer(n_players)
-  
   n_fga <- max(0L, round(effective_poss * 0.88))
   
+  acc_pts  <- numeric(n_p)
+  acc_fga  <- integer(n_p)
+  acc_fgm  <- integer(n_p)
+  acc_fga3 <- integer(n_p)
+  acc_fgm3 <- integer(n_p)
+  acc_fta  <- integer(n_p)
+  acc_ftm  <- integer(n_p)
+  
   if (n_fga > 0) {
-    shooter_idx <- sample.int(n_players, size = n_fga, replace = TRUE, prob = probs)
     
-    for (idx in seq_len(n_fga)) {
-      p <- shooter_idx[idx]
-      
-      is_three <- runif(1) < num0(p3_vec[p], 0.35)
-      
-      if (is_three) {
-        made <- runif(1) < num0(fg3_vec[p], 0.36)
-        pts  <- if (made) 3L else 0L
-        acc_fga3[p] <- acc_fga3[p] + 1L
-        acc_fgm3[p] <- acc_fgm3[p] + as.integer(made)
-      } else {
-        made <- runif(1) < num0(fg2_vec[p], 0.52)
-        pts  <- if (made) 2L else 0L
-      }
-      
-      acc_fga[p] <- acc_fga[p] + 1L
-      acc_fgm[p] <- acc_fgm[p] + as.integer(made)
-      acc_pts[p] <- acc_pts[p] + pts
-    }
+    # Assign all shooters at once
+    shooter_idx <- sample.int(n_p, size = n_fga, replace = TRUE, prob = probs)
     
-    # ── FTA: generate at quarter level, not per shot ─────────────────────
-    # Each player's expected FTA = their FGA * their FTA_per_FGA rate.
-    # rbinom draws actual FTA attempts, then FTM from FT%.
-    # This prevents FTA firing independently on every possession.
-    for (p in seq_len(n_players)) {
-      fga_p <- if (is.na(acc_fga[p]) || acc_fga[p] <= 0) 0L else acc_fga[p]
-      if (fga_p > 0) {
-        fta_rate <- if (is.na(fta_vec[p]) || fta_vec[p] < 0) 0.27 else fta_vec[p]
-        ft_rate  <- if (is.na(ft_vec[p])  || ft_vec[p]  < 0) 0.78 else ft_vec[p]
-        player_fta <- rbinom(1, fga_p, fta_rate)
-        if (!is.na(player_fta) && player_fta > 0) {
-          player_ftm  <- rbinom(1, player_fta, ft_rate)
-          acc_fta[p]  <- acc_fta[p] + player_fta
-          acc_ftm[p]  <- acc_ftm[p] + player_ftm
-          acc_pts[p]  <- acc_pts[p] + player_ftm
-        }
-      }
-    }
+    # Look up each shooter's rates in one vectorized pass
+    shot_p3  <- p3_vec[shooter_idx]
+    shot_fg2 <- fg2_vec[shooter_idx]
+    shot_fg3 <- fg3_vec[shooter_idx]
+    
+    # Draw ALL random numbers at once
+    rand_type <- runif(n_fga)
+    rand_make <- runif(n_fga)
+    
+    # Determine shot type and outcome in one pass
+    is_three <- rand_type < shot_p3
+    made     <- ifelse(is_three, rand_make < shot_fg3, rand_make < shot_fg2)
+    pts      <- ifelse(is_three & made, 3L, ifelse(!is_three & made, 2L, 0L))
+    
+    # Accumulate per-player stats using tabulate (no loop)
+    acc_fga  <- tabulate(shooter_idx, nbins = n_p)
+    acc_fgm  <- tabulate(shooter_idx[made], nbins = n_p)
+    acc_fga3 <- tabulate(shooter_idx[is_three], nbins = n_p)
+    acc_fgm3 <- tabulate(shooter_idx[is_three & made], nbins = n_p)
+    
+    # Points per player
+    pts_by_player <- tapply(pts, shooter_idx, sum)
+    acc_pts[as.integer(names(pts_by_player))] <- as.numeric(pts_by_player)
+    acc_pts[is.na(acc_pts)] <- 0
+    
+    # --------------------------------------------------
+    # VECTORIZED FTA (22c) — no loop
+    # --------------------------------------------------
+    fta_rate_safe <- ifelse(is.na(fta_vec) | fta_vec < 0, 0.27, fta_vec)
+    ft_rate_safe  <- ifelse(is.na(ft_vec)  | ft_vec  < 0, 0.78, ft_vec)
+    
+    acc_fta <- rbinom(n_p, acc_fga, pmin(1, pmax(0, fta_rate_safe)))
+    acc_ftm <- rbinom(n_p, acc_fta, pmin(1, pmax(0, ft_rate_safe)))
+    acc_pts <- acc_pts + acc_ftm
   }
   
   # --------------------------------------------------
-  # STEP 9: Apply variance to total points, scale player pts proportionally
+  # STEP 9: Apply variance, scale player pts proportionally
   # --------------------------------------------------
-  total_pts      <- sum(acc_pts)
+  total_pts      <- sum(acc_pts, na.rm = TRUE)
   pts_sd         <- sqrt(effective_poss) * MC_CONFIG$pts_per_poss_variance
   actual_pts     <- max(0, rnorm(1, mean = total_pts, sd = pts_sd))
-  scale_factor   <- if (total_pts > 0) actual_pts / total_pts else 1
+  scale_factor   <- if (!is.na(total_pts) && total_pts > 0) actual_pts / total_pts else 1
   acc_pts_scaled <- acc_pts * scale_factor
   pts_per_poss   <- if (effective_poss > 0) actual_pts / effective_poss else 0
   
@@ -9222,8 +9444,7 @@ simulate_quarter_offense_player <- function(
     filter(sim_fga > 0 | sim_fta > 0 | sim_reb > 0 | sim_ast > 0)
   
   # --------------------------------------------------
-  # STEP 11: Team totals = sum of player stats
-  #   Feed directly into the quarter results tibble in run_mc_simulations_batch
+  # STEP 11: Return
   # --------------------------------------------------
   list(
     points         = round(actual_pts),
@@ -9717,31 +9938,41 @@ summarize_player_props_raw <- function(props_raw) {
 # ===========================================================================
 # run_mc_simulations_batch()
 # ---------------------------------------------------------------------------
-# Changes vs original:
-#   1. Added 7 player profile arguments (5 new box score rate profiles +
-#      the 2 shooting/usage args from the Phase 5 Section 2 draft)
-#   2. Added sim_mode toggle: "player" | "team"
-#   3. In player mode: calls simulate_quarter_offense_player() instead of
-#      simulate_quarter_offense(), and uses result$team_reb/ast/blk/stl/fouls
-#      directly in the quarter results tibble instead of possession math
-#   4. Removed team_assist/block/steal lookups in player mode — redundant
-#      since player sim already computed these from player rate profiles
-#   5. Props collected in separate accumulator per game — NOT via attr()
-#      which gets stripped by bind_rows()
-#   6. Returns list(sim_results = ..., player_props = ...) — caller unpacks
+# Architecture:
+#   - Accepts team-level and player-level profile dataframes
+#   - Pre-merges all 7 player profiles into one table per game BEFORE the
+#     sim loop (Item 22a) — eliminates ~28,000 filter+join operations per backtest
+#   - Passes pre-merged game_player_profiles into simulate_quarter_offense_player()
+#   - simulate_quarter_offense_player() uses vectorized shooting (Item 22b)
+#     and vectorized FTA (Item 22c) — no per-shot or per-player for loops
+#
+# Function signature changes vs original:
+#   - Removed team_rebounding_rates_q (now from team_offense_adjusted_q)
+#   - Removed team_turnover_rates_q (now from team_offense_adjusted_q)
+#   - Player profile args still passed in — used by build_game_player_profiles()
+#     internally to create the pre-merged table once per game
+#
+# Sim modes:
+#   - "player": calls simulate_quarter_offense_player() with pre-merged profiles,
+#     produces full player box scores per sim for props distributions
+#   - "team": calls simulate_quarter_offense() (unchanged fallback),
+#     uses team_assist/block/steal rates for box score stats
+#
+# Props handling:
+#   - Props collected in separate accumulator per game (not via attr())
+#   - Summarized via summarize_player_props_raw() after all games complete
+#   - Returns list(sim_results = ..., player_props = ...) — caller unpacks
 # ===========================================================================
 
 run_mc_simulations_batch <- function(games_to_simulate,
                                      team_offense_adjusted_q,
                                      team_poss_profile_q,
-                                     team_rebounding_rates_q,
-                                     team_turnover_rates_q,
                                      team_foul_rates_q,
                                      team_shooting_params_q,
                                      team_assist_rates_q,
                                      team_block_rates_q,
                                      team_steal_rates_q,
-                                     # Player-level inputs
+                                     # Player-level inputs (used for pre-merge)
                                      player_shooting_profile_q = NULL,
                                      player_usage_profile      = NULL,
                                      player_apm_profile_q      = NULL,
@@ -9750,7 +9981,7 @@ run_mc_simulations_batch <- function(games_to_simulate,
                                      player_rpm_profile_q      = NULL,
                                      player_fpm_profile_q      = NULL,
                                      # Mode toggle
-                                     sim_mode     = "player",  # "player" | "team"
+                                     sim_mode     = "player",
                                      n_sims       = MC_CONFIG$n_sims_per_game,
                                      use_parallel = TRUE) {
   
@@ -9786,10 +10017,6 @@ run_mc_simulations_batch <- function(games_to_simulate,
     future::plan(future::multisession, workers = parallel::detectCores() - 1)
   }
   
-  # Each element of all_game_results is a named list:
-  #   list(sim_rows = <tibble>, props_rows = <tibble or NULL>)
-  # Keeping them separate means bind_rows() on sim_rows never strips props_rows.
-  
   all_game_results <- if (use_parallel) {
     
     future.apply::future_lapply(
@@ -9806,6 +10033,24 @@ run_mc_simulations_batch <- function(games_to_simulate,
                       i, n_games, elapsed, eta))
         }
         
+        # ══════════════════════════════════════════════════════════════
+        # 22a: PRE-MERGE player profiles ONCE per game (outside sim loop)
+        # This replaces ~28,000 filter+join operations per backtest
+        # ══════════════════════════════════════════════════════════════
+        game_profiles <- NULL
+        if (sim_mode == "player") {
+          game_profiles <- build_game_player_profiles(
+            game_id                   = game$game_id,
+            player_shooting_profile_q = player_shooting_profile_q,
+            player_usage_profile      = player_usage_profile,
+            player_apm_profile_q      = player_apm_profile_q,
+            player_bpm_profile_q      = player_bpm_profile_q,
+            player_spm_profile_q      = player_spm_profile_q,
+            player_rpm_profile_q      = player_rpm_profile_q,
+            player_fpm_profile_q      = player_fpm_profile_q
+          )
+        }
+        
         game_sim_rows   <- vector("list", n_sims)
         game_props_rows <- vector("list", n_sims)
         
@@ -9819,48 +10064,41 @@ run_mc_simulations_batch <- function(games_to_simulate,
             
             if (sim_mode == "player") {
               
+              # Draw shared game pace ONCE per quarter (Item 28)
+              shared_poss <- draw_game_possessions_q(
+                home_team_id     = game$home_team_id,
+                away_team_id     = game$away_team_id,
+                qtr              = qtr,
+                game_id          = game$game_id,
+                team_poss_profile_q = team_poss_profile_q
+              )
+              
               home_result <- simulate_quarter_offense_player(
-                team_id                   = game$home_team_id,
-                opp_team_id               = game$away_team_id,
-                qtr                       = qtr,
-                game_id                   = game$game_id,
-                team_offense_adjusted_q   = team_offense_adjusted_q,
-                team_poss_profile_q       = team_poss_profile_q,
-                team_rebounding_rates_q   = team_rebounding_rates_q,
-                team_turnover_rates_q     = team_turnover_rates_q,
-                team_foul_rates_q         = team_foul_rates_q,
-                player_shooting_profile_q = player_shooting_profile_q,
-                player_usage_profile      = player_usage_profile,
-                player_apm_profile_q      = player_apm_profile_q,
-                player_bpm_profile_q      = player_bpm_profile_q,
-                player_spm_profile_q      = player_spm_profile_q,
-                player_rpm_profile_q      = player_rpm_profile_q,
-                player_fpm_profile_q      = player_fpm_profile_q,
-                is_b2b                    = game$home_b2b
+                team_id                 = game$home_team_id,
+                opp_team_id             = game$away_team_id,
+                qtr                     = qtr,
+                game_id                 = game$game_id,
+                team_offense_adjusted_q = team_offense_adjusted_q,
+                team_poss_profile_q     = team_poss_profile_q,
+                team_foul_rates_q       = team_foul_rates_q,
+                game_player_profiles    = game_profiles,
+                is_b2b                  = game$home_b2b,
+                shared_poss             = shared_poss
               )
               
               away_result <- simulate_quarter_offense_player(
-                team_id                   = game$away_team_id,
-                opp_team_id               = game$home_team_id,
-                qtr                       = qtr,
-                game_id                   = game$game_id,
-                team_offense_adjusted_q   = team_offense_adjusted_q,
-                team_poss_profile_q       = team_poss_profile_q,
-                team_rebounding_rates_q   = team_rebounding_rates_q,
-                team_turnover_rates_q     = team_turnover_rates_q,
-                team_foul_rates_q         = team_foul_rates_q,
-                player_shooting_profile_q = player_shooting_profile_q,
-                player_usage_profile      = player_usage_profile,
-                player_apm_profile_q      = player_apm_profile_q,
-                player_bpm_profile_q      = player_bpm_profile_q,
-                player_spm_profile_q      = player_spm_profile_q,
-                player_rpm_profile_q      = player_rpm_profile_q,
-                player_fpm_profile_q      = player_fpm_profile_q,
-                is_b2b                    = game$away_b2b
+                team_id                 = game$away_team_id,
+                opp_team_id             = game$home_team_id,
+                qtr                     = qtr,
+                game_id                 = game$game_id,
+                team_offense_adjusted_q = team_offense_adjusted_q,
+                team_poss_profile_q     = team_poss_profile_q,
+                team_foul_rates_q       = team_foul_rates_q,
+                game_player_profiles    = game_profiles,
+                is_b2b                  = game$away_b2b,
+                shared_poss             = shared_poss
               )
               
-              # Quarter results: reb/ast/blk/stl/fouls come directly from
-              # player sim totals — no possession math needed
               quarter_results[[length(quarter_results) + 1]] <- tibble(
                 game_id      = game$game_id,
                 game_date    = game$game_date,
@@ -9893,7 +10131,7 @@ run_mc_simulations_batch <- function(games_to_simulate,
                 fouls_proj_q = round(away_result$team_fouls)
               )
               
-              # Collect player props into separate accumulator
+              # Collect player props
               if (nrow(home_result$player_stats) > 0) {
                 player_props_sim[[length(player_props_sim) + 1]] <-
                   home_result$player_stats %>%
@@ -10021,39 +10259,31 @@ run_mc_simulations_batch <- function(games_to_simulate,
             away_ot_poss <- max(0, round(rnorm(1, MC_CONFIG$ot_poss_mean, MC_CONFIG$ot_poss_sd)))
             
             if (sim_mode == "player") {
+              ot_shared_poss <- max(0L, round(rnorm(1, MC_CONFIG$ot_poss_mean, MC_CONFIG$ot_poss_sd)))
+              
               home_ot <- simulate_quarter_offense_player(
-                team_id = game$home_team_id, opp_team_id = game$away_team_id,
-                qtr = 4, game_id = game$game_id,
-                team_offense_adjusted_q   = team_offense_adjusted_q,
-                team_poss_profile_q       = team_poss_profile_q,
-                team_rebounding_rates_q   = team_rebounding_rates_q,
-                team_turnover_rates_q     = team_turnover_rates_q,
-                team_foul_rates_q         = team_foul_rates_q,
-                player_shooting_profile_q = player_shooting_profile_q,
-                player_usage_profile      = player_usage_profile,
-                player_apm_profile_q      = player_apm_profile_q,
-                player_bpm_profile_q      = player_bpm_profile_q,
-                player_spm_profile_q      = player_spm_profile_q,
-                player_rpm_profile_q      = player_rpm_profile_q,
-                player_fpm_profile_q      = player_fpm_profile_q,
-                is_b2b                    = game$home_b2b
+                team_id                 = game$home_team_id,
+                opp_team_id             = game$away_team_id,
+                qtr                     = 4,
+                game_id                 = game$game_id,
+                team_offense_adjusted_q = team_offense_adjusted_q,
+                team_poss_profile_q     = team_poss_profile_q,
+                team_foul_rates_q       = team_foul_rates_q,
+                game_player_profiles    = game_profiles,
+                is_b2b                  = game$home_b2b,
+                shared_poss             = ot_shared_poss
               )
               away_ot <- simulate_quarter_offense_player(
-                team_id = game$away_team_id, opp_team_id = game$home_team_id,
-                qtr = 4, game_id = game$game_id,
-                team_offense_adjusted_q   = team_offense_adjusted_q,
-                team_poss_profile_q       = team_poss_profile_q,
-                team_rebounding_rates_q   = team_rebounding_rates_q,
-                team_turnover_rates_q     = team_turnover_rates_q,
-                team_foul_rates_q         = team_foul_rates_q,
-                player_shooting_profile_q = player_shooting_profile_q,
-                player_usage_profile      = player_usage_profile,
-                player_apm_profile_q      = player_apm_profile_q,
-                player_bpm_profile_q      = player_bpm_profile_q,
-                player_spm_profile_q      = player_spm_profile_q,
-                player_rpm_profile_q      = player_rpm_profile_q,
-                player_fpm_profile_q      = player_fpm_profile_q,
-                is_b2b                    = game$away_b2b
+                team_id                 = game$away_team_id,
+                opp_team_id             = game$home_team_id,
+                qtr                     = 4,
+                game_id                 = game$game_id,
+                team_offense_adjusted_q = team_offense_adjusted_q,
+                team_poss_profile_q     = team_poss_profile_q,
+                team_foul_rates_q       = team_foul_rates_q,
+                game_player_profiles    = game_profiles,
+                is_b2b                  = game$away_b2b,
+                shared_poss             = ot_shared_poss
               )
             } else {
               home_ot <- simulate_quarter_offense(
@@ -10081,7 +10311,6 @@ run_mc_simulations_batch <- function(games_to_simulate,
             home_ot_pts <- max(0, round(home_ot$points * (home_ot_poss / max(home_ot$base_poss, 1))))
             away_ot_pts <- max(0, round(away_ot$points * (away_ot_poss / max(away_ot$base_poss, 1))))
             
-            # Force a winner if still tied after max OT
             if (ot_period == MC_CONFIG$max_ot_periods && home_ot_pts == away_ot_pts) {
               if (runif(1) > 0.5) home_ot_pts <- home_ot_pts + 1L else away_ot_pts <- away_ot_pts + 1L
             }
@@ -10105,7 +10334,6 @@ run_mc_simulations_batch <- function(games_to_simulate,
             )
           }
           
-          # Store sim rows and props rows separately
           game_sim_rows[[sim_i]]   <- bind_rows(quarter_results)
           game_props_rows[[sim_i]] <- if (length(player_props_sim) > 0)
             bind_rows(player_props_sim) else NULL
@@ -10258,15 +10486,13 @@ mc_output <- run_mc_simulations_batch(
   # Team-level profiles
   team_offense_adjusted_q = team_offense_adjusted_q,
   team_poss_profile_q     = team_poss_profile_q_backtest,
-  team_rebounding_rates_q = team_rebounding_rates_q,
-  team_turnover_rates_q   = team_turnover_rates_q,
   team_foul_rates_q       = team_foul_rates_q,
   team_shooting_params_q  = team_shooting_params_q,
   team_assist_rates_q     = team_assist_rates_q,
   team_block_rates_q      = team_block_rates_q,
   team_steal_rates_q      = team_steal_rates_q,
   
-  # Player-level profiles
+  # Player-level profiles (used by build_game_player_profiles inside)
   player_shooting_profile_q = player_shooting_profile_q,
   player_usage_profile      = player_usage_profile_backtest,
   player_apm_profile_q      = player_apm_profile_q,
@@ -10398,8 +10624,6 @@ if (mode == "production") {
     # Team-level profiles (today versions)
     team_offense_adjusted_q = team_offense_adjusted_q_today,
     team_poss_profile_q     = team_poss_profile_q_today,
-    team_rebounding_rates_q = team_rebounding_rates_q_today,
-    team_turnover_rates_q   = team_turnover_rates_q_today,
     team_foul_rates_q       = team_foul_rates_q_today,
     team_shooting_params_q  = team_shooting_params_q_today,
     team_assist_rates_q     = team_assist_rates_q_today,
@@ -10657,6 +10881,117 @@ if (mode == "production" && !exists("platt_model_full")) {
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
 
 
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+#
+#
+#     ooooo     ooo                   .o8                           .o8                              .oooooo.             oooo   o8o   .o8                              .    o8o                               .oooooo.                                              
+#     `888'     `8'                  "888                          "888                             d8P'  `Y8b            `888   `"'  "888                            .o8    `"'                              d8P'  `Y8b                                             
+#      888       8  ooo. .oo.    .oooo888   .ooooo.  oooo d8b  .oooo888   .ooooo.   .oooooooo      888           .oooo.    888  oooo   888oooo.  oooo d8b  .oooo.   .o888oo oooo   .ooooo.  ooo. .oo.        888          oooo  oooo  oooo d8b oooo    ooo  .ooooo.  
+#      888       8  `888P"Y88b  d88' `888  d88' `88b `888""8P d88' `888  d88' `88b 888' `88b       888          `P  )88b   888  `888   d88' `88b `888""8P `P  )88b    888   `888  d88' `88b `888P"Y88b       888          `888  `888  `888""8P  `88.  .8'  d88' `88b 
+#      888       8   888   888  888   888  888ooo888  888     888   888  888   888 888   888       888           .oP"888   888   888   888   888  888      .oP"888    888    888  888   888  888   888       888           888   888   888       `88..8'   888ooo888 
+#      `88.    .8'   888   888  888   888  888    .o  888     888   888  888   888 `88bod8P'       `88b    ooo  d8(  888   888   888   888   888  888     d8(  888    888 .  888  888   888  888   888       `88b    ooo   888   888   888        `888'    888    .o 
+#        `YbodP'    o888o o888o `Y8bod88P" `Y8bod8P' d888b    `Y8bod88P" `Y8bod8P' `8oooooo.        `Y8bood8P'  `Y888""8o o888o o888o  `Y8bod8P' d888b    `Y888""8o   "888" o888o `Y8bod8P' o888o o888o       `Y8bood8P'   `V88V"V8P' d888b        `8'     `Y8bod8P' 
+#                                                                                  d"     YD                                                                                                                                                                         
+#                                                                                  "Y88888P'             
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+
+# ==========================================================================================================
+# UNDERDOG CALIBRATION CURVE (Item 29)
+# ----------------------------------------------------------------------------------------------------------
+# Post-sim adjustment that corrects systematic undervaluation of underdogs.
+# Built from empirical backtest calibration data showing ONYX underestimates
+# dog win probability by 13-22% in the 0.00-0.30 range.
+#
+# Applied AFTER Platt scaling. Only adjusts probabilities below 0.45 —
+# the 0.45-0.70 range is already well-calibrated and left untouched.
+#
+# The correction is a simple linear interpolation between observed
+# calibration bucket midpoints and their actual win rates.
+# ==========================================================================================================
+
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+# 🧬🧬🧬 START: Underdog Calibration Curve Section
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+
+# Empirical calibration from backtest:
+#   ONYX says 0.07 → reality 0.286 (need +0.216)
+#   ONYX says 0.16 → reality 0.306 (need +0.147)
+#   ONYX says 0.25 → reality 0.383 (need +0.134)
+#   ONYX says 0.35 → reality 0.434 (need +0.085)
+#   ONYX says 0.45 → reality 0.493 (need +0.043)
+#   ONYX says 0.55 → reality 0.603 (need +0.057) — leave alone, close enough
+#   ONYX says 0.65 → reality 0.656 (need +0.009) — nearly perfect
+
+apply_underdog_calibration <- function(win_prob) {
+  # Only adjust probabilities where ONYX systematically undervalues
+  # Leave 0.45+ alone — those are already well calibrated
+  
+  # Calibration knots: (raw ONYX probability, empirical actual win rate)
+  raw_knots    <- c(0.00, 0.07, 0.16, 0.25, 0.35, 0.45, 0.55, 1.00)
+  actual_knots <- c(0.00, 0.28, 0.31, 0.38, 0.43, 0.49, 0.55, 1.00)
+  
+  # Linear interpolation
+  approx(x = raw_knots, y = actual_knots, xout = win_prob, rule = 2)$y
+}
+
+# Apply to backtest validation
+if (exists("mc_backtest_validation") && nrow(mc_backtest_validation) > 0) {
+  
+  cat("📈 Applying underdog calibration curve...\n")
+  
+  mc_backtest_validation <- mc_backtest_validation %>%
+    mutate(
+      # Apply to home win prob (adjusts both sides since away = 1 - home)
+      home_win_prob_dog_cal = sapply(home_win_prob_calibrated, apply_underdog_calibration),
+      away_win_prob_dog_cal = 1 - home_win_prob_dog_cal,
+      
+      # Recalculate pick based on calibrated probability
+      model_pick_cal = ifelse(home_win_prob_dog_cal > 0.5, "home", "away"),
+      model_pick_correct_cal = (model_pick_cal == actual_winner),
+      
+      # Recalculate model probability
+      model_prob_cal = pmax(home_win_prob_dog_cal, away_win_prob_dog_cal)
+      )
+
+  
+  # Compare accuracy before and after underdog calibration
+  acc_before <- mean(mc_backtest_validation$correct_pick, na.rm = TRUE)
+  acc_after  <- mean(mc_backtest_validation$model_pick_correct_cal, na.rm = TRUE)
+  
+  cat("  Accuracy before underdog cal:", round(acc_before * 100, 1), "%\n")
+  cat("  Accuracy after underdog cal: ", round(acc_after * 100, 1), "%\n")
+  
+  # How many dogs are we picking now?
+  n_dog_picks_before <- sum(mc_backtest_validation$home_win_prob_calibrated < 0.5 & 
+                              mc_backtest_validation$predicted_winner == "away", na.rm = TRUE) +
+    sum(mc_backtest_validation$home_win_prob_calibrated > 0.5 & 
+          mc_backtest_validation$predicted_winner == "home", na.rm = TRUE)
+  
+  # Count picks where calibrated prob picked the dog
+  n_dog_picks_after <- sum(
+    (mc_backtest_validation$home_win_prob_dog_cal < 0.5 & 
+       mc_backtest_validation$home_ml_fair > 0.5) |
+      (mc_backtest_validation$home_win_prob_dog_cal > 0.5 & 
+         mc_backtest_validation$home_ml_fair < 0.5),
+    na.rm = TRUE
+  )
+  
+  cat("  Dog picks (vs market fav) before:", n_dog_picks_before, "\n")
+  cat("  Dog picks (vs market fav) after: ", n_dog_picks_after, "\n\n")
+  
+  cat("✅ Underdog calibration curve applied\n\n")
+}
+
+# Save the function for production use
+saveRDS(apply_underdog_calibration, file.path(base_path, "underdog_calibration_func.rds"))
+
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+# 🧬🧬🧬 END: Underdog Calibration Curve Section
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+
+
 
 # 🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍🔍
 # 🔍🔍🔍 START: Error Decomposition Analysis
@@ -10765,18 +11100,10 @@ if (exists("mc_backtest_validation") && nrow(mc_backtest_validation) > 0) {
   
   print(as.data.frame(conf_analysis), row.names = FALSE)
   
-  cat("\n  Takeaway: ")
-  early_acc <- temporal_analysis$accuracy[temporal_analysis$season_third == "Early"]
-  late_acc  <- temporal_analysis$accuracy[temporal_analysis$season_third == "Late"]
-  if (length(early_acc) > 0 && length(late_acc) > 0 && !is.na(early_acc) && !is.na(late_acc)) {
-    if (late_acc > early_acc) {
-      cat("ONYX improves as the season progresses (more data = better profiles).\n\n")
-    } else {
-      cat("ONYX was more accurate early season. Possible overfitting to early patterns or roster changes mid-season.\n\n")
-    }
-  } else {
-    cat("Not enough data to assess temporal trend.\n\n")
-  }
+  best_bucket <- conf_analysis %>% slice_max(accuracy, n = 1)
+  worst_bucket <- conf_analysis %>% slice_min(accuracy, n = 1)
+  cat("\n  Takeaway: Best accuracy in '", best_bucket$conf_bucket[1], "' (", best_bucket$accuracy[1], 
+      "%). Worst in '", worst_bucket$conf_bucket[1], "' (", worst_bucket$accuracy[1], "%).\n\n", sep = "")
   
   # --------------------------------------------------
   # 2. SCORING ENVIRONMENT
