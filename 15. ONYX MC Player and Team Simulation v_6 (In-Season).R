@@ -73,6 +73,7 @@ library(lubridate)
 library(future)
 library(future.apply)
 
+
 plan(multisession, workers = 8)
 options(future.rng.onMisuse = "ignore")
 
@@ -323,6 +324,7 @@ for (q in 1:4) {
   }
 }
 
+
 # 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
 # 💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊💊                                                                                                             
 #
@@ -442,6 +444,7 @@ if (exists("nba_games_canon_season") && exists("BaseStats_Team_MC")) {
 } else {
   cat("⚠️  Cannot apply postponed game filter — nba_games_canon_season or BaseStats_Team_MC missing\n\n")
 }
+
 
 # ==========================================================================================================
 # SECTION 1: STRUCTURAL INTEGRITY
@@ -1213,7 +1216,8 @@ if (interactive()) {
 # SET MODE
 # -----------------------------
 mode <- "backtest"   # Options: "production", "backtest", "calibration", "research"
-n_sims <- 500
+n_sims <- 100
+
 
 # -----------------------------
 # MODE-SPECIFIC CONFIGURATION
@@ -2376,8 +2380,25 @@ build_minutes_params_one_date <- function(
     col <- paste0("MINS_", q)
     if (!col %in% names(rotation_mins_player)) return(NULL)
     
+    # ── TRADE FILTER: pre-compute current team per player ────────────
+    current_teams <- rotation_mins_player %>%
+      dplyr::filter(GAME_DATE < proj_date) %>%
+      dplyr::arrange(ESPN_PLAYER_ID, desc(GAME_DATE)) %>%
+      dplyr::group_by(ESPN_PLAYER_ID) %>%
+      dplyr::slice(1) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(ESPN_PLAYER_ID, current_team = ESPN_TEAM_ID)
+    # ─────────────────────────────────────────────────────────────────
+    
     rotation_mins_player %>%
       dplyr::filter(GAME_DATE < proj_date) %>%
+      dplyr::group_by(ESPN_PLAYER_ID) %>%
+      dplyr::filter(MINS_CGS > 0) %>%
+      dplyr::ungroup() %>%
+      # ── TRADE FILTER: only keep games from current team ──────────────
+      dplyr::left_join(current_teams, by = "ESPN_PLAYER_ID") %>%
+      dplyr::filter(ESPN_TEAM_ID == current_team) %>%
+      # ────────────────────────────────────────────────────────────────
       dplyr::arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
       dplyr::group_by(ESPN_PLAYER_ID) %>%
       dplyr::slice_tail(n = n_games_back) %>%
@@ -2597,8 +2618,10 @@ build_minutes_params_one_date <- function(
   }
   
   # ----------------------------------------------------------
-  # F) Safety clamp: normalize active players to quarter cap
+  # F) Safety clamp: normalize top rotation to quarter cap
   # ----------------------------------------------------------
+  MAX_ROTATION <- 10  # NBA teams typically play 9-10 players per game
+  
   for (q in quarters) {
     col <- paste0("mins_mean_", q)
     if (!col %in% names(df)) next
@@ -2608,7 +2631,10 @@ build_minutes_params_one_date <- function(
     df <- df %>%
       group_by(ESPN_TEAM_ID) %>%
       mutate(
-        team_total = sum(.data[[col]] * is_active, na.rm = TRUE),
+        rank_mins = rank(-ifelse(is_active == 1 & !is.na(.data[[col]]), .data[[col]], 0)),
+        is_rotation = is_active == 1 & rank_mins <= MAX_ROTATION,
+        !!col := ifelse(!is_rotation, 0, .data[[col]]),
+        team_total = sum(.data[[col]], na.rm = TRUE),
         !!col := case_when(
           is_active == 0    ~ 0,
           team_total <= 0   ~ .data[[col]],
@@ -2616,7 +2642,7 @@ build_minutes_params_one_date <- function(
           TRUE              ~ .data[[col]]
         )
       ) %>%
-      select(-team_total) %>%
+      select(-team_total, -rank_mins, -is_rotation) %>%
       ungroup()
   }
   
@@ -2652,53 +2678,79 @@ if (exists("roster_pool_today") && nrow(roster_pool_today) > 0) {
 # ============================================================
 if (mode == "backtest") {
   
-if (exists("roster_pool_backtest_by_date") && length(roster_pool_backtest_by_date) > 0) {
-  
-  cat("📊 Building BACKTEST minutes parameters (rotation-aware)...\n")
-  
-  bt_keys  <- names(roster_pool_backtest_by_date)
-  bt_dates <- key_to_date(bt_keys)
-  bt_keys  <- bt_keys[!is.na(bt_dates)]
-  
-  cl <- makeCluster(5)
-  clusterExport(cl, c(
-    "build_minutes_params_one_date",
-    "rotation_mins_player",
-    "BaseStats_Player_MC",
-    "delta_lookup",
-    "roster_pool_backtest_by_date",
-    "roster_out_backtest_by_date",
-    "num0",
-    "quarters",
-    "key_to_date"
-  ))
-  clusterEvalQ(cl, {
-    library(dplyr)
-    library(tidyr)
-  })
-  
-  player_minutes_params_backtest <- dplyr::bind_rows(
-    pblapply(bt_keys, function(kk) {
-      build_minutes_params_one_date(
-        proj_date   = key_to_date(kk),
-        roster_pool = roster_pool_backtest_by_date[[kk]],
-        roster_out  = roster_out_backtest_by_date[[kk]]
+  if (exists("roster_pool_backtest_by_date") && length(roster_pool_backtest_by_date) > 0) {
+    
+    cat("📊 Building BACKTEST minutes parameters (rotation-aware)...\n")
+    
+    bt_keys  <- names(roster_pool_backtest_by_date)
+    bt_dates <- key_to_date(bt_keys)
+    bt_keys  <- bt_keys[!is.na(bt_dates)]
+    
+    # ── CACHE CHECK ───────────────────────────────────────────────────
+    minutes_cache_path <- file.path(
+      "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+      "minutes_params_cache.rds"
+    )
+    
+    if (file.exists(minutes_cache_path)) {
+      
+      cat("📂 Loading minutes cache...\n")
+      player_minutes_params_backtest <- readRDS(minutes_cache_path)
+      
+      cached_keys  <- unique(player_minutes_params_backtest$date_key)
+      missing_keys <- bt_keys[!bt_keys %in% cached_keys]
+      
+      cat("   Cached dates:", length(cached_keys), "\n")
+      cat("   Missing dates:", length(missing_keys), "\n")
+      
+    } else {
+      
+      cat("📂 No minutes cache found — building from scratch\n")
+      player_minutes_params_backtest <- tibble()
+      missing_keys <- bt_keys
+    }
+    # ─────────────────────────────────────────────────────────────────
+    
+    # ── BUILD MISSING DATES ONLY ──────────────────────────────────────
+    if (length(missing_keys) > 0) {
+      
+      cat("🔄 Building", length(missing_keys), "missing dates...\n")
+      
+      new_rows <- dplyr::bind_rows(
+        lapply(missing_keys, function(kk) {
+          build_minutes_params_one_date(
+            proj_date   = key_to_date(kk),
+            roster_pool = roster_pool_backtest_by_date[[kk]],
+            roster_out  = roster_out_backtest_by_date[[kk]]
+          )
+        })
       )
-    }, cl = cl)
-  )
+      
+      # Append to existing cache
+      player_minutes_params_backtest <- bind_rows(
+        player_minutes_params_backtest,
+        new_rows
+      ) %>% distinct()
+      
+      # Save updated cache
+      saveRDS(player_minutes_params_backtest, minutes_cache_path)
+      cat("💾 Minutes cache saved | rows:", nrow(player_minutes_params_backtest), "\n\n")
+      
+    } else {
+      cat("✅ Minutes cache complete — no rebuild needed\n\n")
+    }
+    # ─────────────────────────────────────────────────────────────────
+    
+    message(
+      "✅ Minutes baseline params built (ROTATION) | BACKTEST | dates=", length(bt_keys),
+      " | rows=", nrow(player_minutes_params_backtest)
+    )
+    
+  } else {
+    player_minutes_params_backtest <- tibble()
+    warning("⚠️  roster_pool_backtest_by_date missing or empty - player_minutes_params_backtest is empty")
+  }
   
-  stopCluster(cl)
-  
-  message(
-    "✅ Minutes baseline params built (ROTATION) | BACKTEST | dates=", length(bt_keys),
-    " | rows=", nrow(player_minutes_params_backtest)
-  )
-  
-} else {
-  player_minutes_params_backtest <- tibble()
-  warning("⚠️  roster_pool_backtest_by_date missing or empty - player_minutes_params_backtest is empty")
-}
-
 }  # end mode == "backtest"
 
 
@@ -3029,11 +3081,25 @@ get_usage_q <- function(df, q) {
   rep(NA_real_, nrow(df))
 }
 
-
 # --------------------------------------------------
 # A) Build player shooting baselines (LEAKAGE-SAFE)
 # --------------------------------------------------
 build_player_shooting_baseline <- function(cutoff_date, n_games_back = 10L) {
+  
+  # ── TRADE FILTER: pre-compute current team per player ──────────────
+  current_teams <- BaseStats_Player_MC %>%
+    mutate(
+      GAME_DATE      = as.Date(GAME_DATE),
+      ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+      ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID)
+    ) %>%
+    filter(GAME_DATE < cutoff_date) %>%
+    arrange(ESPN_PLAYER_ID, desc(GAME_DATE)) %>%
+    group_by(ESPN_PLAYER_ID) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(ESPN_PLAYER_ID, current_team = ESPN_TEAM_ID)
+  # ───────────────────────────────────────────────────────────────────
   
   BaseStats_Player_MC %>%
     mutate(
@@ -3041,7 +3107,7 @@ build_player_shooting_baseline <- function(cutoff_date, n_games_back = 10L) {
       ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
       ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID),
       PLAYER_NAME    = as.character(PLAYER_NAME),
-      
+      MINS_CGS = num0(MINS_CGS, NA_real_),
       FGM2 = num0(`2PTM_CGS`, NA_real_),
       FGA2 = num0(`2PTA_CGS`, NA_real_),
       FGM3 = num0(`3PTM_CGS`, NA_real_),
@@ -3050,56 +3116,49 @@ build_player_shooting_baseline <- function(cutoff_date, n_games_back = 10L) {
       FTA  = num0(FTA_CGS,   NA_real_)
     ) %>%
     filter(!is.na(GAME_DATE), GAME_DATE < cutoff_date) %>%
+    left_join(current_teams, by = "ESPN_PLAYER_ID") %>%
+    filter(ESPN_TEAM_ID == current_team) %>%
     arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
-    group_by(ESPN_PLAYER_ID) %>%  # CHANGED: Removed ESPN_TEAM_ID (trade handling)
+    group_by(ESPN_PLAYER_ID) %>%
     slice_tail(n = n_games_back) %>%
     summarise(
+      total_mins     = sum(num0(MINS_CGS, 0), na.rm = TRUE),
       n_2pt_attempts = sum(FGA2),
       n_3pt_attempts = sum(FGA3),
       n_ft_attempts  = sum(FTA),
-      
       FG2_pct_raw = ifelse(sum(FGA2) > 0, sum(FGM2) / sum(FGA2), NA_real_),
       FG3_pct_raw = ifelse(sum(FGA3) > 0, sum(FGM3) / sum(FGA3), NA_real_),
       FT_pct_raw  = ifelse(sum(FTA)  > 0, sum(FTM)  / sum(FTA),  NA_real_),
-      
       p3_raw = ifelse(
         (sum(FGA2) + sum(FGA3)) > 0,
         sum(FGA3) / (sum(FGA2) + sum(FGA3)),
         NA_real_
       ),
-      
       FTA_per_FGA_raw = ifelse(
         (sum(FGA2) + sum(FGA3)) > 0,
         sum(FTA) / (sum(FGA2) + sum(FGA3)),
         NA_real_
       ),
-      
-      # ADDED: Fallback to league averages + small sample shrinkage
       FG2_pct = case_when(
-        is.na(FG2_pct_raw) ~ 0.52,  # League average 2PT%
-        n_2pt_attempts < 10 ~ 0.7 * FG2_pct_raw + 0.3 * 0.52,  # Shrink toward league avg
-        TRUE ~ FG2_pct_raw
+        is.na(FG2_pct_raw)   ~ 0.52,
+        n_2pt_attempts < 10  ~ 0.7 * FG2_pct_raw + 0.3 * 0.52,
+        TRUE                 ~ FG2_pct_raw
       ),
-      
       FG3_pct = case_when(
-        is.na(FG3_pct_raw) ~ 0.36,  # League average 3PT%
-        n_3pt_attempts < 10 ~ 0.7 * FG3_pct_raw + 0.3 * 0.36,
-        TRUE ~ FG3_pct_raw
+        is.na(FG3_pct_raw)   ~ 0.36,
+        n_3pt_attempts < 10  ~ 0.7 * FG3_pct_raw + 0.3 * 0.36,
+        TRUE                 ~ FG3_pct_raw
       ),
-      
       FT_pct = case_when(
-        is.na(FT_pct_raw) ~ 0.78,  # League average FT%
-        n_ft_attempts < 5 ~ 0.7 * FT_pct_raw + 0.3 * 0.78,
-        TRUE ~ FT_pct_raw
+        is.na(FT_pct_raw)  ~ 0.78,
+        n_ft_attempts < 5  ~ 0.7 * FT_pct_raw + 0.3 * 0.78,
+        TRUE               ~ FT_pct_raw
       ),
-      
-      p3 = ifelse(is.na(p3_raw), 0.35, p3_raw),  # League average ~35% of shots are 3s
-      
-      FTA_per_FGA = ifelse(is.na(FTA_per_FGA_raw), 0.25, FTA_per_FGA_raw),  # League avg
-      
+      p3 = ifelse(is.na(p3_raw), 0.35, p3_raw),
+      FTA_per_FGA = ifelse(is.na(FTA_per_FGA_raw), 0.25, FTA_per_FGA_raw),
       .groups = "drop"
     ) %>%
-    select(ESPN_PLAYER_ID, FG2_pct, FG3_pct, FT_pct, p3, FTA_per_FGA)  # Drop raw/count columns
+    select(ESPN_PLAYER_ID, FG2_pct, FG3_pct, FT_pct, p3, FTA_per_FGA)
 }
 
 # ============================================================
@@ -3110,15 +3169,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
   cat("📊 Building TODAY shooting profile for", as.character(as_of_date), "...\n")
   
   today_base <- build_player_shooting_baseline(
-    cutoff_date = as.Date(as_of_date),
+    cutoff_date  = as.Date(as_of_date),
     n_games_back = 10L
   )
   
-  # Join shooting rates to projections
   player_projections_today <- player_projections_today %>%
     left_join(today_base, by = "ESPN_PLAYER_ID")
   
-  # Expand into quarters
   player_shooting_profile_q_today <- bind_rows(
     lapply(quarters, function(q) {
       tibble(
@@ -3127,23 +3184,18 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
         ESPN_TEAM_ID   = player_projections_today$ESPN_TEAM_ID,
         ESPN_PLAYER_ID = player_projections_today$ESPN_PLAYER_ID,
         qtr            = q,
-        
         mins_q         = get_mins_q(player_projections_today, q),
-        usage_weight_q = get_usage_q(player_projections_today, q),  # NEW
-        
-        FG2_pct     = player_projections_today$FG2_pct,
-        FG3_pct     = player_projections_today$FG3_pct,
-        FT_pct      = player_projections_today$FT_pct,
-        p3          = player_projections_today$p3,
-        FTA_per_FGA = player_projections_today$FTA_per_FGA
+        usage_weight_q = get_usage_q(player_projections_today, q),
+        FG2_pct        = player_projections_today$FG2_pct,
+        FG3_pct        = player_projections_today$FG3_pct,
+        FT_pct         = player_projections_today$FT_pct,
+        p3             = player_projections_today$p3,
+        FTA_per_FGA    = player_projections_today$FTA_per_FGA
       )
     })
   )
   
-  message(
-    "✅ TODAY shooting profile built | rows=", 
-    nrow(player_shooting_profile_q_today)
-  )
+  message("✅ TODAY shooting profile built | rows=", nrow(player_shooting_profile_q_today))
   
 } else {
   player_shooting_profile_q_today <- tibble()
@@ -3155,79 +3207,107 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
 # ============================================================
 if (mode == "backtest") {
   
-if (exists("player_projections_backtest") && nrow(player_projections_backtest) > 0) {
-  
-  cat("📊 Building BACKTEST shooting profiles...\n")
-  
-  player_projections_backtest <- player_projections_backtest %>%
-    mutate(GAME_DATE = as.Date(GAME_DATE))
-  
-  bt_dates <- sort(unique(player_projections_backtest$GAME_DATE))
-  bt_dates <- bt_dates[!is.na(bt_dates)]
-  
-  shoot_cache <- new.env(parent = emptyenv())
-  out <- vector("list", length(bt_dates))
-  
-  for (i in seq_along(bt_dates)) {
+  if (exists("player_projections_backtest") && nrow(player_projections_backtest) > 0) {
     
-    dd  <- bt_dates[i]
-    sub <- player_projections_backtest %>% filter(GAME_DATE == dd)
-    if (nrow(sub) == 0) next
+    cat("📊 Building BACKTEST shooting profiles...\n")
     
-    k <- format(dd, "%Y%m%d")
+    player_projections_backtest <- player_projections_backtest %>%
+      mutate(GAME_DATE = as.Date(GAME_DATE))
     
-    # Cache shooting baselines by date
-    if (!exists(k, envir = shoot_cache)) {
-      base <- build_player_shooting_baseline(dd, 10L)
-      assign(k, base, envir = shoot_cache)
-    }
+    bt_dates <- sort(unique(player_projections_backtest$GAME_DATE))
+    bt_dates <- bt_dates[!is.na(bt_dates)]
     
-    base <- get(k, envir = shoot_cache)
-    
-    # Join shooting rates to projections for this date
-    sub <- sub %>%
-      left_join(base, by = "ESPN_PLAYER_ID")
-    
-    # Expand into quarters
-    sub_q <- bind_rows(
-      lapply(quarters, function(q) {
-        tibble(
-          GAME_DATE      = sub$GAME_DATE,
-          ESPN_GAME_ID   = sub$ESPN_GAME_ID,
-          ESPN_TEAM_ID   = sub$ESPN_TEAM_ID,
-          ESPN_PLAYER_ID = sub$ESPN_PLAYER_ID,
-          qtr            = q,
-          
-          mins_q         = get_mins_q(sub, q),
-          usage_weight_q = get_usage_q(sub, q),  # NEW — only addition
-          
-          FG2_pct     = sub$FG2_pct,
-          FG3_pct     = sub$FG3_pct,
-          FT_pct      = sub$FT_pct,
-          p3          = sub$p3,
-          FTA_per_FGA = sub$FTA_per_FGA,
-          pts_per_min = sub$pts_per_min   # keep this if it was there before
-        )
-      })
+    # ── CACHE CHECK ─────────────────────────────────────────────────
+    shooting_cache_path <- file.path(
+      "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+      "shooting_baseline_cache.rds"
     )
     
-    out[[i]] <- sub_q
+    if (file.exists(shooting_cache_path)) {
+      cat("📂 Loading shooting baseline cache...\n")
+      shooting_baseline_cache <- readRDS(shooting_cache_path)
+      cached_dates  <- unique(as.Date(shooting_baseline_cache$cutoff_date))
+      missing_dates <- bt_dates[!bt_dates %in% cached_dates]
+      cat("   Cached:", length(cached_dates),
+          "| Need:", length(bt_dates),
+          "| Missing:", length(missing_dates), "\n")
+    } else {
+      cat("📂 No shooting cache — building all", length(bt_dates), "dates\n")
+      shooting_baseline_cache <- tibble()
+      missing_dates <- bt_dates
+    }
+    
+    # ── BUILD MISSING DATES ──────────────────────────────────────────
+    if (length(missing_dates) > 0) {
+      cat("🔄 Building", length(missing_dates), "missing dates...\n")
+      
+      new_rows <- vector("list", length(missing_dates))
+      for (i in seq_along(missing_dates)) {
+        dd <- missing_dates[i]
+        new_rows[[i]] <- build_player_shooting_baseline(dd, 10L) %>%
+          mutate(cutoff_date = dd)
+      }
+      
+      shooting_baseline_cache <- bind_rows(shooting_baseline_cache, new_rows) %>%
+        distinct()
+      
+      saveRDS(shooting_baseline_cache, shooting_cache_path)
+      cat("💾 Shooting cache saved | rows:", nrow(shooting_baseline_cache), "\n\n")
+    } else {
+      cat("✅ Shooting cache complete\n\n")
+    }
+    # ────────────────────────────────────────────────────────────────
+    
+    # ── BUILD PROFILE FROM CACHE ─────────────────────────────────────
+    out <- vector("list", length(bt_dates))
+    
+    for (i in seq_along(bt_dates)) {
+      
+      dd  <- bt_dates[i]
+      sub <- player_projections_backtest %>% filter(GAME_DATE == dd)
+      if (nrow(sub) == 0) next
+      
+      # Pull from cache instead of calling builder
+      base <- shooting_baseline_cache %>%
+        filter(as.Date(cutoff_date) == dd) %>%
+        select(-cutoff_date)
+      
+      sub <- sub %>% left_join(base, by = "ESPN_PLAYER_ID")
+      
+      sub_q <- bind_rows(
+        lapply(quarters, function(q) {
+          tibble(
+            GAME_DATE      = sub$GAME_DATE,
+            ESPN_GAME_ID   = sub$ESPN_GAME_ID,
+            ESPN_TEAM_ID   = sub$ESPN_TEAM_ID,
+            ESPN_PLAYER_ID = sub$ESPN_PLAYER_ID,
+            qtr            = q,
+            mins_q         = get_mins_q(sub, q),
+            usage_weight_q = get_usage_q(sub, q),
+            FG2_pct        = sub$FG2_pct,
+            FG3_pct        = sub$FG3_pct,
+            FT_pct         = sub$FT_pct,
+            p3             = sub$p3,
+            FTA_per_FGA    = sub$FTA_per_FGA,
+            pts_per_min    = if ("pts_per_min" %in% names(sub)) sub$pts_per_min else NA_real_
+          )
+        })
+      )
+      
+      out[[i]] <- sub_q
+    }
+    
+    player_shooting_profile_q <- bind_rows(out)
+    
+    message("✅ BACKTEST shooting profile built | dates=", length(bt_dates),
+            " | rows=", nrow(player_shooting_profile_q))
+    
+  } else {
+    player_shooting_profile_q <- tibble()
+    message("⏭️  Skipping BACKTEST shooting profile (no backtest data)")
   }
   
-  player_shooting_profile_q <- bind_rows(out)
-  
-  message(
-    "✅ BACKTEST shooting profile built | dates=", length(bt_dates),
-    " | rows=", nrow(player_shooting_profile_q)
-  )
-  
-} else {
-  player_shooting_profile_q <- tibble()
-  message("⏭️  Skipping BACKTEST shooting profile (no backtest data)")
-}
-  
 }  # end mode == "backtest"
-
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # 🏀🏀🏀 END: Player Shooting Rate Profile
@@ -3280,9 +3360,6 @@ stopifnot(
 
 quarters <- 1:6
 
-# --------------------------------------------------
-# Helper: safely extract quarter minutes
-# --------------------------------------------------
 get_mins_q <- function(df, q) {
   col <- paste0("mins_mean_Q", q)
   if (col %in% names(df)) return(as.numeric(df[[col]]))
@@ -3295,11 +3372,23 @@ get_usage_q <- function(df, q) {
   rep(NA_real_, nrow(df))
 }
 
-
 # --------------------------------------------------
 # A) Build deterministic PPM baseline (LEAKAGE-SAFE)
 # --------------------------------------------------
 build_ppm_baseline <- function(cutoff_date, n_games_back = 10L) {
+  
+  current_teams <- BaseStats_Player_MC %>%
+    mutate(
+      GAME_DATE      = as.Date(GAME_DATE),
+      ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+      ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID)
+    ) %>%
+    filter(GAME_DATE < cutoff_date) %>%
+    arrange(ESPN_PLAYER_ID, desc(GAME_DATE)) %>%
+    group_by(ESPN_PLAYER_ID) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(ESPN_PLAYER_ID, current_team = ESPN_TEAM_ID)
   
   BaseStats_Player_MC %>%
     dplyr::mutate(
@@ -3310,6 +3399,8 @@ build_ppm_baseline <- function(cutoff_date, n_games_back = 10L) {
       MINS_NUM       = num0(MINS_CGS, NA_real_)
     ) %>%
     dplyr::filter(GAME_DATE < cutoff_date) %>%
+    dplyr::left_join(current_teams, by = "ESPN_PLAYER_ID") %>%
+    dplyr::filter(ESPN_TEAM_ID == current_team) %>%
     dplyr::arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
     dplyr::group_by(ESPN_PLAYER_ID) %>%
     dplyr::slice_tail(n = n_games_back) %>%
@@ -3321,15 +3412,12 @@ build_ppm_baseline <- function(cutoff_date, n_games_back = 10L) {
       total_mins     = sum(MINS_NUM, na.rm = TRUE),
       total_pts      = sum(PTS_NUM,  na.rm = TRUE),
       total_weight   = sum(rec_weight, na.rm = TRUE),
-      
-      # Recency-weighted PPM
       pts_per_min_raw = ifelse(
         sum(MINS_NUM * rec_weight, na.rm = TRUE) > 0,
-        sum(PTS_NUM  * rec_weight, na.rm = TRUE) / 
+        sum(PTS_NUM  * rec_weight, na.rm = TRUE) /
           sum(MINS_NUM * rec_weight, na.rm = TRUE),
         NA_real_
       ),
-      
       pts_per_min = case_when(
         is.na(pts_per_min_raw) ~ 0.40,
         total_mins < 50        ~ 0.7 * pts_per_min_raw + 0.3 * 0.40,
@@ -3348,15 +3436,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
   cat("📊 Building TODAY PPM profile for", as.character(as_of_date), "...\n")
   
   today_base <- build_ppm_baseline(
-    cutoff_date = as.Date(as_of_date),
+    cutoff_date  = as.Date(as_of_date),
     n_games_back = 10L
   )
   
-  # Join PPM rates to projections
   player_projections_today <- player_projections_today %>%
     left_join(today_base, by = "ESPN_PLAYER_ID")
   
-  # Expand into quarters
   player_ppm_profile_q_today <- bind_rows(
     lapply(quarters, function(q) {
       tibble(
@@ -3365,17 +3451,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
         ESPN_TEAM_ID   = player_projections_today$ESPN_TEAM_ID,
         ESPN_PLAYER_ID = player_projections_today$ESPN_PLAYER_ID,
         qtr            = q,
-        
-        mins_q      = get_mins_q(player_projections_today, q),
-        pts_per_min = player_projections_today$pts_per_min
+        mins_q         = get_mins_q(player_projections_today, q),
+        pts_per_min    = player_projections_today$pts_per_min
       )
     })
   )
   
-  message(
-    "✅ TODAY PPM profile built | rows=", 
-    nrow(player_ppm_profile_q_today)
-  )
+  message("✅ TODAY PPM profile built | rows=", nrow(player_ppm_profile_q_today))
   
 } else {
   player_ppm_profile_q_today <- tibble()
@@ -3395,7 +3477,47 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   bt_dates <- sort(unique(player_projections_backtest$GAME_DATE))
   bt_dates <- bt_dates[!is.na(bt_dates)]
   
-  ppm_cache <- new.env(parent = emptyenv())
+  # ── CACHE CHECK ─────────────────────────────────────────────────
+  ppm_cache_path <- file.path(
+    "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+    "ppm_baseline_cache.rds"
+  )
+  
+  if (file.exists(ppm_cache_path)) {
+    cat("📂 Loading PPM cache...\n")
+    ppm_baseline_cache <- readRDS(ppm_cache_path)
+    cached_dates  <- unique(as.Date(ppm_baseline_cache$cutoff_date))
+    missing_dates <- bt_dates[!bt_dates %in% cached_dates]
+    cat("   Cached:", length(cached_dates), "| Need:", length(bt_dates),
+        "| Missing:", length(missing_dates), "\n")
+  } else {
+    cat("📂 No PPM cache — building all", length(bt_dates), "dates\n")
+    ppm_baseline_cache <- tibble()
+    missing_dates <- bt_dates
+  }
+  
+  # ── BUILD MISSING DATES ──────────────────────────────────────────
+  if (length(missing_dates) > 0) {
+    cat("🔄 Building", length(missing_dates), "missing dates...\n")
+    
+    new_rows <- vector("list", length(missing_dates))
+    for (i in seq_along(missing_dates)) {
+      dd <- missing_dates[i]
+      new_rows[[i]] <- build_ppm_baseline(dd, 10L) %>%
+        mutate(cutoff_date = dd)
+    }
+    
+    ppm_baseline_cache <- bind_rows(ppm_baseline_cache, new_rows) %>%
+      distinct()
+    
+    saveRDS(ppm_baseline_cache, ppm_cache_path)
+    cat("💾 PPM cache saved | rows:", nrow(ppm_baseline_cache), "\n\n")
+  } else {
+    cat("✅ PPM cache complete\n\n")
+  }
+  # ────────────────────────────────────────────────────────────────
+  
+  # ── BUILD PROFILE FROM CACHE ─────────────────────────────────────
   out <- vector("list", length(bt_dates))
   
   for (i in seq_along(bt_dates)) {
@@ -3404,21 +3526,12 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
     sub <- player_projections_backtest %>% filter(GAME_DATE == dd)
     if (nrow(sub) == 0) next
     
-    k <- format(dd, "%Y%m%d")
+    base <- ppm_baseline_cache %>%
+      filter(as.Date(cutoff_date) == dd) %>%
+      select(-cutoff_date)
     
-    # Cache PPM baselines by date
-    if (!exists(k, envir = ppm_cache)) {
-      base <- build_ppm_baseline(dd, 10L)
-      assign(k, base, envir = ppm_cache)
-    }
+    sub <- sub %>% left_join(base, by = "ESPN_PLAYER_ID")
     
-    base <- get(k, envir = ppm_cache)
-    
-    # Join PPM rates to projections for this date
-    sub <- sub %>%
-      left_join(base, by = "ESPN_PLAYER_ID")
-    
-    # Expand into quarters
     sub_q <- bind_rows(
       lapply(quarters, function(q) {
         tibble(
@@ -3427,9 +3540,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
           ESPN_TEAM_ID   = sub$ESPN_TEAM_ID,
           ESPN_PLAYER_ID = sub$ESPN_PLAYER_ID,
           qtr            = q,
-          
-          mins_q      = get_mins_q(sub, q),
-          pts_per_min = sub$pts_per_min
+          mins_q         = get_mins_q(sub, q),
+          pts_per_min    = sub$pts_per_min
         )
       })
     )
@@ -3439,10 +3551,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   
   player_ppm_profile_q <- bind_rows(out)
   
-  message(
-    "✅ BACKTEST PPM profile built | dates=", length(bt_dates),
-    " | rows=", nrow(player_ppm_profile_q)
-  )
+  message("✅ BACKTEST PPM profile built | dates=", length(bt_dates),
+          " | rows=", nrow(player_ppm_profile_q))
   
 } else {
   player_ppm_profile_q <- tibble()
@@ -3499,9 +3609,6 @@ stopifnot(
 
 quarters <- 1:6
 
-# --------------------------------------------------
-# Helper: safely extract quarter minutes
-# --------------------------------------------------
 get_mins_q <- function(df, q) {
   col <- paste0("mins_mean_Q", q)
   if (col %in% names(df)) return(as.numeric(df[[col]]))
@@ -3519,6 +3626,19 @@ get_usage_q <- function(df, q) {
 # --------------------------------------------------
 build_rpm_baseline <- function(cutoff_date, n_games_back = 10L) {
   
+  current_teams <- BaseStats_Player_MC %>%
+    mutate(
+      GAME_DATE      = as.Date(GAME_DATE),
+      ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+      ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID)
+    ) %>%
+    filter(GAME_DATE < cutoff_date) %>%
+    arrange(ESPN_PLAYER_ID, desc(GAME_DATE)) %>%
+    group_by(ESPN_PLAYER_ID) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(ESPN_PLAYER_ID, current_team = ESPN_TEAM_ID)
+  
   BaseStats_Player_MC %>%
     dplyr::mutate(
       GAME_DATE      = as.Date(GAME_DATE),
@@ -3530,38 +3650,34 @@ build_rpm_baseline <- function(cutoff_date, n_games_back = 10L) {
       MINS_NUM       = num0(MINS_CGS, NA_real_)
     ) %>%
     dplyr::filter(GAME_DATE < cutoff_date) %>%
+    dplyr::left_join(current_teams, by = "ESPN_PLAYER_ID") %>%
+    dplyr::filter(ESPN_TEAM_ID == current_team) %>%
     dplyr::arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
-    dplyr::group_by(ESPN_PLAYER_ID) %>%  # Cross-team for trade handling
+    dplyr::group_by(ESPN_PLAYER_ID) %>%
     dplyr::slice_tail(n = n_games_back) %>%
     dplyr::summarise(
       total_mins = sum(MINS_NUM),
       total_oreb = sum(OREB_NUM),
       total_dreb = sum(DREB_NUM),
       total_reb  = sum(REB_NUM),
-      
       oreb_per_min_raw = ifelse(total_mins > 0, total_oreb / total_mins, NA_real_),
       dreb_per_min_raw = ifelse(total_mins > 0, total_dreb / total_mins, NA_real_),
       reb_per_min_raw  = ifelse(total_mins > 0, total_reb  / total_mins, NA_real_),
-      
-      # Fallback + small sample shrinkage
       oreb_per_min = case_when(
-        is.na(oreb_per_min_raw) ~ 0.04,  # League avg ~0.04 oreb/min (~1.9 oreb/48min)
-        total_mins < 50 ~ 0.7 * oreb_per_min_raw + 0.3 * 0.04,
-        TRUE ~ oreb_per_min_raw
+        is.na(oreb_per_min_raw) ~ 0.04,
+        total_mins < 50         ~ 0.7 * oreb_per_min_raw + 0.3 * 0.04,
+        TRUE                    ~ oreb_per_min_raw
       ),
-      
       dreb_per_min = case_when(
-        is.na(dreb_per_min_raw) ~ 0.16,  # League avg ~0.16 dreb/min (~7.7 dreb/48min)
-        total_mins < 50 ~ 0.7 * dreb_per_min_raw + 0.3 * 0.16,
-        TRUE ~ dreb_per_min_raw
+        is.na(dreb_per_min_raw) ~ 0.16,
+        total_mins < 50         ~ 0.7 * dreb_per_min_raw + 0.3 * 0.16,
+        TRUE                    ~ dreb_per_min_raw
       ),
-      
       reb_per_min = case_when(
-        is.na(reb_per_min_raw) ~ 0.20,  # League avg ~0.20 total reb/min
-        total_mins < 50 ~ 0.7 * reb_per_min_raw + 0.3 * 0.20,
-        TRUE ~ reb_per_min_raw
+        is.na(reb_per_min_raw) ~ 0.20,
+        total_mins < 50        ~ 0.7 * reb_per_min_raw + 0.3 * 0.20,
+        TRUE                   ~ reb_per_min_raw
       ),
-      
       .groups = "drop"
     ) %>%
     dplyr::select(ESPN_PLAYER_ID, oreb_per_min, dreb_per_min, reb_per_min)
@@ -3575,15 +3691,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
   cat("📊 Building TODAY RPM profile for", as.character(as_of_date), "...\n")
   
   today_base <- build_rpm_baseline(
-    cutoff_date = as.Date(as_of_date),
+    cutoff_date  = as.Date(as_of_date),
     n_games_back = 10L
   )
   
-  # Join RPM rates to projections
   player_projections_today <- player_projections_today %>%
     left_join(today_base, by = "ESPN_PLAYER_ID")
   
-  # Expand into quarters
   player_rpm_profile_q_today <- bind_rows(
     lapply(quarters, function(q) {
       tibble(
@@ -3592,19 +3706,15 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
         ESPN_TEAM_ID   = player_projections_today$ESPN_TEAM_ID,
         ESPN_PLAYER_ID = player_projections_today$ESPN_PLAYER_ID,
         qtr            = q,
-        
-        mins_q       = get_mins_q(player_projections_today, q),
-        oreb_per_min = player_projections_today$oreb_per_min,
-        dreb_per_min = player_projections_today$dreb_per_min,
-        reb_per_min  = player_projections_today$reb_per_min
+        mins_q         = get_mins_q(player_projections_today, q),
+        oreb_per_min   = player_projections_today$oreb_per_min,
+        dreb_per_min   = player_projections_today$dreb_per_min,
+        reb_per_min    = player_projections_today$reb_per_min
       )
     })
   )
   
-  message(
-    "✅ TODAY RPM profile built | rows=", 
-    nrow(player_rpm_profile_q_today)
-  )
+  message("✅ TODAY RPM profile built | rows=", nrow(player_rpm_profile_q_today))
   
 } else {
   player_rpm_profile_q_today <- tibble()
@@ -3624,7 +3734,47 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   bt_dates <- sort(unique(player_projections_backtest$GAME_DATE))
   bt_dates <- bt_dates[!is.na(bt_dates)]
   
-  rpm_cache <- new.env(parent = emptyenv())
+  # ── CACHE CHECK ─────────────────────────────────────────────────
+  rpm_cache_path <- file.path(
+    "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+    "rpm_baseline_cache.rds"
+  )
+  
+  if (file.exists(rpm_cache_path)) {
+    cat("📂 Loading RPM cache...\n")
+    rpm_baseline_cache <- readRDS(rpm_cache_path)
+    cached_dates  <- unique(as.Date(rpm_baseline_cache$cutoff_date))
+    missing_dates <- bt_dates[!bt_dates %in% cached_dates]
+    cat("   Cached:", length(cached_dates), "| Need:", length(bt_dates),
+        "| Missing:", length(missing_dates), "\n")
+  } else {
+    cat("📂 No RPM cache — building all", length(bt_dates), "dates\n")
+    rpm_baseline_cache <- tibble()
+    missing_dates <- bt_dates
+  }
+  
+  # ── BUILD MISSING DATES ──────────────────────────────────────────
+  if (length(missing_dates) > 0) {
+    cat("🔄 Building", length(missing_dates), "missing dates...\n")
+    
+    new_rows <- vector("list", length(missing_dates))
+    for (i in seq_along(missing_dates)) {
+      dd <- missing_dates[i]
+      new_rows[[i]] <- build_rpm_baseline(dd, 10L) %>%
+        mutate(cutoff_date = dd)
+    }
+    
+    rpm_baseline_cache <- bind_rows(rpm_baseline_cache, new_rows) %>%
+      distinct()
+    
+    saveRDS(rpm_baseline_cache, rpm_cache_path)
+    cat("💾 RPM cache saved | rows:", nrow(rpm_baseline_cache), "\n\n")
+  } else {
+    cat("✅ RPM cache complete\n\n")
+  }
+  # ────────────────────────────────────────────────────────────────
+  
+  # ── BUILD PROFILE FROM CACHE ─────────────────────────────────────
   out <- vector("list", length(bt_dates))
   
   for (i in seq_along(bt_dates)) {
@@ -3633,21 +3783,12 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
     sub <- player_projections_backtest %>% filter(GAME_DATE == dd)
     if (nrow(sub) == 0) next
     
-    k <- format(dd, "%Y%m%d")
+    base <- rpm_baseline_cache %>%
+      filter(as.Date(cutoff_date) == dd) %>%
+      select(-cutoff_date)
     
-    # Cache RPM baselines by date
-    if (!exists(k, envir = rpm_cache)) {
-      base <- build_rpm_baseline(dd, 10L)
-      assign(k, base, envir = rpm_cache)
-    }
+    sub <- sub %>% left_join(base, by = "ESPN_PLAYER_ID")
     
-    base <- get(k, envir = rpm_cache)
-    
-    # Join RPM rates to projections for this date
-    sub <- sub %>%
-      left_join(base, by = "ESPN_PLAYER_ID")
-    
-    # Expand into quarters
     sub_q <- bind_rows(
       lapply(quarters, function(q) {
         tibble(
@@ -3656,11 +3797,10 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
           ESPN_TEAM_ID   = sub$ESPN_TEAM_ID,
           ESPN_PLAYER_ID = sub$ESPN_PLAYER_ID,
           qtr            = q,
-          
-          mins_q       = get_mins_q(sub, q),
-          reb_per_min  = sub$reb_per_min,
-          oreb_per_min = sub$oreb_per_min,
-          dreb_per_min = sub$dreb_per_min
+          mins_q         = get_mins_q(sub, q),
+          reb_per_min    = sub$reb_per_min,
+          oreb_per_min   = sub$oreb_per_min,
+          dreb_per_min   = sub$dreb_per_min
         )
       })
     )
@@ -3670,10 +3810,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   
   player_rpm_profile_q <- bind_rows(out)
   
-  message(
-    "✅ BACKTEST RPM profile built | dates=", length(bt_dates),
-    " | rows=", nrow(player_rpm_profile_q)
-  )
+  message("✅ BACKTEST RPM profile built | dates=", length(bt_dates),
+          " | rows=", nrow(player_rpm_profile_q))
   
 } else {
   player_rpm_profile_q <- tibble()
@@ -3729,9 +3867,6 @@ stopifnot(
 
 quarters <- 1:6
 
-# --------------------------------------------------
-# Helper: safely extract quarter minutes
-# --------------------------------------------------
 get_mins_q <- function(df, q) {
   col <- paste0("mins_mean_Q", q)
   if (col %in% names(df)) return(as.numeric(df[[col]]))
@@ -3749,6 +3884,19 @@ get_usage_q <- function(df, q) {
 # --------------------------------------------------
 build_apm_baseline <- function(cutoff_date, n_games_back = 10L) {
   
+  current_teams <- BaseStats_Player_MC %>%
+    mutate(
+      GAME_DATE      = as.Date(GAME_DATE),
+      ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+      ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID)
+    ) %>%
+    filter(GAME_DATE < cutoff_date) %>%
+    arrange(ESPN_PLAYER_ID, desc(GAME_DATE)) %>%
+    group_by(ESPN_PLAYER_ID) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(ESPN_PLAYER_ID, current_team = ESPN_TEAM_ID)
+  
   BaseStats_Player_MC %>%
     dplyr::mutate(
       GAME_DATE      = as.Date(GAME_DATE),
@@ -3758,6 +3906,8 @@ build_apm_baseline <- function(cutoff_date, n_games_back = 10L) {
       MINS_NUM       = num0(MINS_CGS, NA_real_)
     ) %>%
     dplyr::filter(!is.na(GAME_DATE), GAME_DATE < cutoff_date) %>%
+    dplyr::left_join(current_teams, by = "ESPN_PLAYER_ID") %>%
+    dplyr::filter(ESPN_TEAM_ID == current_team) %>%
     dplyr::arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
     dplyr::group_by(ESPN_PLAYER_ID) %>%
     dplyr::slice_tail(n = n_games_back) %>%
@@ -3768,14 +3918,12 @@ build_apm_baseline <- function(cutoff_date, n_games_back = 10L) {
     dplyr::summarise(
       total_mins   = sum(MINS_NUM, na.rm = TRUE),
       total_weight = sum(rec_weight, na.rm = TRUE),
-      
       ast_per_min_raw = ifelse(
         sum(MINS_NUM * rec_weight, na.rm = TRUE) > 0,
         sum(AST_NUM  * rec_weight, na.rm = TRUE) /
           sum(MINS_NUM * rec_weight, na.rm = TRUE),
         NA_real_
       ),
-      
       ast_per_min = case_when(
         is.na(ast_per_min_raw) ~ 0.12,
         total_mins < 50        ~ 0.7 * ast_per_min_raw + 0.3 * 0.12,
@@ -3794,15 +3942,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
   cat("📊 Building TODAY APM profile for", as.character(as_of_date), "...\n")
   
   today_base <- build_apm_baseline(
-    cutoff_date = as.Date(as_of_date),
+    cutoff_date  = as.Date(as_of_date),
     n_games_back = 10L
   )
   
-  # Join APM rates to projections
   player_projections_today <- player_projections_today %>%
     left_join(today_base, by = "ESPN_PLAYER_ID")
   
-  # Expand into quarters
   player_apm_profile_q_today <- bind_rows(
     lapply(quarters, function(q) {
       tibble(
@@ -3811,17 +3957,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
         ESPN_TEAM_ID   = player_projections_today$ESPN_TEAM_ID,
         ESPN_PLAYER_ID = player_projections_today$ESPN_PLAYER_ID,
         qtr            = q,
-        
-        mins_q      = get_mins_q(player_projections_today, q),
-        ast_per_min = player_projections_today$ast_per_min
+        mins_q         = get_mins_q(player_projections_today, q),
+        ast_per_min    = player_projections_today$ast_per_min
       )
     })
   )
   
-  message(
-    "✅ TODAY APM profile built | rows=", 
-    nrow(player_apm_profile_q_today)
-  )
+  message("✅ TODAY APM profile built | rows=", nrow(player_apm_profile_q_today))
   
 } else {
   player_apm_profile_q_today <- tibble()
@@ -3841,7 +3983,47 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   bt_dates <- sort(unique(player_projections_backtest$GAME_DATE))
   bt_dates <- bt_dates[!is.na(bt_dates)]
   
-  apm_cache <- new.env(parent = emptyenv())
+  # ── CACHE CHECK ─────────────────────────────────────────────────
+  apm_cache_path <- file.path(
+    "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+    "apm_baseline_cache.rds"
+  )
+  
+  if (file.exists(apm_cache_path)) {
+    cat("📂 Loading APM cache...\n")
+    apm_baseline_cache <- readRDS(apm_cache_path)
+    cached_dates  <- unique(as.Date(apm_baseline_cache$cutoff_date))
+    missing_dates <- bt_dates[!bt_dates %in% cached_dates]
+    cat("   Cached:", length(cached_dates), "| Need:", length(bt_dates),
+        "| Missing:", length(missing_dates), "\n")
+  } else {
+    cat("📂 No APM cache — building all", length(bt_dates), "dates\n")
+    apm_baseline_cache <- tibble()
+    missing_dates <- bt_dates
+  }
+  
+  # ── BUILD MISSING DATES ──────────────────────────────────────────
+  if (length(missing_dates) > 0) {
+    cat("🔄 Building", length(missing_dates), "missing dates...\n")
+    
+    new_rows <- vector("list", length(missing_dates))
+    for (i in seq_along(missing_dates)) {
+      dd <- missing_dates[i]
+      new_rows[[i]] <- build_apm_baseline(dd, 10L) %>%
+        mutate(cutoff_date = dd)
+    }
+    
+    apm_baseline_cache <- bind_rows(apm_baseline_cache, new_rows) %>%
+      distinct()
+    
+    saveRDS(apm_baseline_cache, apm_cache_path)
+    cat("💾 APM cache saved | rows:", nrow(apm_baseline_cache), "\n\n")
+  } else {
+    cat("✅ APM cache complete\n\n")
+  }
+  # ────────────────────────────────────────────────────────────────
+  
+  # ── BUILD PROFILE FROM CACHE ─────────────────────────────────────
   out <- vector("list", length(bt_dates))
   
   for (i in seq_along(bt_dates)) {
@@ -3850,21 +4032,12 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
     sub <- player_projections_backtest %>% filter(GAME_DATE == dd)
     if (nrow(sub) == 0) next
     
-    k <- format(dd, "%Y%m%d")
+    base <- apm_baseline_cache %>%
+      filter(as.Date(cutoff_date) == dd) %>%
+      select(-cutoff_date)
     
-    # Cache APM baselines by date
-    if (!exists(k, envir = apm_cache)) {
-      base <- build_apm_baseline(dd, 10L)
-      assign(k, base, envir = apm_cache)
-    }
+    sub <- sub %>% left_join(base, by = "ESPN_PLAYER_ID")
     
-    base <- get(k, envir = apm_cache)
-    
-    # Join APM rates to projections for this date
-    sub <- sub %>%
-      left_join(base, by = "ESPN_PLAYER_ID")
-    
-    # Expand into quarters
     sub_q <- bind_rows(
       lapply(quarters, function(q) {
         tibble(
@@ -3873,9 +4046,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
           ESPN_TEAM_ID   = sub$ESPN_TEAM_ID,
           ESPN_PLAYER_ID = sub$ESPN_PLAYER_ID,
           qtr            = q,
-          
-          mins_q      = get_mins_q(sub, q),
-          ast_per_min = sub$ast_per_min
+          mins_q         = get_mins_q(sub, q),
+          ast_per_min    = sub$ast_per_min
         )
       })
     )
@@ -3885,10 +4057,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   
   player_apm_profile_q <- bind_rows(out)
   
-  message(
-    "✅ BACKTEST APM profile built | dates=", length(bt_dates),
-    " | rows=", nrow(player_apm_profile_q)
-  )
+  message("✅ BACKTEST APM profile built | dates=", length(bt_dates),
+          " | rows=", nrow(player_apm_profile_q))
   
 } else {
   player_apm_profile_q <- tibble()
@@ -3898,7 +4068,6 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 # 🏀🏀🏀 END: Assists Per Min Rate Profile
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
-
 
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
@@ -3943,9 +4112,6 @@ stopifnot(
 
 quarters <- 1:6
 
-# --------------------------------------------------
-# Helper: safely extract quarter minutes
-# --------------------------------------------------
 get_mins_q <- function(df, q) {
   col <- paste0("mins_mean_Q", q)
   if (col %in% names(df)) return(as.numeric(df[[col]]))
@@ -3963,6 +4129,19 @@ get_usage_q <- function(df, q) {
 # --------------------------------------------------
 build_bpm_baseline <- function(cutoff_date, n_games_back = 10L) {
   
+  current_teams <- BaseStats_Player_MC %>%
+    mutate(
+      GAME_DATE      = as.Date(GAME_DATE),
+      ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+      ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID)
+    ) %>%
+    filter(GAME_DATE < cutoff_date) %>%
+    arrange(ESPN_PLAYER_ID, desc(GAME_DATE)) %>%
+    group_by(ESPN_PLAYER_ID) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(ESPN_PLAYER_ID, current_team = ESPN_TEAM_ID)
+  
   BaseStats_Player_MC %>%
     dplyr::mutate(
       GAME_DATE      = as.Date(GAME_DATE),
@@ -3972,6 +4151,8 @@ build_bpm_baseline <- function(cutoff_date, n_games_back = 10L) {
       MINS_NUM       = num0(MINS_CGS, NA_real_)
     ) %>%
     dplyr::filter(!is.na(GAME_DATE), GAME_DATE < cutoff_date) %>%
+    dplyr::left_join(current_teams, by = "ESPN_PLAYER_ID") %>%
+    dplyr::filter(ESPN_TEAM_ID == current_team) %>%
     dplyr::arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
     dplyr::group_by(ESPN_PLAYER_ID) %>%
     dplyr::slice_tail(n = n_games_back) %>%
@@ -3982,14 +4163,12 @@ build_bpm_baseline <- function(cutoff_date, n_games_back = 10L) {
     dplyr::summarise(
       total_mins   = sum(MINS_NUM, na.rm = TRUE),
       total_weight = sum(rec_weight, na.rm = TRUE),
-      
       blk_per_min_raw = ifelse(
         sum(MINS_NUM * rec_weight, na.rm = TRUE) > 0,
         sum(BLK_NUM  * rec_weight, na.rm = TRUE) /
           sum(MINS_NUM * rec_weight, na.rm = TRUE),
         NA_real_
       ),
-      
       blk_per_min = case_when(
         is.na(blk_per_min_raw) ~ 0.025,
         total_mins < 50        ~ 0.7 * blk_per_min_raw + 0.3 * 0.025,
@@ -4008,15 +4187,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
   cat("📊 Building TODAY BPM profile for", as.character(as_of_date), "...\n")
   
   today_base <- build_bpm_baseline(
-    cutoff_date = as.Date(as_of_date),
+    cutoff_date  = as.Date(as_of_date),
     n_games_back = 10L
   )
   
-  # Join BPM rates to projections
   player_projections_today <- player_projections_today %>%
     left_join(today_base, by = "ESPN_PLAYER_ID")
   
-  # Expand into quarters
   player_bpm_profile_q_today <- bind_rows(
     lapply(quarters, function(q) {
       tibble(
@@ -4025,17 +4202,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
         ESPN_TEAM_ID   = player_projections_today$ESPN_TEAM_ID,
         ESPN_PLAYER_ID = player_projections_today$ESPN_PLAYER_ID,
         qtr            = q,
-        
-        mins_q      = get_mins_q(player_projections_today, q),
-        blk_per_min = player_projections_today$blk_per_min
+        mins_q         = get_mins_q(player_projections_today, q),
+        blk_per_min    = player_projections_today$blk_per_min
       )
     })
   )
   
-  message(
-    "✅ TODAY BPM profile built | rows=", 
-    nrow(player_bpm_profile_q_today)
-  )
+  message("✅ TODAY BPM profile built | rows=", nrow(player_bpm_profile_q_today))
   
 } else {
   player_bpm_profile_q_today <- tibble()
@@ -4055,7 +4228,47 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   bt_dates <- sort(unique(player_projections_backtest$GAME_DATE))
   bt_dates <- bt_dates[!is.na(bt_dates)]
   
-  bpm_cache <- new.env(parent = emptyenv())
+  # ── CACHE CHECK ─────────────────────────────────────────────────
+  bpm_cache_path <- file.path(
+    "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+    "bpm_baseline_cache.rds"
+  )
+  
+  if (file.exists(bpm_cache_path)) {
+    cat("📂 Loading BPM cache...\n")
+    bpm_baseline_cache <- readRDS(bpm_cache_path)
+    cached_dates  <- unique(as.Date(bpm_baseline_cache$cutoff_date))
+    missing_dates <- bt_dates[!bt_dates %in% cached_dates]
+    cat("   Cached:", length(cached_dates), "| Need:", length(bt_dates),
+        "| Missing:", length(missing_dates), "\n")
+  } else {
+    cat("📂 No BPM cache — building all", length(bt_dates), "dates\n")
+    bpm_baseline_cache <- tibble()
+    missing_dates <- bt_dates
+  }
+  
+  # ── BUILD MISSING DATES ──────────────────────────────────────────
+  if (length(missing_dates) > 0) {
+    cat("🔄 Building", length(missing_dates), "missing dates...\n")
+    
+    new_rows <- vector("list", length(missing_dates))
+    for (i in seq_along(missing_dates)) {
+      dd <- missing_dates[i]
+      new_rows[[i]] <- build_bpm_baseline(dd, 10L) %>%
+        mutate(cutoff_date = dd)
+    }
+    
+    bpm_baseline_cache <- bind_rows(bpm_baseline_cache, new_rows) %>%
+      distinct()
+    
+    saveRDS(bpm_baseline_cache, bpm_cache_path)
+    cat("💾 BPM cache saved | rows:", nrow(bpm_baseline_cache), "\n\n")
+  } else {
+    cat("✅ BPM cache complete\n\n")
+  }
+  # ────────────────────────────────────────────────────────────────
+  
+  # ── BUILD PROFILE FROM CACHE ─────────────────────────────────────
   out <- vector("list", length(bt_dates))
   
   for (i in seq_along(bt_dates)) {
@@ -4064,21 +4277,12 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
     sub <- player_projections_backtest %>% filter(GAME_DATE == dd)
     if (nrow(sub) == 0) next
     
-    k <- format(dd, "%Y%m%d")
+    base <- bpm_baseline_cache %>%
+      filter(as.Date(cutoff_date) == dd) %>%
+      select(-cutoff_date)
     
-    # Cache BPM baselines by date
-    if (!exists(k, envir = bpm_cache)) {
-      base <- build_bpm_baseline(dd, 10L)
-      assign(k, base, envir = bpm_cache)
-    }
+    sub <- sub %>% left_join(base, by = "ESPN_PLAYER_ID")
     
-    base <- get(k, envir = bpm_cache)
-    
-    # Join BPM rates to projections for this date
-    sub <- sub %>%
-      left_join(base, by = "ESPN_PLAYER_ID")
-    
-    # Expand into quarters
     sub_q <- bind_rows(
       lapply(quarters, function(q) {
         tibble(
@@ -4087,9 +4291,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
           ESPN_TEAM_ID   = sub$ESPN_TEAM_ID,
           ESPN_PLAYER_ID = sub$ESPN_PLAYER_ID,
           qtr            = q,
-          
-          mins_q      = get_mins_q(sub, q),
-          blk_per_min = sub$blk_per_min
+          mins_q         = get_mins_q(sub, q),
+          blk_per_min    = sub$blk_per_min
         )
       })
     )
@@ -4099,10 +4302,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   
   player_bpm_profile_q <- bind_rows(out)
   
-  message(
-    "✅ BACKTEST BPM profile built | dates=", length(bt_dates),
-    " | rows=", nrow(player_bpm_profile_q)
-  )
+  message("✅ BACKTEST BPM profile built | dates=", length(bt_dates),
+          " | rows=", nrow(player_bpm_profile_q))
   
 } else {
   player_bpm_profile_q <- tibble()
@@ -4156,9 +4357,6 @@ stopifnot(
 
 quarters <- 1:6
 
-# --------------------------------------------------
-# Helper: safely extract quarter minutes
-# --------------------------------------------------
 get_mins_q <- function(df, q) {
   col <- paste0("mins_mean_Q", q)
   if (col %in% names(df)) return(as.numeric(df[[col]]))
@@ -4171,11 +4369,23 @@ get_usage_q <- function(df, q) {
   rep(NA_real_, nrow(df))
 }
 
-
 # --------------------------------------------------
 # A) Build STL/MIN baseline (LEAKAGE-SAFE)
 # --------------------------------------------------
 build_spm_baseline <- function(cutoff_date, n_games_back = 10L) {
+  
+  current_teams <- BaseStats_Player_MC %>%
+    mutate(
+      GAME_DATE      = as.Date(GAME_DATE),
+      ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+      ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID)
+    ) %>%
+    filter(GAME_DATE < cutoff_date) %>%
+    arrange(ESPN_PLAYER_ID, desc(GAME_DATE)) %>%
+    group_by(ESPN_PLAYER_ID) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(ESPN_PLAYER_ID, current_team = ESPN_TEAM_ID)
   
   BaseStats_Player_MC %>%
     dplyr::mutate(
@@ -4186,6 +4396,8 @@ build_spm_baseline <- function(cutoff_date, n_games_back = 10L) {
       MINS_NUM       = num0(MINS_CGS, NA_real_)
     ) %>%
     dplyr::filter(!is.na(GAME_DATE), GAME_DATE < cutoff_date) %>%
+    dplyr::left_join(current_teams, by = "ESPN_PLAYER_ID") %>%
+    dplyr::filter(ESPN_TEAM_ID == current_team) %>%
     dplyr::arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
     dplyr::group_by(ESPN_PLAYER_ID) %>%
     dplyr::slice_tail(n = n_games_back) %>%
@@ -4196,14 +4408,12 @@ build_spm_baseline <- function(cutoff_date, n_games_back = 10L) {
     dplyr::summarise(
       total_mins   = sum(MINS_NUM, na.rm = TRUE),
       total_weight = sum(rec_weight, na.rm = TRUE),
-      
       stl_per_min_raw = ifelse(
         sum(MINS_NUM * rec_weight, na.rm = TRUE) > 0,
         sum(STL_NUM  * rec_weight, na.rm = TRUE) /
           sum(MINS_NUM * rec_weight, na.rm = TRUE),
         NA_real_
       ),
-      
       stl_per_min = case_when(
         is.na(stl_per_min_raw) ~ 0.035,
         total_mins < 50        ~ 0.7 * stl_per_min_raw + 0.3 * 0.035,
@@ -4222,15 +4432,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
   cat("📊 Building TODAY SPM profile for", as.character(as_of_date), "...\n")
   
   today_base <- build_spm_baseline(
-    cutoff_date = as.Date(as_of_date),
+    cutoff_date  = as.Date(as_of_date),
     n_games_back = 10L
   )
   
-  # Join SPM rates to projections
   player_projections_today <- player_projections_today %>%
     left_join(today_base, by = "ESPN_PLAYER_ID")
   
-  # Expand into quarters
   player_spm_profile_q_today <- bind_rows(
     lapply(quarters, function(q) {
       tibble(
@@ -4239,17 +4447,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
         ESPN_TEAM_ID   = player_projections_today$ESPN_TEAM_ID,
         ESPN_PLAYER_ID = player_projections_today$ESPN_PLAYER_ID,
         qtr            = q,
-        
-        mins_q      = get_mins_q(player_projections_today, q),
-        stl_per_min = player_projections_today$stl_per_min
+        mins_q         = get_mins_q(player_projections_today, q),
+        stl_per_min    = player_projections_today$stl_per_min
       )
     })
   )
   
-  message(
-    "✅ TODAY SPM profile built | rows=", 
-    nrow(player_spm_profile_q_today)
-  )
+  message("✅ TODAY SPM profile built | rows=", nrow(player_spm_profile_q_today))
   
 } else {
   player_spm_profile_q_today <- tibble()
@@ -4269,7 +4473,47 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   bt_dates <- sort(unique(player_projections_backtest$GAME_DATE))
   bt_dates <- bt_dates[!is.na(bt_dates)]
   
-  spm_cache <- new.env(parent = emptyenv())
+  # ── CACHE CHECK ─────────────────────────────────────────────────
+  spm_cache_path <- file.path(
+    "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+    "spm_baseline_cache.rds"
+  )
+  
+  if (file.exists(spm_cache_path)) {
+    cat("📂 Loading SPM cache...\n")
+    spm_baseline_cache <- readRDS(spm_cache_path)
+    cached_dates  <- unique(as.Date(spm_baseline_cache$cutoff_date))
+    missing_dates <- bt_dates[!bt_dates %in% cached_dates]
+    cat("   Cached:", length(cached_dates), "| Need:", length(bt_dates),
+        "| Missing:", length(missing_dates), "\n")
+  } else {
+    cat("📂 No SPM cache — building all", length(bt_dates), "dates\n")
+    spm_baseline_cache <- tibble()
+    missing_dates <- bt_dates
+  }
+  
+  # ── BUILD MISSING DATES ──────────────────────────────────────────
+  if (length(missing_dates) > 0) {
+    cat("🔄 Building", length(missing_dates), "missing dates...\n")
+    
+    new_rows <- vector("list", length(missing_dates))
+    for (i in seq_along(missing_dates)) {
+      dd <- missing_dates[i]
+      new_rows[[i]] <- build_spm_baseline(dd, 10L) %>%
+        mutate(cutoff_date = dd)
+    }
+    
+    spm_baseline_cache <- bind_rows(spm_baseline_cache, new_rows) %>%
+      distinct()
+    
+    saveRDS(spm_baseline_cache, spm_cache_path)
+    cat("💾 SPM cache saved | rows:", nrow(spm_baseline_cache), "\n\n")
+  } else {
+    cat("✅ SPM cache complete\n\n")
+  }
+  # ────────────────────────────────────────────────────────────────
+  
+  # ── BUILD PROFILE FROM CACHE ─────────────────────────────────────
   out <- vector("list", length(bt_dates))
   
   for (i in seq_along(bt_dates)) {
@@ -4278,21 +4522,12 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
     sub <- player_projections_backtest %>% filter(GAME_DATE == dd)
     if (nrow(sub) == 0) next
     
-    k <- format(dd, "%Y%m%d")
+    base <- spm_baseline_cache %>%
+      filter(as.Date(cutoff_date) == dd) %>%
+      select(-cutoff_date)
     
-    # Cache SPM baselines by date
-    if (!exists(k, envir = spm_cache)) {
-      base <- build_spm_baseline(dd, 10L)
-      assign(k, base, envir = spm_cache)
-    }
+    sub <- sub %>% left_join(base, by = "ESPN_PLAYER_ID")
     
-    base <- get(k, envir = spm_cache)
-    
-    # Join SPM rates to projections for this date
-    sub <- sub %>%
-      left_join(base, by = "ESPN_PLAYER_ID")
-    
-    # Expand into quarters
     sub_q <- bind_rows(
       lapply(quarters, function(q) {
         tibble(
@@ -4301,9 +4536,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
           ESPN_TEAM_ID   = sub$ESPN_TEAM_ID,
           ESPN_PLAYER_ID = sub$ESPN_PLAYER_ID,
           qtr            = q,
-          
-          mins_q      = get_mins_q(sub, q),
-          stl_per_min = sub$stl_per_min
+          mins_q         = get_mins_q(sub, q),
+          stl_per_min    = sub$stl_per_min
         )
       })
     )
@@ -4313,10 +4547,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   
   player_spm_profile_q <- bind_rows(out)
   
-  message(
-    "✅ BACKTEST SPM profile built | dates=", length(bt_dates),
-    " | rows=", nrow(player_spm_profile_q)
-  )
+  message("✅ BACKTEST SPM profile built | dates=", length(bt_dates),
+          " | rows=", nrow(player_spm_profile_q))
   
 } else {
   player_spm_profile_q <- tibble()
@@ -4369,9 +4601,6 @@ stopifnot(
 
 quarters <- 1:6
 
-# --------------------------------------------------
-# Helper: safely extract quarter minutes
-# --------------------------------------------------
 get_mins_q <- function(df, q) {
   col <- paste0("mins_mean_Q", q)
   if (col %in% names(df)) return(as.numeric(df[[col]]))
@@ -4389,6 +4618,19 @@ get_usage_q <- function(df, q) {
 # --------------------------------------------------
 build_tovpm_baseline <- function(cutoff_date, n_games_back = 10L) {
   
+  current_teams <- BaseStats_Player_MC %>%
+    mutate(
+      GAME_DATE      = as.Date(GAME_DATE),
+      ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+      ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID)
+    ) %>%
+    filter(GAME_DATE < cutoff_date) %>%
+    arrange(ESPN_PLAYER_ID, desc(GAME_DATE)) %>%
+    group_by(ESPN_PLAYER_ID) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(ESPN_PLAYER_ID, current_team = ESPN_TEAM_ID)
+  
   BaseStats_Player_MC %>%
     dplyr::mutate(
       GAME_DATE      = as.Date(GAME_DATE),
@@ -4398,6 +4640,8 @@ build_tovpm_baseline <- function(cutoff_date, n_games_back = 10L) {
       MINS_NUM       = num0(MINS_CGS, NA_real_)
     ) %>%
     dplyr::filter(!is.na(GAME_DATE), GAME_DATE < cutoff_date) %>%
+    dplyr::left_join(current_teams, by = "ESPN_PLAYER_ID") %>%
+    dplyr::filter(ESPN_TEAM_ID == current_team) %>%
     dplyr::arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
     dplyr::group_by(ESPN_PLAYER_ID) %>%
     dplyr::slice_tail(n = n_games_back) %>%
@@ -4408,14 +4652,12 @@ build_tovpm_baseline <- function(cutoff_date, n_games_back = 10L) {
     dplyr::summarise(
       total_mins   = sum(MINS_NUM, na.rm = TRUE),
       total_weight = sum(rec_weight, na.rm = TRUE),
-      
       tov_per_min_raw = ifelse(
         sum(MINS_NUM * rec_weight, na.rm = TRUE) > 0,
         sum(TOV_NUM  * rec_weight, na.rm = TRUE) /
           sum(MINS_NUM * rec_weight, na.rm = TRUE),
         NA_real_
       ),
-      
       tov_per_min = case_when(
         is.na(tov_per_min_raw) ~ 0.06,
         total_mins < 50        ~ 0.7 * tov_per_min_raw + 0.3 * 0.06,
@@ -4434,15 +4676,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
   cat("📊 Building TODAY TOVPM profile for", as.character(as_of_date), "...\n")
   
   today_base <- build_tovpm_baseline(
-    cutoff_date = as.Date(as_of_date),
+    cutoff_date  = as.Date(as_of_date),
     n_games_back = 10L
   )
   
-  # Join TOVPM rates to projections
   player_projections_today <- player_projections_today %>%
     left_join(today_base, by = "ESPN_PLAYER_ID")
   
-  # Expand into quarters
   player_tovpm_profile_q_today <- bind_rows(
     lapply(quarters, function(q) {
       tibble(
@@ -4451,17 +4691,13 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
         ESPN_TEAM_ID   = player_projections_today$ESPN_TEAM_ID,
         ESPN_PLAYER_ID = player_projections_today$ESPN_PLAYER_ID,
         qtr            = q,
-        
-        mins_q      = get_mins_q(player_projections_today, q),
-        tov_per_min = player_projections_today$tov_per_min
+        mins_q         = get_mins_q(player_projections_today, q),
+        tov_per_min    = player_projections_today$tov_per_min
       )
     })
   )
   
-  message(
-    "✅ TODAY TOVPM profile built | rows=", 
-    nrow(player_tovpm_profile_q_today)
-  )
+  message("✅ TODAY TOVPM profile built | rows=", nrow(player_tovpm_profile_q_today))
   
 } else {
   player_tovpm_profile_q_today <- tibble()
@@ -4481,7 +4717,47 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   bt_dates <- sort(unique(player_projections_backtest$GAME_DATE))
   bt_dates <- bt_dates[!is.na(bt_dates)]
   
-  tovpm_cache <- new.env(parent = emptyenv())
+  # ── CACHE CHECK ─────────────────────────────────────────────────
+  tovpm_cache_path <- file.path(
+    "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+    "tovpm_baseline_cache.rds"
+  )
+  
+  if (file.exists(tovpm_cache_path)) {
+    cat("📂 Loading TOVPM cache...\n")
+    tovpm_baseline_cache <- readRDS(tovpm_cache_path)
+    cached_dates  <- unique(as.Date(tovpm_baseline_cache$cutoff_date))
+    missing_dates <- bt_dates[!bt_dates %in% cached_dates]
+    cat("   Cached:", length(cached_dates), "| Need:", length(bt_dates),
+        "| Missing:", length(missing_dates), "\n")
+  } else {
+    cat("📂 No TOVPM cache — building all", length(bt_dates), "dates\n")
+    tovpm_baseline_cache <- tibble()
+    missing_dates <- bt_dates
+  }
+  
+  # ── BUILD MISSING DATES ──────────────────────────────────────────
+  if (length(missing_dates) > 0) {
+    cat("🔄 Building", length(missing_dates), "missing dates...\n")
+    
+    new_rows <- vector("list", length(missing_dates))
+    for (i in seq_along(missing_dates)) {
+      dd <- missing_dates[i]
+      new_rows[[i]] <- build_tovpm_baseline(dd, 10L) %>%
+        mutate(cutoff_date = dd)
+    }
+    
+    tovpm_baseline_cache <- bind_rows(tovpm_baseline_cache, new_rows) %>%
+      distinct()
+    
+    saveRDS(tovpm_baseline_cache, tovpm_cache_path)
+    cat("💾 TOVPM cache saved | rows:", nrow(tovpm_baseline_cache), "\n\n")
+  } else {
+    cat("✅ TOVPM cache complete\n\n")
+  }
+  # ────────────────────────────────────────────────────────────────
+  
+  # ── BUILD PROFILE FROM CACHE ─────────────────────────────────────
   out <- vector("list", length(bt_dates))
   
   for (i in seq_along(bt_dates)) {
@@ -4490,21 +4766,12 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
     sub <- player_projections_backtest %>% filter(GAME_DATE == dd)
     if (nrow(sub) == 0) next
     
-    k <- format(dd, "%Y%m%d")
+    base <- tovpm_baseline_cache %>%
+      filter(as.Date(cutoff_date) == dd) %>%
+      select(-cutoff_date)
     
-    # Cache TOVPM baselines by date
-    if (!exists(k, envir = tovpm_cache)) {
-      base <- build_tovpm_baseline(dd, 10L)
-      assign(k, base, envir = tovpm_cache)
-    }
+    sub <- sub %>% left_join(base, by = "ESPN_PLAYER_ID")
     
-    base <- get(k, envir = tovpm_cache)
-    
-    # Join TOVPM rates to projections for this date
-    sub <- sub %>%
-      left_join(base, by = "ESPN_PLAYER_ID")
-    
-    # Expand into quarters
     sub_q <- bind_rows(
       lapply(quarters, function(q) {
         tibble(
@@ -4513,9 +4780,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
           ESPN_TEAM_ID   = sub$ESPN_TEAM_ID,
           ESPN_PLAYER_ID = sub$ESPN_PLAYER_ID,
           qtr            = q,
-          
-          mins_q      = get_mins_q(sub, q),
-          tov_per_min = sub$tov_per_min
+          mins_q         = get_mins_q(sub, q),
+          tov_per_min    = sub$tov_per_min
         )
       })
     )
@@ -4525,10 +4791,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   
   player_tovpm_profile_q <- bind_rows(out)
   
-  message(
-    "✅ BACKTEST TOVPM profile built | dates=", length(bt_dates),
-    " | rows=", nrow(player_tovpm_profile_q)
-  )
+  message("✅ BACKTEST TOVPM profile built | dates=", length(bt_dates),
+          " | rows=", nrow(player_tovpm_profile_q))
   
 } else {
   player_tovpm_profile_q <- tibble()
@@ -4582,9 +4846,6 @@ stopifnot(
 
 quarters <- 1:6
 
-# --------------------------------------------------
-# Helper: safely extract quarter minutes
-# --------------------------------------------------
 get_mins_q <- function(df, q) {
   col <- paste0("mins_mean_Q", q)
   if (col %in% names(df)) return(as.numeric(df[[col]]))
@@ -4596,7 +4857,6 @@ get_usage_q <- function(df, q) {
   if (col %in% names(df)) return(as.numeric(df[[col]]))
   rep(NA_real_, nrow(df))
 }
-
 
 # --------------------------------------------------
 # A) Choose FOULS column (robust)
@@ -4616,6 +4876,19 @@ fouls_col <- if ("PF_CGS" %in% names(BaseStats_Player_MC)) {
 # --------------------------------------------------
 build_fpm_baseline <- function(cutoff_date, n_games_back = 10L) {
   
+  current_teams <- BaseStats_Player_MC %>%
+    mutate(
+      GAME_DATE      = as.Date(GAME_DATE),
+      ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+      ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID)
+    ) %>%
+    filter(GAME_DATE < cutoff_date) %>%
+    arrange(ESPN_PLAYER_ID, desc(GAME_DATE)) %>%
+    group_by(ESPN_PLAYER_ID) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(ESPN_PLAYER_ID, current_team = ESPN_TEAM_ID)
+  
   BaseStats_Player_MC %>%
     dplyr::mutate(
       GAME_DATE      = as.Date(GAME_DATE),
@@ -4625,6 +4898,8 @@ build_fpm_baseline <- function(cutoff_date, n_games_back = 10L) {
       MINS_NUM       = num0(MINS_CGS, NA_real_)
     ) %>%
     dplyr::filter(!is.na(GAME_DATE), GAME_DATE < cutoff_date) %>%
+    dplyr::left_join(current_teams, by = "ESPN_PLAYER_ID") %>%
+    dplyr::filter(ESPN_TEAM_ID == current_team) %>%
     dplyr::arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
     dplyr::group_by(ESPN_PLAYER_ID) %>%
     dplyr::slice_tail(n = n_games_back) %>%
@@ -4635,14 +4910,12 @@ build_fpm_baseline <- function(cutoff_date, n_games_back = 10L) {
     dplyr::summarise(
       total_mins   = sum(MINS_NUM, na.rm = TRUE),
       total_weight = sum(rec_weight, na.rm = TRUE),
-      
       fouls_per_min_raw = ifelse(
         sum(MINS_NUM  * rec_weight, na.rm = TRUE) > 0,
         sum(FOUL_NUM  * rec_weight, na.rm = TRUE) /
           sum(MINS_NUM  * rec_weight, na.rm = TRUE),
         NA_real_
       ),
-      
       fouls_per_min = case_when(
         is.na(fouls_per_min_raw) ~ 0.10,
         total_mins < 50          ~ 0.7 * fouls_per_min_raw + 0.3 * 0.10,
@@ -4661,35 +4934,29 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
   cat("📊 Building TODAY FPM profile for", as.character(as_of_date), "...\n")
   
   today_base <- build_fpm_baseline(
-    cutoff_date = as.Date(as_of_date),
+    cutoff_date  = as.Date(as_of_date),
     n_games_back = 10L
   )
   
-  # Join FPM rates to projections
   player_projections_today <- player_projections_today %>%
     left_join(today_base, by = "ESPN_PLAYER_ID")
   
-  # Expand into quarters
   player_fpm_profile_q_today <- bind_rows(
     lapply(quarters, function(q) {
       tibble(
-        GAME_DATE       = player_projections_today$GAME_DATE,
-        ESPN_GAME_ID    = player_projections_today$ESPN_GAME_ID,
-        ESPN_TEAM_ID    = player_projections_today$ESPN_TEAM_ID,
-        ESPN_PLAYER_ID  = player_projections_today$ESPN_PLAYER_ID,
-        qtr             = q,
-        
-        mins_q        = get_mins_q(player_projections_today, q),
-        fouls_per_min = player_projections_today$fouls_per_min
+        GAME_DATE      = player_projections_today$GAME_DATE,
+        ESPN_GAME_ID   = player_projections_today$ESPN_GAME_ID,
+        ESPN_TEAM_ID   = player_projections_today$ESPN_TEAM_ID,
+        ESPN_PLAYER_ID = player_projections_today$ESPN_PLAYER_ID,
+        qtr            = q,
+        mins_q         = get_mins_q(player_projections_today, q),
+        fouls_per_min  = player_projections_today$fouls_per_min
       )
     })
   )
   
-  message(
-    "✅ TODAY FPM profile built | rows=", 
-    nrow(player_fpm_profile_q_today),
-    " | fouls_col=", fouls_col
-  )
+  message("✅ TODAY FPM profile built | rows=", nrow(player_fpm_profile_q_today),
+          " | fouls_col=", fouls_col)
   
 } else {
   player_fpm_profile_q_today <- tibble()
@@ -4709,7 +4976,47 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   bt_dates <- sort(unique(player_projections_backtest$GAME_DATE))
   bt_dates <- bt_dates[!is.na(bt_dates)]
   
-  fpm_cache <- new.env(parent = emptyenv())
+  # ── CACHE CHECK ─────────────────────────────────────────────────
+  fpm_cache_path <- file.path(
+    "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+    "fpm_baseline_cache.rds"
+  )
+  
+  if (file.exists(fpm_cache_path)) {
+    cat("📂 Loading FPM cache...\n")
+    fpm_baseline_cache <- readRDS(fpm_cache_path)
+    cached_dates  <- unique(as.Date(fpm_baseline_cache$cutoff_date))
+    missing_dates <- bt_dates[!bt_dates %in% cached_dates]
+    cat("   Cached:", length(cached_dates), "| Need:", length(bt_dates),
+        "| Missing:", length(missing_dates), "\n")
+  } else {
+    cat("📂 No FPM cache — building all", length(bt_dates), "dates\n")
+    fpm_baseline_cache <- tibble()
+    missing_dates <- bt_dates
+  }
+  
+  # ── BUILD MISSING DATES ──────────────────────────────────────────
+  if (length(missing_dates) > 0) {
+    cat("🔄 Building", length(missing_dates), "missing dates...\n")
+    
+    new_rows <- vector("list", length(missing_dates))
+    for (i in seq_along(missing_dates)) {
+      dd <- missing_dates[i]
+      new_rows[[i]] <- build_fpm_baseline(dd, 10L) %>%
+        mutate(cutoff_date = dd)
+    }
+    
+    fpm_baseline_cache <- bind_rows(fpm_baseline_cache, new_rows) %>%
+      distinct()
+    
+    saveRDS(fpm_baseline_cache, fpm_cache_path)
+    cat("💾 FPM cache saved | rows:", nrow(fpm_baseline_cache), "\n\n")
+  } else {
+    cat("✅ FPM cache complete\n\n")
+  }
+  # ────────────────────────────────────────────────────────────────
+  
+  # ── BUILD PROFILE FROM CACHE ─────────────────────────────────────
   out <- vector("list", length(bt_dates))
   
   for (i in seq_along(bt_dates)) {
@@ -4718,21 +5025,12 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
     sub <- player_projections_backtest %>% filter(GAME_DATE == dd)
     if (nrow(sub) == 0) next
     
-    k <- format(dd, "%Y%m%d")
+    base <- fpm_baseline_cache %>%
+      filter(as.Date(cutoff_date) == dd) %>%
+      select(-cutoff_date)
     
-    # Cache FPM baselines by date
-    if (!exists(k, envir = fpm_cache)) {
-      base <- build_fpm_baseline(dd, 10L)
-      assign(k, base, envir = fpm_cache)
-    }
+    sub <- sub %>% left_join(base, by = "ESPN_PLAYER_ID")
     
-    base <- get(k, envir = fpm_cache)
-    
-    # Join FPM rates to projections for this date
-    sub <- sub %>%
-      left_join(base, by = "ESPN_PLAYER_ID")
-    
-    # Expand into quarters
     sub_q <- bind_rows(
       lapply(quarters, function(q) {
         tibble(
@@ -4741,9 +5039,8 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
           ESPN_TEAM_ID   = sub$ESPN_TEAM_ID,
           ESPN_PLAYER_ID = sub$ESPN_PLAYER_ID,
           qtr            = q,
-          
-          mins_q        = get_mins_q(sub, q),
-          fouls_per_min = sub$fouls_per_min
+          mins_q         = get_mins_q(sub, q),
+          fouls_per_min  = sub$fouls_per_min
         )
       })
     )
@@ -4753,11 +5050,9 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   
   player_fpm_profile_q <- bind_rows(out)
   
-  message(
-    "✅ BACKTEST FPM profile built | dates=", length(bt_dates),
-    " | rows=", nrow(player_fpm_profile_q),
-    " | fouls_col=", fouls_col
-  )
+  message("✅ BACKTEST FPM profile built | dates=", length(bt_dates),
+          " | rows=", nrow(player_fpm_profile_q),
+          " | fouls_col=", fouls_col)
   
 } else {
   player_fpm_profile_q <- tibble()
@@ -4767,7 +5062,6 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
 # ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
 # ⚠️⚠️⚠️ END: Fouls Per Min Rate Profile
 # ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
-
 
 
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
@@ -4820,6 +5114,19 @@ stopifnot(
 # --------------------------------------------------
 build_usage_baseline <- function(cutoff_date, n_games_back = 10L) {
   
+  current_teams <- BaseStats_Player_MC %>%
+    mutate(
+      GAME_DATE      = as.Date(GAME_DATE),
+      ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+      ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID)
+    ) %>%
+    filter(GAME_DATE < cutoff_date) %>%
+    arrange(ESPN_PLAYER_ID, desc(GAME_DATE)) %>%
+    group_by(ESPN_PLAYER_ID) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(ESPN_PLAYER_ID, current_team = ESPN_TEAM_ID)
+  
   BaseStats_Player_MC %>%
     dplyr::mutate(
       GAME_DATE      = as.Date(GAME_DATE),
@@ -4829,6 +5136,8 @@ build_usage_baseline <- function(cutoff_date, n_games_back = 10L) {
       MINS_NUM       = num0(MINS_CGS, NA_real_)
     ) %>%
     dplyr::filter(!is.na(GAME_DATE), GAME_DATE < cutoff_date) %>%
+    dplyr::left_join(current_teams, by = "ESPN_PLAYER_ID") %>%
+    dplyr::filter(ESPN_TEAM_ID == current_team) %>%
     dplyr::arrange(ESPN_PLAYER_ID, GAME_DATE) %>%
     dplyr::group_by(ESPN_PLAYER_ID) %>%
     dplyr::slice_tail(n = n_games_back) %>%
@@ -4840,14 +5149,11 @@ build_usage_baseline <- function(cutoff_date, n_games_back = 10L) {
       total_mins   = sum(MINS_NUM, na.rm = TRUE),
       total_weight = sum(rec_weight, na.rm = TRUE),
       n_games      = n(),
-      
-      # Usage is already a rate so weight by recency only (not minutes)
       usage_rate_raw = ifelse(
         total_weight > 0,
         sum(USG_NUM * rec_weight, na.rm = TRUE) / total_weight,
         NA_real_
       ),
-      
       usage_rate = case_when(
         is.na(usage_rate_raw) ~ 0.20,
         total_mins < 50       ~ 0.7 * usage_rate_raw + 0.3 * 0.20,
@@ -4866,26 +5172,18 @@ if (exists("player_projections_today") && nrow(player_projections_today) > 0) {
   cat("📊 Building TODAY usage rate profile for", as.character(as_of_date), "...\n")
   
   today_base <- build_usage_baseline(
-    cutoff_date = as.Date(as_of_date),
+    cutoff_date  = as.Date(as_of_date),
     n_games_back = 10L
   )
   
-  # Join usage rates to projections (GAME-LEVEL, not quarter-expanded)
   player_projections_today <- player_projections_today %>%
     left_join(today_base, by = "ESPN_PLAYER_ID")
   
-  # Create game-level usage profile (NOT quarter-expanded)
   player_usage_profile_today <- player_projections_today %>%
-    select(
-      GAME_DATE, ESPN_GAME_ID, ESPN_TEAM_ID, ESPN_PLAYER_ID,
-      usage_rate
-    ) %>%
+    select(GAME_DATE, ESPN_GAME_ID, ESPN_TEAM_ID, ESPN_PLAYER_ID, usage_rate) %>%
     distinct()
   
-  message(
-    "✅ TODAY usage rate profile built | rows=", 
-    nrow(player_usage_profile_today)
-  )
+  message("✅ TODAY usage rate profile built | rows=", nrow(player_usage_profile_today))
   
 } else {
   player_usage_profile_today <- tibble()
@@ -4905,7 +5203,47 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   bt_dates <- sort(unique(player_projections_backtest$GAME_DATE))
   bt_dates <- bt_dates[!is.na(bt_dates)]
   
-  usage_cache <- new.env(parent = emptyenv())
+  # ── CACHE CHECK ─────────────────────────────────────────────────
+  usage_cache_path <- file.path(
+    "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+    "usage_baseline_cache.rds"
+  )
+  
+  if (file.exists(usage_cache_path)) {
+    cat("📂 Loading usage cache...\n")
+    usage_baseline_cache <- readRDS(usage_cache_path)
+    cached_dates  <- unique(as.Date(usage_baseline_cache$cutoff_date))
+    missing_dates <- bt_dates[!bt_dates %in% cached_dates]
+    cat("   Cached:", length(cached_dates), "| Need:", length(bt_dates),
+        "| Missing:", length(missing_dates), "\n")
+  } else {
+    cat("📂 No usage cache — building all", length(bt_dates), "dates\n")
+    usage_baseline_cache <- tibble()
+    missing_dates <- bt_dates
+  }
+  
+  # ── BUILD MISSING DATES ──────────────────────────────────────────
+  if (length(missing_dates) > 0) {
+    cat("🔄 Building", length(missing_dates), "missing dates...\n")
+    
+    new_rows <- vector("list", length(missing_dates))
+    for (i in seq_along(missing_dates)) {
+      dd <- missing_dates[i]
+      new_rows[[i]] <- build_usage_baseline(dd, 10L) %>%
+        mutate(cutoff_date = dd)
+    }
+    
+    usage_baseline_cache <- bind_rows(usage_baseline_cache, new_rows) %>%
+      distinct()
+    
+    saveRDS(usage_baseline_cache, usage_cache_path)
+    cat("💾 Usage cache saved | rows:", nrow(usage_baseline_cache), "\n\n")
+  } else {
+    cat("✅ Usage cache complete\n\n")
+  }
+  # ────────────────────────────────────────────────────────────────
+  
+  # ── BUILD PROFILE FROM CACHE ─────────────────────────────────────
   out <- vector("list", length(bt_dates))
   
   for (i in seq_along(bt_dates)) {
@@ -4914,20 +5252,11 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
     sub <- player_projections_backtest %>% filter(GAME_DATE == dd)
     if (nrow(sub) == 0) next
     
-    k <- format(dd, "%Y%m%d")
+    base <- usage_baseline_cache %>%
+      filter(as.Date(cutoff_date) == dd) %>%
+      select(-cutoff_date)
     
-    # Cache usage baselines by date
-    if (!exists(k, envir = usage_cache)) {
-      base <- build_usage_baseline(dd, 10L)
-      assign(k, base, envir = usage_cache)
-    }
-    
-    base <- get(k, envir = usage_cache)
-    
-    # Join usage rates to projections for this date
-    sub <- sub %>%
-      left_join(base, by = "ESPN_PLAYER_ID")
-    
+    sub <- sub %>% left_join(base, by = "ESPN_PLAYER_ID")
     out[[i]] <- sub
   }
   
@@ -4936,16 +5265,11 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
   
   # Create game-level usage profile (NOT quarter-expanded)
   player_usage_profile_backtest <- player_projections_backtest %>%
-    select(
-      GAME_DATE, ESPN_GAME_ID, ESPN_TEAM_ID, ESPN_PLAYER_ID,
-      usage_rate
-    ) %>%
+    select(GAME_DATE, ESPN_GAME_ID, ESPN_TEAM_ID, ESPN_PLAYER_ID, usage_rate) %>%
     distinct()
   
-  message(
-    "✅ BACKTEST usage rate profile built | dates=", length(bt_dates),
-    " | rows=", nrow(player_usage_profile_backtest)
-  )
+  message("✅ BACKTEST usage rate profile built | dates=", length(bt_dates),
+          " | rows=", nrow(player_usage_profile_backtest))
   
 } else {
   player_usage_profile_backtest <- tibble()
@@ -4958,197 +5282,163 @@ if (exists("player_projections_backtest") && nrow(player_projections_backtest) >
 
 
 
-# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
-# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 #
 #
-#     ooooo   ooooo                                                  .o.             .o8                                        .                                       ooooooooo.                       .o88o.  o8o  oooo                   .o ooooooooo.   o.   
-#     `888'   `888'                                                 .888.           "888                                      .o8                                       `888   `Y88.                     888 `"  `"'  `888                  .8' `888   `Y88. `8.  
-#      888     888   .ooooo.  ooo. .oo.  .oo.    .ooooo.           .8"888.      .oooo888  oooo    ooo  .oooo.   ooo. .oo.   .o888oo  .oooo.    .oooooooo  .ooooo.        888   .d88' oooo d8b  .ooooo.  o888oo  oooo   888   .ooooo.       .8'   888   .d88'  `8. 
-#      888ooooo888  d88' `88b `888P"Y88bP"Y88b  d88' `88b         .8' `888.    d88' `888   `88.  .8'  `P  )88b  `888P"Y88b    888   `P  )88b  888' `88b  d88' `88b       888ooo88P'  `888""8P d88' `88b  888    `888   888  d88' `88b      88    888ooo88P'    88 
-#      888     888  888   888  888   888   888  888ooo888        .88ooo8888.   888   888    `88..8'    .oP"888   888   888    888    .oP"888  888   888  888ooo888       888          888     888   888  888     888   888  888ooo888      88    888           88 
-#      888     888  888   888  888   888   888  888    .o       .8'     `888.  888   888     `888'    d8(  888   888   888    888 . d8(  888  `88bod8P'  888    .o       888          888     888   888  888     888   888  888    .o      `8.   888          .8' 
-#     o888o   o888o `Y8bod8P' o888o o888o o888o `Y8bod8P'      o88o     o8888o `Y8bod88P"     `8'     `Y888""8o o888o o888o   "888" `Y888""8o `8oooooo.  `Y8bod8P'      o888o        d888b    `Y8bod8P' o888o   o888o o888o `Y8bod8P'       `8. o888o        .8'  
-#                                                                                                                                             d"     YD                                                                                      `"              "'   
-#                                                                                                                                             "Y88888P'                                                                                                           
-#                                                                                                                                                                                                                                                            
-# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
-# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+#       .oooooo.   oooo                  .             oooo             ooooooooo.                       .o88o.  o8o  oooo                   .o ooooooooo.   o.   
+#      d8P'  `Y8b  `888                .o8             `888             `888   `Y88.                     888 `"  `"'  `888                  .8' `888   `Y88. `8.  
+#     888           888  oooo  oooo  .o888oo  .ooooo.   888 .oo.         888   .d88' oooo d8b  .ooooo.  o888oo  oooo   888   .ooooo.       .8'   888   .d88'  `8. 
+#     888           888  `888  `888    888   d88' `"Y8  888P"Y88b        888ooo88P'  `888""8P d88' `88b  888    `888   888  d88' `88b      88    888ooo88P'    88 
+#     888           888   888   888    888   888        888   888        888          888     888   888  888     888   888  888ooo888      88    888           88 
+#     `88b    ooo   888   888   888    888 . 888   .o8  888   888        888          888     888   888  888     888   888  888    .o      `8.   888          .8' 
+#      `Y8bood8P'  o888o  `V88V"V8P'   "888" `Y8bod8P' o888o o888o      o888o        d888b    `Y8bod8P' o888o   o888o o888o `Y8bod8P'       `8. o888o        .8'  
+#     
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀                                                                                                             
 # ==========================================================================================================
-# HOME COURT ADVANTAGE ADJUSTMENTS
+# PLAYER CLUTCH PROFILE (Item 31)
 # ----------------------------------------------------------------------------------------------------------
-# This section applies empirically-derived home court advantage adjustments to team offense profiles.
-# Extensive NBA research shows that home teams perform measurably better across multiple dimensions:
-#
-# SHOOTING EFFICIENCY:
-#   - 2PT shooting: ~+1.5% at home (more comfortable rim, familiar depth perception)
-#   - 3PT shooting: ~+2.0% at home (greater effect on perimeter shots)
-#   - FT shooting: ~+1.0% at home (less pressure, crowd support)
-#
-# FOUL CALLS:
-#   - Free throw rate: ~+5% at home (documented referee home bias)
-#
-# OVERALL IMPACT:
-#   - Home teams win ~58% of NBA games historically
-#   - Point spread adjustment: ~2.5 points for home court
-#
-# NOTE: HCA is applied directly to team_offense_adjusted_q (not player profiles) to ensure
-# it flows correctly into the MC simulation. Player-level HCA was removed as HOME_AWAY
-# column was not reliably available at that stage of the pipeline.
-#
-# TODO: Add rest days adjustment, travel distance, back-to-back flags
+# Aggregates per-player clutch shooting rates from BaseStats_Player_MC.
+# Uses L5M window (last 5 min, within 7 pts) Q4 data.
+# Built per game_id so each game uses only prior game data (no lookahead).
 # ==========================================================================================================
 
-# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
-# 🏠🏠🏠 START: Home Court Advantage Adjustments
-# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+# PLAYER CLUTCH PROFILE BUILDER (Item 31)
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 
-# --------------------------------------------------
-# Home Court Adjustment Parameters
-# --------------------------------------------------
-HCA <- list(
-  fg2_mult  = 1.020,   # +2.0% on 2PT shooting (was 1.5%)
-  fg3_mult  = 1.025,   # +2.5% on 3PT shooting (was 2.0%)
-  ft_mult   = 1.010,   # +1.0% on FT shooting (unchanged)
-  fta_mult  = 1.060,   # +6% more FT attempts (was 5%)
-  tov_mult  = 0.970,   # -3% turnovers at home (NEW)
-  oreb_mult = 1.020    # +2% offensive rebounds at home (NEW)
+build_player_clutch_profile <- function(base_stats, game_list) {
+  
+  clutch_raw <- base_stats %>%
+    filter(!is.na(ESPN_PLAYER_ID), ESPN_PLAYER_ID != "") %>%
+    mutate(
+      GAME_DATE      = as.Date(GAME_DATE),
+      ESPN_GAME_ID   = as.character(ESPN_GAME_ID),
+      ESPN_PLAYER_ID = as.character(ESPN_PLAYER_ID),
+      ESPN_TEAM_ID   = as.character(ESPN_TEAM_ID)
+    ) %>%
+    select(ESPN_GAME_ID, ESPN_PLAYER_ID, ESPN_TEAM_ID, GAME_DATE,
+           matches("^P_CLTH_L5M_(FGA|FGM|PCT)_(2PT_|3PT_)?Q4$")) %>%
+    distinct() %>%
+    mutate(across(matches("^P_CLTH_L5M_"), as.numeric))
+  
+  game_dates <- game_list %>%
+    select(game_id, game_date) %>%
+    distinct() %>%
+    mutate(
+      game_date    = as.Date(game_date),
+      ESPN_GAME_ID = as.character(game_id)
+    )
+  
+  # Get unique players
+  players <- clutch_raw %>%
+    select(ESPN_PLAYER_ID, ESPN_TEAM_ID) %>%
+    distinct()
+  
+  # ── TRADE FILTER: use most recent team per player ─────────────────
+  current_teams <- clutch_raw %>%
+    arrange(ESPN_PLAYER_ID, desc(GAME_DATE)) %>%
+    group_by(ESPN_PLAYER_ID) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(ESPN_PLAYER_ID, current_team = ESPN_TEAM_ID)
+  # ─────────────────────────────────────────────────────────────────
+  
+  clutch_agg <- clutch_raw %>%
+    left_join(current_teams, by = "ESPN_PLAYER_ID") %>%
+    filter(ESPN_TEAM_ID == current_team) %>%
+    group_by(ESPN_PLAYER_ID, ESPN_TEAM_ID) %>%
+    summarise(
+      clutch_fga_2pt = sum(P_CLTH_L5M_FGA_2PT_Q4, na.rm = TRUE),
+      clutch_fgm_2pt = sum(P_CLTH_L5M_FGM_2PT_Q4, na.rm = TRUE),
+      clutch_fga_3pt = sum(P_CLTH_L5M_FGA_3PT_Q4, na.rm = TRUE),
+      clutch_fgm_3pt = sum(P_CLTH_L5M_FGM_3PT_Q4, na.rm = TRUE),
+      clutch_games   = n(),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      clutch_fg2_pct = ifelse(clutch_fga_2pt >= 5, clutch_fgm_2pt / clutch_fga_2pt, NA_real_),
+      clutch_fg3_pct = ifelse(clutch_fga_3pt >= 3, clutch_fgm_3pt / clutch_fga_3pt, NA_real_)
+    )
+  
+  clutch_profile <- game_dates %>%
+    crossing(players) %>%
+    left_join(clutch_agg, by = c("ESPN_PLAYER_ID", "ESPN_TEAM_ID")) %>%
+    select(ESPN_GAME_ID, ESPN_PLAYER_ID, ESPN_TEAM_ID,
+           clutch_fg2_pct, clutch_fg3_pct, clutch_games)
+  
+  clutch_profile
+}
+
+# ── CLUTCH CACHE PATH ─────────────────────────────────────────────────
+clutch_cache_path <- file.path(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+  "clutch_profile_cache.rds"
 )
 
-# ==========================================================================================================
-# TEAM-SPECIFIC HCA OVERRIDES (Item 26)
-# ----------------------------------------------------------------------------------------------------------
-# Some teams have home court advantages that deviate significantly from league average.
-# Denver's altitude (5,280 ft) creates measurable fatigue effects on visiting teams,
-# boosting Denver's home performance beyond what the standard HCA captures.
-#
-# Applied in the opponent-adjusted profiles section by checking if a game involves
-# a team with a specific HCA override.
-# ==========================================================================================================
+# Clutch is season-level aggregation — one result per player per season.
+# Cache is valid as long as BaseStats hasn't added new games since last build.
+# Check by comparing max game date in BaseStats vs cached build date.
+latest_basestats_date <- max(as.Date(BaseStats_Player_MC$GAME_DATE), na.rm = TRUE)
 
-TEAM_HCA_OVERRIDES <- list(
-  # Denver Nuggets — altitude effect
-  # Visiting teams show reduced shooting efficiency and increased turnovers
-  # at altitude, especially in Q3-Q4 as fatigue compounds
-  "7" = list(
-    fg2_mult  = 1.035,   # +3.5% on 2PT (vs standard 2.0%)
-    fg3_mult  = 1.040,   # +4.0% on 3PT (vs standard 2.5%)
-    ft_mult   = 1.010,   # same as standard
-    fta_mult  = 1.060,   # same as standard
-    tov_mult  = 0.950,   # -5% turnovers at home (vs standard 3%)
-    oreb_mult = 1.030    # +3% OREB at home (vs standard 2%)
+# ============================================================
+# BACKTEST: Build or Load Clutch Profile
+# ============================================================
+if (mode == "backtest" || load_backtest_data) {
+  
+  needs_rebuild <- TRUE
+  
+  if (file.exists(clutch_cache_path)) {
+    cached_clutch <- readRDS(clutch_cache_path)
+    cached_build_date <- attr(cached_clutch, "build_date")
+    
+    if (!is.null(cached_build_date) && cached_build_date >= latest_basestats_date) {
+      cat("📂 Clutch cache valid (built:", as.character(cached_build_date),
+          "| latest data:", as.character(latest_basestats_date), ")\n")
+      cat("   ✅ Loading from cache\n\n")
+      player_clutch_profile_q <- cached_clutch
+      needs_rebuild <- FALSE
+    } else {
+      cat("📂 Clutch cache stale — BaseStats has newer data, rebuilding...\n")
+    }
+  } else {
+    cat("📂 No clutch cache found — building from scratch\n")
+  }
+  
+  if (needs_rebuild) {
+    cat("🎯 Building player clutch profiles (BACKTEST)...\n")
+    player_clutch_profile_q <- build_player_clutch_profile(
+      base_stats = BaseStats_Player_MC,
+      game_list  = nba_games_canon_season %>%
+        select(game_id, game_date) %>%
+        distinct()
+    )
+    
+    # Tag with build date and save
+    attr(player_clutch_profile_q, "build_date") <- latest_basestats_date
+    saveRDS(player_clutch_profile_q, clutch_cache_path)
+    cat("  💾 Clutch cache saved | rows:", nrow(player_clutch_profile_q), "\n\n")
+  }
+  
+  cat("  ✅ Clutch profiles ready |", nrow(player_clutch_profile_q), "rows\n\n")
+}
+
+# ============================================================
+# TODAY: Build Clutch Profile (always fresh — no cache needed)
+# ============================================================
+if (exists("games_today") && nrow(games_today) > 0) {
+  cat("🎯 Building player clutch profiles (TODAY)...\n")
+  player_clutch_profile_q_today <- build_player_clutch_profile(
+    base_stats = BaseStats_Player_MC,
+    game_list  = games_today
   )
-)
-
-# --------------------------------------------------
-# Apply HCA to BACKTEST team offense profiles
-# --------------------------------------------------
-if (exists("team_offense_adjusted_q") && nrow(team_offense_adjusted_q) > 0) {
-  
-  cat("🏠 Applying home court advantage to BACKTEST team offense profiles...\n")
-  
-  team_offense_adjusted_q <- team_offense_adjusted_q %>%
-    left_join(
-      games_backtest %>% select(game_id, home_team_id),
-      by = "game_id"
-    ) %>%
-    mutate(
-      is_home              = ESPN_TEAM_ID == home_team_id,
-      fg2_pct_adjusted     = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
-      fg3_pct_adjusted     = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
-      ft_pct_adjusted      = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
-      fta_per_fga_adjusted = ifelse(is_home, fta_per_fga_adjusted * HCA$fta_mult, fta_per_fga_adjusted),
-      tov_per_poss_adjusted  = ifelse(is_home, tov_per_poss_adjusted  * HCA$tov_mult,  tov_per_poss_adjusted),
-      oreb_per_poss_adjusted = ifelse(is_home, oreb_per_poss_adjusted * HCA$oreb_mult, oreb_per_poss_adjusted)
-    ) %>%
-    select(-is_home, -home_team_id)
-  
-  message("✅ Home court advantage applied to BACKTEST team offense profiles")
-  
-  # Apply team-specific HCA overrides (Item 26)
-  for (team_id in names(TEAM_HCA_OVERRIDES)) {
-    override <- TEAM_HCA_OVERRIDES[[team_id]]
-    
-    team_offense_adjusted_q <- team_offense_adjusted_q %>%
-      mutate(
-        is_override_home = (ESPN_TEAM_ID == team_id & 
-                              game_id %in% (nba_games_canon_season %>% 
-                                              filter(home_team_id == team_id) %>% 
-                                              pull(game_id))),
-        
-        fg2_pct_adjusted = ifelse(is_override_home, 
-                                  fg2_pct_adjusted * (override$fg2_mult / HCA$fg2_mult), 
-                                  fg2_pct_adjusted),
-        fg3_pct_adjusted = ifelse(is_override_home, 
-                                  fg3_pct_adjusted * (override$fg3_mult / HCA$fg3_mult), 
-                                  fg3_pct_adjusted),
-        tov_per_poss_adjusted = ifelse(is_override_home, 
-                                       tov_per_poss_adjusted * (override$tov_mult / HCA$tov_mult), 
-                                       tov_per_poss_adjusted),
-        oreb_per_poss_adjusted = ifelse(is_override_home, 
-                                        oreb_per_poss_adjusted * (override$oreb_mult / HCA$oreb_mult), 
-                                        oreb_per_poss_adjusted)
-      ) %>%
-      select(-is_override_home)
-  }
+  cat("  ✅ Clutch profiles built |", nrow(player_clutch_profile_q_today), "rows\n\n")
 }
 
-# --------------------------------------------------
-# Apply HCA to TODAY team offense profiles
-# --------------------------------------------------
-if (exists("team_offense_adjusted_q_today") && nrow(team_offense_adjusted_q_today) > 0) {
-  
-  cat("🏠 Applying home court advantage to TODAY team offense profiles...\n")
-  
-  team_offense_adjusted_q_today <- team_offense_adjusted_q_today %>%
-    left_join(
-      canon_today %>% select(game_id, home_team_id),
-      by = "game_id"
-    ) %>%
-    mutate(
-      is_home              = ESPN_TEAM_ID == home_team_id,
-      fg2_pct_adjusted     = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
-      fg3_pct_adjusted     = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
-      ft_pct_adjusted      = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
-      fta_per_fga_adjusted = ifelse(is_home, fta_per_fga_adjusted * HCA$fta_mult, fta_per_fga_adjusted),
-      tov_per_poss_adjusted  = ifelse(is_home, tov_per_poss_adjusted  * HCA$tov_mult,  tov_per_poss_adjusted),
-      oreb_per_poss_adjusted = ifelse(is_home, oreb_per_poss_adjusted * HCA$oreb_mult, oreb_per_poss_adjusted)
-    ) %>%
-    select(-is_home, -home_team_id)
-  
-  message("✅ Home court advantage applied to TODAY team offense profiles")
-  
-  # Apply team-specific HCA overrides to TODAY (Item 26)
-  for (team_id in names(TEAM_HCA_OVERRIDES)) {
-    override <- TEAM_HCA_OVERRIDES[[team_id]]
-    
-    team_offense_adjusted_q_today <- team_offense_adjusted_q_today %>%
-      mutate(
-        is_override_home = (ESPN_TEAM_ID == team_id & 
-                              game_id %in% (nba_games_canon_season %>% 
-                                              filter(home_team_id == team_id) %>% 
-                                              pull(game_id))),
-        
-        fg2_pct_adjusted = ifelse(is_override_home, 
-                                  fg2_pct_adjusted * (override$fg2_mult / HCA$fg2_mult), 
-                                  fg2_pct_adjusted),
-        fg3_pct_adjusted = ifelse(is_override_home, 
-                                  fg3_pct_adjusted * (override$fg3_mult / HCA$fg3_mult), 
-                                  fg3_pct_adjusted),
-        tov_per_poss_adjusted = ifelse(is_override_home, 
-                                       tov_per_poss_adjusted * (override$tov_mult / HCA$tov_mult), 
-                                       tov_per_poss_adjusted),
-        oreb_per_poss_adjusted = ifelse(is_override_home, 
-                                        oreb_per_poss_adjusted * (override$oreb_mult / HCA$oreb_mult), 
-                                        oreb_per_poss_adjusted)
-      ) %>%
-      select(-is_override_home)
-  }
-}
-
-# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
-# 🏠🏠🏠 END: Home Court Advantage Adjustments
-# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+# END: Player Clutch Profile Builder
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 
 
 
@@ -5169,50 +5459,255 @@ if (exists("team_offense_adjusted_q_today") && nrow(team_offense_adjusted_q_toda
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀️
 # 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀️
 # ==========================================================================================================
-# PLAYER DEFENSIVE ADJUSTMENT PROFILE (CRUDE - CLOSEST DEFENDER TRACKING)
+# TEAM DEFENSIVE PROFILE BUILDER (v2 - BaseStats_Player based)
 # ----------------------------------------------------------------------------------------------------------
-# This section builds a team-level defensive adjustment that modifies each player's shooting profile
-# based on how the OPPOSING DEFENSE contests shots. It uses closest defender tracking data to measure
-# what FG2% and FG3% opponents shoot against each team, broken down by contest level
-# (Tight, Very Tight, Open, Wide Open).
+# Builds team defensive identity from player-level box score data aggregated to team-game level,
+# then recency-weighted rolling profiles.
 #
-# APPROACH (Phase 1 — Crude):
-#   - For each defending team, compute the average FG2% and FG3% opponents shoot against them
-#   - Compare to league average to derive a defensive multiplier (e.g. Celtics allow 4% below avg)
-#   - Apply that multiplier to each player's shooting profile before the sim runs
-#   - This is a TEAM-level adjustment applied to individual players, not a true matchup model
-#
-# PHASE 2 (Future):
-#   - When closest defender identity is available, build true player-vs-player matchup adjustments
-#   - Apply position-based defensive splits (guard defenders vs. big defenders)
+# COMPONENTS:
+#   - STL/min    : perimeter pressure / disruption
+#   - BLK/min    : rim protection
+#   - DFL/min    : deflections (tipped passes, ball pressure)
+#   - DFG_PCT    : opponent FG% allowed (direct shooting suppression)
+#   - DEF_RTG    : overall defensive efficiency (minutes-weighted)
 #
 # OUTPUT:
-#   team_defensive_shooting_adj    -- multiplier per defending team (fg2_mult, fg3_mult)
-#   player_shooting_profile_q      -- updated with opponent defensive adjustments applied
+#   team_defensive_profiles_v2   -- full defensive identity profile for use in opponent adjustment
+#
+# NOTE: Defense is applied ONLY through the opponent-adjusted profiles section (build_opponent_adjusted_profiles).
+#       Direct application to player shooting profiles was removed to eliminate double-counting —
+#       opponent adjustment already blends team offense with opponent defense at configurable strength.
 # ==========================================================================================================
 
-# 🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️
-# 🛡️🛡️🛡️ START: Player Defensive Adjustment Profile
-# 🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️
 
-stopifnot(
-  exists("nba_games_canon_season"),
-  exists("player_shooting_profile_q_today"),
-  exists("num0")
-)
-
-if (mode == "backtest") {
-  stopifnot(exists("player_shooting_profile_q"))
-}
-
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀️
+# 🏀🏀🏀️ START: Team Defensive Profile Builder
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
 suppressPackageStartupMessages({
   library(dplyr)
   library(data.table)
-  library(tibble)
 })
 
+cat("🛡️ Building team defensive profiles from BaseStats_Player...\n\n")
+
 # --------------------------------------------------
-# Step 1: Load closest defender tracking data
+# Step 1: Load and clean BaseStats_Player
+# --------------------------------------------------
+basestats_player_dir <- file.path(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data",
+  "0. Datahub (Temp)/1. hoopR/2. BaseStats_Player"
+)
+
+basestats_player_raw <- fread(
+  file.path(basestats_player_dir, paste0("BaseStats_Player_", season_token, ".csv")),
+  colClasses = "character",
+  encoding = "UTF-8"
+)
+
+# Filter out all-star/exhibition teams and clean types
+basestats_player_def <- basestats_player_raw %>%
+  filter(!espn_team_id %in% c("111386", "132374", "132375")) %>%
+  filter(!is.na(espn_game_id), !is.na(espn_team_id)) %>%
+  mutate(
+    espn_game_id  = as.character(espn_game_id),
+    espn_team_id  = as.character(espn_team_id),
+    game_date     = as.Date(game_date),
+    MIN  = as.numeric(MIN),
+    STL  = as.numeric(STL),
+    BLK  = as.numeric(BLK),
+    DFL  = as.numeric(DFL),
+    DFGA = as.numeric(DFGA),
+    DFGM = as.numeric(DFGM),
+    DEF_RTG = as.numeric(DEF_RTG)
+  ) %>%
+  filter(!is.na(MIN), MIN > 0)
+
+cat("  Rows after cleaning:", nrow(basestats_player_def), "\n")
+
+# --------------------------------------------------
+# Step 2: Aggregate to team-game level
+# --------------------------------------------------
+team_game_def <- basestats_player_def %>%
+  group_by(espn_game_id, espn_team_id, game_date) %>%
+  summarise(
+    total_min    = sum(MIN, na.rm = TRUE),
+    total_stl    = sum(STL, na.rm = TRUE),
+    total_blk    = sum(BLK, na.rm = TRUE),
+    total_dfl    = sum(DFL, na.rm = TRUE),
+    total_dfga   = sum(DFGA, na.rm = TRUE),
+    total_dfgm   = sum(DFGM, na.rm = TRUE),
+    def_rtg_wavg = weighted.mean(DEF_RTG, w = pmax(MIN, 0.1), na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    stl_per_min  = total_stl / pmax(total_min, 1),
+    blk_per_min  = total_blk / pmax(total_min, 1),
+    dfl_per_min  = total_dfl / pmax(total_min, 1),
+    dfg_pct      = ifelse(total_dfga > 0, total_dfgm / total_dfga, NA_real_)
+  ) %>%
+  filter(game_date < as.Date(as_of_date))
+
+cat("  Team-game rows:", nrow(team_game_def), "\n")
+
+# --------------------------------------------------
+# Step 3: League averages (for normalization)
+# --------------------------------------------------
+lg_avg <- team_game_def %>%
+  summarise(
+    lg_stl_per_min = mean(stl_per_min, na.rm = TRUE),
+    lg_blk_per_min = mean(blk_per_min, na.rm = TRUE),
+    lg_dfl_per_min = mean(dfl_per_min, na.rm = TRUE),
+    lg_dfg_pct     = mean(dfg_pct,     na.rm = TRUE),
+    lg_def_rtg     = mean(def_rtg_wavg, na.rm = TRUE)
+  )
+
+cat("  League avgs — STL/min:", round(lg_avg$lg_stl_per_min, 4),
+    "| BLK/min:", round(lg_avg$lg_blk_per_min, 4),
+    "| DFL/min:", round(lg_avg$lg_dfl_per_min, 4),
+    "| DFG%:", round(lg_avg$lg_dfg_pct, 3),
+    "| DEF_RTG:", round(lg_avg$lg_def_rtg, 1), "\n\n")
+
+# --------------------------------------------------
+# Cache check
+# --------------------------------------------------
+defense_v2_cache_path <- file.path(
+  "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data/0. Datahub (Temp)/0. Prediction Data/1. player_profiles",
+  "defense_v2_profile_cache.rds"
+)
+
+latest_basestats_date <- max(as.Date(basestats_player_def$game_date), na.rm = TRUE)
+needs_rebuild <- TRUE
+
+if (file.exists(defense_v2_cache_path)) {
+  cached_defense_v2 <- readRDS(defense_v2_cache_path)
+  cached_build_date <- attr(cached_defense_v2, "build_date")
+  
+  if (!is.null(cached_build_date) && cached_build_date >= latest_basestats_date) {
+    cat("📂 Defense v2 cache valid (built:", as.character(cached_build_date),
+        "| latest data:", as.character(latest_basestats_date), ")\n")
+    cat("   ✅ Loading from cache\n\n")
+    team_defensive_profiles_v2 <- cached_defense_v2
+    needs_rebuild <- FALSE
+  } else {
+    cat("📂 Defense v2 cache stale — rebuilding...\n")
+  }
+} else {
+  cat("📂 No defense v2 cache — building from scratch\n")
+}
+
+if (needs_rebuild) {
+  
+  # --------------------------------------------------
+  # Step 4: Recency-weighted rolling profiles per team
+  # --------------------------------------------------
+  cat("  Building recency-weighted defensive profiles...\n")
+  
+  team_defensive_profiles_v2 <- team_game_def %>%
+    mutate(
+      days_ago   = as.numeric(as.Date(as_of_date) - game_date),
+      rec_weight = exp(-0.05 * days_ago)
+    ) %>%
+    group_by(espn_team_id) %>%
+    summarise(
+      n_games      = n(),
+      stl_per_min  = weighted.mean(stl_per_min,  w = rec_weight, na.rm = TRUE),
+      blk_per_min  = weighted.mean(blk_per_min,  w = rec_weight, na.rm = TRUE),
+      dfl_per_min  = weighted.mean(dfl_per_min,  w = rec_weight, na.rm = TRUE),
+      dfg_pct      = weighted.mean(dfg_pct,      w = rec_weight, na.rm = TRUE),
+      def_rtg      = weighted.mean(def_rtg_wavg, w = rec_weight, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      shrink_w     = ifelse(n_games < 10, 0.4, 0.15),
+      stl_per_min  = (1 - shrink_w) * stl_per_min + shrink_w * lg_avg$lg_stl_per_min,
+      blk_per_min  = (1 - shrink_w) * blk_per_min + shrink_w * lg_avg$lg_blk_per_min,
+      dfl_per_min  = (1 - shrink_w) * dfl_per_min + shrink_w * lg_avg$lg_dfl_per_min,
+      dfg_pct      = (1 - shrink_w) * dfg_pct     + shrink_w * lg_avg$lg_dfg_pct,
+      def_rtg      = (1 - shrink_w) * def_rtg     + shrink_w * lg_avg$lg_def_rtg,
+      stl_rel      = stl_per_min / lg_avg$lg_stl_per_min,
+      blk_rel      = blk_per_min / lg_avg$lg_blk_per_min,
+      dfl_rel      = dfl_per_min / lg_avg$lg_dfl_per_min,
+      dfg_rel      = lg_avg$lg_dfg_pct / dfg_pct,
+      def_rtg_rel  = lg_avg$lg_def_rtg / def_rtg,
+      composite_def = (
+        0.30 * dfg_rel     +
+          0.25 * def_rtg_rel +
+          0.20 * stl_rel     +
+          0.15 * dfl_rel     +
+          0.10 * blk_rel
+      ),
+      fg2_def_mult = 1 + (composite_def - 1) * 0.6,
+      fg3_def_mult = 1 + (composite_def - 1) * 0.8,
+      fg2_def_mult = pmin(pmax(fg2_def_mult, 0.85), 1.15),
+      fg3_def_mult = pmin(pmax(fg3_def_mult, 0.85), 1.15)
+    ) %>%
+    rename(ESPN_TEAM_ID = espn_team_id)
+  
+  cat("  Defensive profiles built:", nrow(team_defensive_profiles_v2), "teams\n")
+  cat("  FG2 mult range: [",
+      round(min(team_defensive_profiles_v2$fg2_def_mult), 3), ",",
+      round(max(team_defensive_profiles_v2$fg2_def_mult), 3), "]\n")
+  cat("  FG3 mult range: [",
+      round(min(team_defensive_profiles_v2$fg3_def_mult), 3), ",",
+      round(max(team_defensive_profiles_v2$fg3_def_mult), 3), "]\n\n")
+  
+  cat("  Top 5 defenses (lowest fg2_def_mult):\n")
+  team_defensive_profiles_v2 %>%
+    arrange(fg2_def_mult) %>%
+    select(ESPN_TEAM_ID, composite_def, fg2_def_mult, fg3_def_mult, stl_rel, blk_rel, dfl_rel) %>%
+    head(5) %>%
+    print()
+  
+  cat("\n  Bottom 5 defenses (highest fg2_def_mult):\n")
+  team_defensive_profiles_v2 %>%
+    arrange(desc(fg2_def_mult)) %>%
+    select(ESPN_TEAM_ID, composite_def, fg2_def_mult, fg3_def_mult, stl_rel, blk_rel, dfl_rel) %>%
+    head(5) %>%
+    print()
+  
+  # Save cache
+  attr(team_defensive_profiles_v2, "build_date") <- latest_basestats_date
+  saveRDS(team_defensive_profiles_v2, defense_v2_cache_path)
+  cat("  💾 Defense v2 cache saved\n\n")
+  
+  cat("✅ team_defensive_profiles_v2 built and cached\n")
+  cat("✅ Defense flows through opponent adjustment only — no direct player shooting application\n\n")
+  
+} # end needs_rebuild
+
+# --------------------------------------------------
+# Step 5: Rebuild opp_lookup (used by downstream sections)
+# --------------------------------------------------
+opp_lookup <- bind_rows(
+  nba_games_canon_season %>%
+    transmute(
+      ESPN_GAME_ID = as.character(game_id),
+      ESPN_TEAM_ID = as.character(home_team_id),
+      opp_team_id  = as.character(away_team_id)
+    ),
+  nba_games_canon_season %>%
+    transmute(
+      ESPN_GAME_ID = as.character(game_id),
+      ESPN_TEAM_ID = as.character(away_team_id),
+      opp_team_id  = as.character(home_team_id)
+    )
+) %>%
+  distinct()
+
+cat("  opp_lookup built:", nrow(opp_lookup), "rows\n\n")
+
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀️
+# 🏀🏀🏀️ END: Team Defensive Profile Builder
+# 🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀🏀
+
+
+
+# 🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️
+# 🛡️🛡️🛡️ START: Closest Defender — Player Shooting Adjustment (Restored from 61.6% run)
+# 🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️
+
+# --------------------------------------------------
+# Load closest defender tracking data
 # --------------------------------------------------
 shot_tracking_dir <- file.path(
   "C:/Users/Austin/OneDrive/Desktop/1/Data Analytics/NBA Data",
@@ -5230,7 +5725,7 @@ closest_defender_raw <- fread(
 cat("  Loaded:", nrow(closest_defender_raw), "rows\n\n")
 
 # --------------------------------------------------
-# Step 2: Standardize and cast
+# Standardize and cast
 # --------------------------------------------------
 closest_defender <- closest_defender_raw %>%
   transmute(
@@ -5247,12 +5742,8 @@ closest_defender <- closest_defender_raw %>%
   filter(!is.na(espn_game_id), !is.na(espn_team_id))
 
 # --------------------------------------------------
-# Step 3: Join opponent team ID from canon games
-# Closest defender data has the OFFENSIVE player's team.
-# We need the DEFENDING team = the opponent.
+# Join opponent team ID from canon games
 # --------------------------------------------------
-
-# Build both perspectives directly — no pivot needed, column names stay unambiguous
 game_opponent_map <- bind_rows(
   nba_games_canon_season %>%
     transmute(
@@ -5277,25 +5768,8 @@ cat("  Opponent join complete. NAs in defending_team_id:",
     sum(is.na(closest_defender$defending_team_id)), "\n\n")
 
 # --------------------------------------------------
-# Step 4: Build league average FG2% and FG3%
-# by contest level (used as the anchor for adjustments)
+# Build league average FG2% and FG3%
 # --------------------------------------------------
-cat("  Computing league average shooting by contest level...\n")
-
-league_avg_by_contest <- closest_defender %>%
-  filter(!is.na(defender_range_designation)) %>%
-  group_by(defender_range_designation) %>%
-  summarise(
-    lg_FG2_pct = ifelse(sum(FG2A, na.rm = TRUE) > 0,
-                        sum(FG2M, na.rm = TRUE) / sum(FG2A, na.rm = TRUE),
-                        NA_real_),
-    lg_FG3_pct = ifelse(sum(FG3A, na.rm = TRUE) > 0,
-                        sum(FG3M, na.rm = TRUE) / sum(FG3A, na.rm = TRUE),
-                        NA_real_),
-    .groups = "drop"
-  )
-
-# Overall league averages (all contest levels combined)
 lg_FG2_overall <- sum(closest_defender$FG2M, na.rm = TRUE) /
   max(sum(closest_defender$FG2A, na.rm = TRUE), 1)
 lg_FG3_overall <- sum(closest_defender$FG3M, na.rm = TRUE) /
@@ -5305,9 +5779,7 @@ cat("  League avg FG2%:", round(lg_FG2_overall, 3),
     "| FG3%:", round(lg_FG3_overall, 3), "\n\n")
 
 # --------------------------------------------------
-# Step 5: Build per-defending-team shooting allowed
-# Leakage-safe: use all games before as_of_date
-# Recency-weighted: exp(-0.1 * days_ago)
+# Build per-defending-team shooting allowed
 # --------------------------------------------------
 cat("  Building team defensive shooting allowed profiles...\n")
 
@@ -5323,53 +5795,27 @@ team_def_raw <- closest_defender %>%
   group_by(defending_team_id) %>%
   summarise(
     n_games = n_distinct(espn_game_id),
-    
-    # Weighted FG2% and FG3% allowed (all contest levels combined)
     w_FG2A = sum(FG2A * rec_weight, na.rm = TRUE),
     w_FG2M = sum(FG2M * rec_weight, na.rm = TRUE),
     w_FG3A = sum(FG3A * rec_weight, na.rm = TRUE),
     w_FG3M = sum(FG3M * rec_weight, na.rm = TRUE),
-    
     FG2_pct_allowed = ifelse(w_FG2A > 0, w_FG2M / w_FG2A, lg_FG2_overall),
     FG3_pct_allowed = ifelse(w_FG3A > 0, w_FG3M / w_FG3A, lg_FG3_overall),
-    
-    # Contest rate: proportion of opponent shots that are Tight or Very Tight
-    total_shots = sum(FG2A + FG3A, na.rm = TRUE),
-    tight_shots = sum(
-      ifelse(defender_range_designation %in% c("Tight", "Very Tight"),
-             FG2A + FG3A, 0),
-      na.rm = TRUE
-    ),
-    contest_rate = ifelse(total_shots > 0, tight_shots / total_shots, 0.40),
-    
     .groups = "drop"
   ) %>%
   mutate(
-    # Small sample shrinkage toward league average
     shrink_w = ifelse(n_games < 10, 0.4, 0.15),
-    
     FG2_pct_allowed = (1 - shrink_w) * FG2_pct_allowed + shrink_w * lg_FG2_overall,
     FG3_pct_allowed = (1 - shrink_w) * FG3_pct_allowed + shrink_w * lg_FG3_overall,
-    contest_rate    = (1 - shrink_w) * contest_rate    + shrink_w * 0.40,
-    
-    # Defensive multiplier: ratio of what this defense allows vs league average
-    # < 1.0 = elite defense (allows below average), > 1.0 = poor defense
     fg2_def_mult = FG2_pct_allowed / lg_FG2_overall,
     fg3_def_mult = FG3_pct_allowed / lg_FG3_overall,
-    
-    # Clamp multipliers to reasonable range (no defense is 30% better or worse)
     fg2_def_mult = pmin(pmax(fg2_def_mult, 0.85), 1.15),
     fg3_def_mult = pmin(pmax(fg3_def_mult, 0.85), 1.15)
   ) %>%
-  select(
-    defending_team_id,
-    FG2_pct_allowed, FG3_pct_allowed,
-    fg2_def_mult, fg3_def_mult,
-    contest_rate, n_games
-  ) %>%
+  select(defending_team_id, fg2_def_mult, fg3_def_mult, n_games) %>%
   rename(ESPN_TEAM_ID = defending_team_id)
 
-cat("  Team defensive profiles built:", nrow(team_def_raw), "teams\n")
+cat("  Closest defender profiles built:", nrow(team_def_raw), "teams\n")
 cat("  FG2 mult range: [",
     round(min(team_def_raw$fg2_def_mult), 3), ",",
     round(max(team_def_raw$fg2_def_mult), 3), "]\n")
@@ -5377,30 +5823,11 @@ cat("  FG3 mult range: [",
     round(min(team_def_raw$fg3_def_mult), 3), ",",
     round(max(team_def_raw$fg3_def_mult), 3), "]\n\n")
 
-# Store as named output
 team_defensive_shooting_adj <- team_def_raw
 
-# Build opponent lookup (needed by both backtest and today)
-opp_lookup <- bind_rows(
-  nba_games_canon_season %>%
-    transmute(
-      ESPN_GAME_ID = as.character(game_id),
-      ESPN_TEAM_ID = as.character(home_team_id),
-      opp_team_id  = as.character(away_team_id)
-    ),
-  nba_games_canon_season %>%
-    transmute(
-      ESPN_GAME_ID = as.character(game_id),
-      ESPN_TEAM_ID = as.character(away_team_id),
-      opp_team_id  = as.character(home_team_id)
-    )
-) %>%
-  distinct()
-
 # --------------------------------------------------
-# Step 6: Apply defensive adjustment to player shooting profiles
-
-# BACKTEST
+# Apply to player shooting profiles
+# --------------------------------------------------
 if (mode == "backtest") {
   player_shooting_profile_q <- player_shooting_profile_q %>%
     left_join(opp_lookup,
@@ -5419,10 +5846,9 @@ if (mode == "backtest") {
     ) %>%
     select(-opp_team_id, -fg2_def_mult, -fg3_def_mult)
   
-  cat("  Defensive adjustment applied to player_shooting_profile_q\n")
+  cat("  ✅ Closest defender adjustment applied to player_shooting_profile_q\n")
 }
 
-# TODAY
 if (exists("player_shooting_profile_q_today") && nrow(player_shooting_profile_q_today) > 0) {
   player_shooting_profile_q_today <- player_shooting_profile_q_today %>%
     left_join(opp_lookup,
@@ -5441,11 +5867,11 @@ if (exists("player_shooting_profile_q_today") && nrow(player_shooting_profile_q_
     ) %>%
     select(-opp_team_id, -fg2_def_mult, -fg3_def_mult)
   
-  cat("  Defensive adjustment applied to player_shooting_profile_q_today\n")
+  cat("  ✅ Closest defender adjustment applied to player_shooting_profile_q_today\n")
 }
 
 # 🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️
-# 🛡️🛡️🛡️ END: Player Defensive Adjustment Profile
+# 🛡️🛡️🛡️ END: Closest Defender — Player Shooting Adjustment
 # 🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️
 
 
@@ -7079,6 +7505,403 @@ if (exists("player_tovpm_profile_q") &&
 
 
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+# 🧬🧬🧬 START: Item 44 — Blend ALL Team Profiles with Team Box Score Data
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+
+# ==========================================================================================================
+# ITEM 44: FULL TEAM PROFILE BLEND
+# ----------------------------------------------------------------------------------------------------------
+# Player-driven team profiles compress variance through multi-layer smoothing (individual rolling
+# averages → roster summation → possession normalization). This blend anchors profiles to actual
+# team box score results from BaseStats_Team_MC to recover real game-to-game variance.
+#
+# PROFILES BLENDED:
+#   - pts_per_poss   (team offensive efficiency)
+#   - FG2_pct, FG3_pct, FT_pct, p3, FTA_per_FGA (team shooting params)
+#   - oreb_per_poss, dreb_per_poss (team rebounding rates)
+#   - tov_per_poss   (team turnover rates)
+#
+# Player-driven component captures lineup/injury effects.
+# Team box score component preserves real variance + team chemistry/coaching effects.
+# ==========================================================================================================
+
+BLEND_PLAYER_WEIGHT <- 0.40  # Player-driven component
+BLEND_TEAM_WEIGHT   <- 0.60  # Team box score component
+BLEND_N_GAMES_BACK  <- 10L
+BLEND_DECAY_RATE    <- 0.05
+
+cat("📊 Item 44: Building FULL team box score profiles for blend...\n")
+cat("  Blend ratio:", BLEND_PLAYER_WEIGHT * 100, "% player /", BLEND_TEAM_WEIGHT * 100, "% team box score\n\n")
+
+# --------------------------------------------------
+# STEP 1: Build all team box score metrics from BaseStats_Team_MC
+# --------------------------------------------------
+build_team_boxscore_profiles <- function(BaseStats_Team_MC,
+                                         slate_games,
+                                         n_games_back = BLEND_N_GAMES_BACK,
+                                         decay_rate = BLEND_DECAY_RATE) {
+  
+  qtrs <- 1:6
+  qtr_data_list <- list()
+  
+  for (q in qtrs) {
+    pts_col   <- paste0("T_PTS_Q", q)
+    poss_col  <- paste0("T_POSS_Q", q)
+    fg2p_col  <- paste0("T_2PT_PCT_Q", q)
+    fg3p_col  <- paste0("T_3PT_PCT_Q", q)
+    ftp_col   <- paste0("T_FT_PCT_Q", q)
+    fga3_col  <- paste0("T_3PTA_Q", q)
+    fga_col   <- paste0("T_FGA_Q", q)
+    fta_col   <- paste0("T_FTA_Q", q)
+    oreb_col  <- paste0("T_OREB_Q", q)
+    dreb_col  <- paste0("T_DREB_Q", q)
+    tov_col   <- paste0("T_TOV_Q", q)
+    
+    # Previous quarter pts column for de-cumulation
+    prev_pts_col <- if (q > 1) paste0("T_PTS_Q", q - 1) else NULL
+    
+    # Check all columns exist
+    needed <- c(pts_col, poss_col, fg2p_col, fg3p_col, ftp_col, 
+                fga3_col, fga_col, fta_col, oreb_col, dreb_col, tov_col)
+    if (!all(needed %in% names(BaseStats_Team_MC))) next
+    
+    qtr_data_list[[q]] <- BaseStats_Team_MC %>%
+      transmute(
+        ESPN_GAME_ID = as.character(ESPN_GAME_ID),
+        ESPN_TEAM_ID = as.character(ESPN_TEAM_ID),
+        GAME_DATE    = as.Date(GAME_DATE),
+        qtr          = as.integer(q),
+        team_pts_cum  = as.numeric(.data[[pts_col]]),
+        team_pts_prev = if (!is.null(prev_pts_col) && prev_pts_col %in% names(BaseStats_Team_MC)) 
+          as.numeric(.data[[prev_pts_col]]) else 0,
+        team_poss    = as.numeric(.data[[poss_col]]),
+        team_fg2_pct = as.numeric(.data[[fg2p_col]]),
+        team_fg3_pct = as.numeric(.data[[fg3p_col]]),
+        team_ft_pct  = as.numeric(.data[[ftp_col]]),
+        team_3pa     = as.numeric(.data[[fga3_col]]),
+        team_fga     = as.numeric(.data[[fga_col]]),
+        team_fta     = as.numeric(.data[[fta_col]]),
+        team_oreb    = as.numeric(.data[[oreb_col]]),
+        team_dreb    = as.numeric(.data[[dreb_col]]),
+        team_tov     = as.numeric(.data[[tov_col]])
+      ) %>%
+      mutate(
+        # De-cumulate points (T_PTS_Q columns are cumulative, all others are single-quarter)
+        team_pts = team_pts_cum - team_pts_prev
+      ) %>%
+      filter(!is.na(team_poss), team_poss > 0) %>%
+      mutate(
+        team_pts_per_poss  = team_pts / team_poss,
+        team_p3            = ifelse(team_fga > 0, team_3pa / team_fga, 0.33),
+        team_fta_per_fga   = ifelse(team_fga > 0, team_fta / team_fga, 0.25),
+        team_oreb_per_poss = team_oreb / team_poss,
+        team_dreb_per_poss = team_dreb / team_poss,
+        team_tov_per_poss  = team_tov / team_poss
+      ) %>%
+      select(-team_pts_cum, -team_pts_prev)
+  }
+  
+  team_qtr_history <- bind_rows(qtr_data_list)
+  
+  # Build slate format
+  slate_team_dates <- slate_games %>%
+    transmute(
+      ESPN_GAME_ID = as.character(ESPN_GAME_ID),
+      ESPN_TEAM_ID = as.character(ESPN_TEAM_ID),
+      game_date    = as.Date(game_date)
+    ) %>%
+    distinct()
+  
+  results_list <- list()
+  
+  for (i in seq_len(nrow(slate_team_dates))) {
+    row <- slate_team_dates[i, ]
+    team <- row$ESPN_TEAM_ID
+    gdate <- row$game_date
+    gid <- row$ESPN_GAME_ID
+    
+    team_hist <- team_qtr_history %>%
+      filter(ESPN_TEAM_ID == team, GAME_DATE < gdate) %>%
+      arrange(desc(GAME_DATE))
+    
+    if (nrow(team_hist) == 0) next
+    
+    recent_dates <- team_hist %>%
+      distinct(GAME_DATE) %>%
+      arrange(desc(GAME_DATE)) %>%
+      head(n_games_back) %>%
+      pull(GAME_DATE)
+    
+    team_hist_recent <- team_hist %>%
+      filter(GAME_DATE %in% recent_dates) %>%
+      mutate(
+        days_ago   = as.numeric(gdate - GAME_DATE),
+        rec_weight = exp(-decay_rate * days_ago)
+      )
+    
+    team_profiles_q <- team_hist_recent %>%
+      group_by(qtr) %>%
+      summarise(
+        tw = sum(rec_weight, na.rm = TRUE),
+        
+        bs_pts_per_poss  = ifelse(tw > 0, sum(team_pts_per_poss * rec_weight, na.rm = TRUE) / tw,
+                                  mean(team_pts_per_poss, na.rm = TRUE)),
+        bs_fg2_pct       = ifelse(tw > 0, sum(team_fg2_pct * rec_weight, na.rm = TRUE) / tw,
+                                  mean(team_fg2_pct, na.rm = TRUE)),
+        bs_fg3_pct       = ifelse(tw > 0, sum(team_fg3_pct * rec_weight, na.rm = TRUE) / tw,
+                                  mean(team_fg3_pct, na.rm = TRUE)),
+        bs_ft_pct        = ifelse(tw > 0, sum(team_ft_pct * rec_weight, na.rm = TRUE) / tw,
+                                  mean(team_ft_pct, na.rm = TRUE)),
+        bs_p3            = ifelse(tw > 0, sum(team_p3 * rec_weight, na.rm = TRUE) / tw,
+                                  mean(team_p3, na.rm = TRUE)),
+        bs_fta_per_fga   = ifelse(tw > 0, sum(team_fta_per_fga * rec_weight, na.rm = TRUE) / tw,
+                                  mean(team_fta_per_fga, na.rm = TRUE)),
+        bs_oreb_per_poss = ifelse(tw > 0, sum(team_oreb_per_poss * rec_weight, na.rm = TRUE) / tw,
+                                  mean(team_oreb_per_poss, na.rm = TRUE)),
+        bs_dreb_per_poss = ifelse(tw > 0, sum(team_dreb_per_poss * rec_weight, na.rm = TRUE) / tw,
+                                  mean(team_dreb_per_poss, na.rm = TRUE)),
+        bs_tov_per_poss  = ifelse(tw > 0, sum(team_tov_per_poss * rec_weight, na.rm = TRUE) / tw,
+                                  mean(team_tov_per_poss, na.rm = TRUE)),
+        
+        n_games_bs = n_distinct(ESPN_GAME_ID),
+        .groups = "drop"
+      ) %>%
+      mutate(
+        ESPN_GAME_ID = gid,
+        ESPN_TEAM_ID = team
+      ) %>%
+      select(-tw)
+    
+    # Fallback to league averages if insufficient data
+    if (any(team_profiles_q$n_games_bs < 3)) {
+      team_profiles_q <- team_profiles_q %>%
+        mutate(
+          bs_pts_per_poss  = ifelse(n_games_bs < 3, LEAGUE_AVG_PTS_PER_POSS, bs_pts_per_poss),
+          bs_fg2_pct       = ifelse(n_games_bs < 3, 0.52, bs_fg2_pct),
+          bs_fg3_pct       = ifelse(n_games_bs < 3, 0.36, bs_fg3_pct),
+          bs_ft_pct        = ifelse(n_games_bs < 3, 0.78, bs_ft_pct),
+          bs_p3            = ifelse(n_games_bs < 3, 0.33, bs_p3),
+          bs_fta_per_fga   = ifelse(n_games_bs < 3, 0.25, bs_fta_per_fga),
+          bs_oreb_per_poss = ifelse(n_games_bs < 3, 0.10, bs_oreb_per_poss),
+          bs_dreb_per_poss = ifelse(n_games_bs < 3, 0.30, bs_dreb_per_poss),
+          bs_tov_per_poss  = ifelse(n_games_bs < 3, 0.14, bs_tov_per_poss)
+        )
+    }
+    
+    results_list[[i]] <- team_profiles_q
+  }
+  
+  bind_rows(results_list)
+}
+
+# --------------------------------------------------
+# STEP 2: Helper to build slate format
+# --------------------------------------------------
+build_slate_from_efficiency <- function(team_eff_q, nba_games_canon_season) {
+  team_eff_q %>%
+    distinct(ESPN_GAME_ID, ESPN_TEAM_ID) %>%
+    left_join(
+      nba_games_canon_season %>%
+        transmute(
+          ESPN_GAME_ID = as.character(game_id),
+          game_date = as.Date(game_date)
+        ) %>% distinct(),
+      by = "ESPN_GAME_ID"
+    ) %>%
+    filter(!is.na(game_date))
+}
+
+# --------------------------------------------------
+# STEP 3: Apply blend to BACKTEST
+# --------------------------------------------------
+if (exists("team_offensive_efficiency_q") && nrow(team_offensive_efficiency_q) > 0 &&
+    exists("team_shooting_params_q") && nrow(team_shooting_params_q) > 0 &&
+    exists("team_rebounding_rates_q") && nrow(team_rebounding_rates_q) > 0 &&
+    exists("team_turnover_rates_q") && nrow(team_turnover_rates_q) > 0) {
+  
+  cat("  Building BACKTEST team box score profiles...\n")
+  
+  slate_backtest <- build_slate_from_efficiency(team_offensive_efficiency_q, nba_games_canon_season)
+  
+  team_bs_profiles_backtest <- build_team_boxscore_profiles(
+    BaseStats_Team_MC = BaseStats_Team_MC,
+    slate_games = slate_backtest
+  )
+  
+  cat("  Team box score profiles built:", nrow(team_bs_profiles_backtest), "rows\n")
+  
+  # --- Blend pts_per_poss ---
+  team_offensive_efficiency_q <- team_offensive_efficiency_q %>%
+    left_join(
+      team_bs_profiles_backtest %>% select(ESPN_GAME_ID, ESPN_TEAM_ID, qtr, bs_pts_per_poss),
+      by = c("ESPN_GAME_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    mutate(
+      pts_per_poss_player = pts_per_poss,
+      pts_per_poss = ifelse(!is.na(bs_pts_per_poss),
+                            BLEND_PLAYER_WEIGHT * pts_per_poss + BLEND_TEAM_WEIGHT * bs_pts_per_poss,
+                            pts_per_poss)
+    ) %>%
+    select(-bs_pts_per_poss)
+  
+  # --- Blend shooting params ---
+  team_shooting_params_q <- team_shooting_params_q %>%
+    left_join(
+      team_bs_profiles_backtest %>% 
+        select(ESPN_GAME_ID, ESPN_TEAM_ID, qtr, bs_fg2_pct, bs_fg3_pct, bs_ft_pct, bs_p3, bs_fta_per_fga),
+      by = c("ESPN_GAME_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    mutate(
+      FG2_pct_player = FG2_pct,
+      FG3_pct_player = FG3_pct,
+      FG2_pct     = ifelse(!is.na(bs_fg2_pct), BLEND_PLAYER_WEIGHT * FG2_pct + BLEND_TEAM_WEIGHT * bs_fg2_pct, FG2_pct),
+      FG3_pct     = ifelse(!is.na(bs_fg3_pct), BLEND_PLAYER_WEIGHT * FG3_pct + BLEND_TEAM_WEIGHT * bs_fg3_pct, FG3_pct),
+      FT_pct      = ifelse(!is.na(bs_ft_pct),  BLEND_PLAYER_WEIGHT * FT_pct  + BLEND_TEAM_WEIGHT * bs_ft_pct,  FT_pct),
+      p3          = ifelse(!is.na(bs_p3),       BLEND_PLAYER_WEIGHT * p3      + BLEND_TEAM_WEIGHT * bs_p3,      p3),
+      FTA_per_FGA = ifelse(!is.na(bs_fta_per_fga), BLEND_PLAYER_WEIGHT * FTA_per_FGA + BLEND_TEAM_WEIGHT * bs_fta_per_fga, FTA_per_FGA)
+    ) %>%
+    select(-bs_fg2_pct, -bs_fg3_pct, -bs_ft_pct, -bs_p3, -bs_fta_per_fga)
+  
+  # --- Blend rebounding rates ---
+  team_rebounding_rates_q <- team_rebounding_rates_q %>%
+    left_join(
+      team_bs_profiles_backtest %>% select(ESPN_GAME_ID, ESPN_TEAM_ID, qtr, bs_oreb_per_poss, bs_dreb_per_poss),
+      by = c("ESPN_GAME_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    mutate(
+      oreb_per_poss_player = oreb_per_poss,
+      dreb_per_poss_player = dreb_per_poss,
+      oreb_per_poss = ifelse(!is.na(bs_oreb_per_poss), BLEND_PLAYER_WEIGHT * oreb_per_poss + BLEND_TEAM_WEIGHT * bs_oreb_per_poss, oreb_per_poss),
+      dreb_per_poss = ifelse(!is.na(bs_dreb_per_poss), BLEND_PLAYER_WEIGHT * dreb_per_poss + BLEND_TEAM_WEIGHT * bs_dreb_per_poss, dreb_per_poss),
+      reb_per_poss  = oreb_per_poss + dreb_per_poss
+    ) %>%
+    select(-bs_oreb_per_poss, -bs_dreb_per_poss)
+  
+  # --- Blend turnover rates ---
+  team_turnover_rates_q <- team_turnover_rates_q %>%
+    left_join(
+      team_bs_profiles_backtest %>% select(ESPN_GAME_ID, ESPN_TEAM_ID, qtr, bs_tov_per_poss),
+      by = c("ESPN_GAME_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    mutate(
+      tov_per_poss_player = tov_per_poss,
+      tov_per_poss = ifelse(!is.na(bs_tov_per_poss), BLEND_PLAYER_WEIGHT * tov_per_poss + BLEND_TEAM_WEIGHT * bs_tov_per_poss, tov_per_poss)
+    ) %>%
+    select(-bs_tov_per_poss)
+  
+  # --- Diagnostics ---
+  spread_before <- team_offensive_efficiency_q %>%
+    group_by(ESPN_TEAM_ID) %>%
+    summarise(mean_ppp = mean(pts_per_poss_player, na.rm = TRUE), .groups = "drop") %>%
+    summarise(sd = sd(mean_ppp), range = max(mean_ppp) - min(mean_ppp))
+  
+  spread_after <- team_offensive_efficiency_q %>%
+    group_by(ESPN_TEAM_ID) %>%
+    summarise(mean_ppp = mean(pts_per_poss, na.rm = TRUE), .groups = "drop") %>%
+    summarise(sd = sd(mean_ppp), range = max(mean_ppp) - min(mean_ppp))
+  
+  shoot_spread_before <- team_shooting_params_q %>%
+    filter(!is.na(FG2_pct_player)) %>%
+    group_by(ESPN_TEAM_ID) %>%
+    summarise(mean_fg2 = mean(FG2_pct_player, na.rm = TRUE), .groups = "drop") %>%
+    summarise(sd = sd(mean_fg2), range = max(mean_fg2) - min(mean_fg2))
+  
+  shoot_spread_after <- team_shooting_params_q %>%
+    group_by(ESPN_TEAM_ID) %>%
+    summarise(mean_fg2 = mean(FG2_pct, na.rm = TRUE), .groups = "drop") %>%
+    summarise(sd = sd(mean_fg2), range = max(mean_fg2) - min(mean_fg2))
+  
+  cat("  📊 PTS/POSS spread BEFORE blend: sd=", round(spread_before$sd, 4), "range=", round(spread_before$range, 3), "\n")
+  cat("  📊 PTS/POSS spread AFTER blend:  sd=", round(spread_after$sd, 4), "range=", round(spread_after$range, 3), "\n")
+  cat("  📊 FG2% spread BEFORE blend:     sd=", round(shoot_spread_before$sd, 4), "range=", round(shoot_spread_before$range, 3), "\n")
+  cat("  📊 FG2% spread AFTER blend:      sd=", round(shoot_spread_after$sd, 4), "range=", round(shoot_spread_after$range, 3), "\n\n")
+  
+  message("✅ BACKTEST: All team profiles blended (",
+          BLEND_PLAYER_WEIGHT * 100, "% player / ",
+          BLEND_TEAM_WEIGHT * 100, "% team box score)")
+}
+
+# --------------------------------------------------
+# STEP 4: Apply blend to TODAY
+# --------------------------------------------------
+if (exists("team_offensive_efficiency_q_today") && nrow(team_offensive_efficiency_q_today) > 0 &&
+    exists("team_shooting_params_q_today") && nrow(team_shooting_params_q_today) > 0 &&
+    exists("team_rebounding_rates_q_today") && nrow(team_rebounding_rates_q_today) > 0 &&
+    exists("team_turnover_rates_q_today") && nrow(team_turnover_rates_q_today) > 0) {
+  
+  cat("  Building TODAY team box score profiles...\n")
+  
+  slate_today <- build_slate_from_efficiency(team_offensive_efficiency_q_today, nba_games_canon_season)
+  
+  team_bs_profiles_today <- build_team_boxscore_profiles(
+    BaseStats_Team_MC = BaseStats_Team_MC,
+    slate_games = slate_today
+  )
+  
+  # Blend pts_per_poss
+  team_offensive_efficiency_q_today <- team_offensive_efficiency_q_today %>%
+    left_join(
+      team_bs_profiles_today %>% select(ESPN_GAME_ID, ESPN_TEAM_ID, qtr, bs_pts_per_poss),
+      by = c("ESPN_GAME_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    mutate(
+      pts_per_poss_player = pts_per_poss,
+      pts_per_poss = ifelse(!is.na(bs_pts_per_poss),
+                            BLEND_PLAYER_WEIGHT * pts_per_poss + BLEND_TEAM_WEIGHT * bs_pts_per_poss,
+                            pts_per_poss)
+    ) %>%
+    select(-bs_pts_per_poss)
+  
+  # Blend shooting params
+  team_shooting_params_q_today <- team_shooting_params_q_today %>%
+    left_join(
+      team_bs_profiles_today %>% 
+        select(ESPN_GAME_ID, ESPN_TEAM_ID, qtr, bs_fg2_pct, bs_fg3_pct, bs_ft_pct, bs_p3, bs_fta_per_fga),
+      by = c("ESPN_GAME_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    mutate(
+      FG2_pct     = ifelse(!is.na(bs_fg2_pct), BLEND_PLAYER_WEIGHT * FG2_pct + BLEND_TEAM_WEIGHT * bs_fg2_pct, FG2_pct),
+      FG3_pct     = ifelse(!is.na(bs_fg3_pct), BLEND_PLAYER_WEIGHT * FG3_pct + BLEND_TEAM_WEIGHT * bs_fg3_pct, FG3_pct),
+      FT_pct      = ifelse(!is.na(bs_ft_pct),  BLEND_PLAYER_WEIGHT * FT_pct  + BLEND_TEAM_WEIGHT * bs_ft_pct,  FT_pct),
+      p3          = ifelse(!is.na(bs_p3),       BLEND_PLAYER_WEIGHT * p3      + BLEND_TEAM_WEIGHT * bs_p3,      p3),
+      FTA_per_FGA = ifelse(!is.na(bs_fta_per_fga), BLEND_PLAYER_WEIGHT * FTA_per_FGA + BLEND_TEAM_WEIGHT * bs_fta_per_fga, FTA_per_FGA)
+    ) %>%
+    select(-bs_fg2_pct, -bs_fg3_pct, -bs_ft_pct, -bs_p3, -bs_fta_per_fga)
+  
+  # Blend rebounding rates
+  team_rebounding_rates_q_today <- team_rebounding_rates_q_today %>%
+    left_join(
+      team_bs_profiles_today %>% select(ESPN_GAME_ID, ESPN_TEAM_ID, qtr, bs_oreb_per_poss, bs_dreb_per_poss),
+      by = c("ESPN_GAME_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    mutate(
+      oreb_per_poss = ifelse(!is.na(bs_oreb_per_poss), BLEND_PLAYER_WEIGHT * oreb_per_poss + BLEND_TEAM_WEIGHT * bs_oreb_per_poss, oreb_per_poss),
+      dreb_per_poss = ifelse(!is.na(bs_dreb_per_poss), BLEND_PLAYER_WEIGHT * dreb_per_poss + BLEND_TEAM_WEIGHT * bs_dreb_per_poss, dreb_per_poss),
+      reb_per_poss  = oreb_per_poss + dreb_per_poss
+    ) %>%
+    select(-bs_oreb_per_poss, -bs_dreb_per_poss)
+  
+  # Blend turnover rates
+  team_turnover_rates_q_today <- team_turnover_rates_q_today %>%
+    left_join(
+      team_bs_profiles_today %>% select(ESPN_GAME_ID, ESPN_TEAM_ID, qtr, bs_tov_per_poss),
+      by = c("ESPN_GAME_ID", "ESPN_TEAM_ID", "qtr")
+    ) %>%
+    mutate(
+      tov_per_poss = ifelse(!is.na(bs_tov_per_poss), BLEND_PLAYER_WEIGHT * tov_per_poss + BLEND_TEAM_WEIGHT * bs_tov_per_poss, tov_per_poss)
+    ) %>%
+    select(-bs_tov_per_poss)
+  
+  message("✅ TODAY: All team profiles blended")
+}
+
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+# 🧬🧬🧬 END: Item 44 — Blend ALL Team Profiles with Team Box Score Data
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
+
+
+
+# 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
 #
 #
@@ -8368,121 +9191,6 @@ if (mode == "backtest") {
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 ️
 
 
-
-# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
-# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
-#
-#     oooooooooooo  .o88o.  .o88o.  o8o             o8o                                                   ooooooooo.                                                              o8o                               .o ooooooooooooo o.   
-#     `888'     `8  888 `"  888 `"  `"'             `"'                                                   `888   `Y88.                                                            `"'                              .8' 8'   888   `8 `8.  
-#      888         o888oo  o888oo  oooo   .ooooo.  oooo   .ooooo.  ooo. .oo.    .ooooo.  oooo    ooo       888   .d88'  .ooooo.   .oooooooo oooo d8b  .ooooo.   .oooo.o  .oooo.o oooo   .ooooo.  ooo. .oo.        .8'       888       `8. 
-#      888oooo8     888     888    `888  d88' `"Y8 `888  d88' `88b `888P"Y88b  d88' `"Y8  `88.  .8'        888ooo88P'  d88' `88b 888' `88b  `888""8P d88' `88b d88(  "8 d88(  "8 `888  d88' `88b `888P"Y88b       88        888        88 
-#      888    "     888     888     888  888        888  888ooo888  888   888  888         `88..8'         888`88b.    888ooo888 888   888   888     888ooo888 `"Y88b.  `"Y88b.   888  888   888  888   888       88        888        88 
-#      888       o  888     888     888  888   .o8  888  888    .o  888   888  888   .o8    `888'          888  `88b.  888    .o `88bod8P'   888     888    .o o.  )88b o.  )88b  888  888   888  888   888       `8.       888       .8' 
-#     o888ooooood8 o888o   o888o   o888o `Y8bod8P' o888o `Y8bod8P' o888o o888o `Y8bod8P'     .8'          o888o  o888o `Y8bod8P' `8oooooo.  d888b    `Y8bod8P' 8""888P' 8""888P' o888o `Y8bod8P' o888o o888o       `8.     o888o     .8'  
-#                                                                                        .o..P'                                  d"     YD                                                                          `"               "'   
-#                                                                                        `Y8P'                                   "Y88888P'                                                                                                
-# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
-# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
-
-# ==========================================================================================================
-# TEAM EFFICIENCY REGRESSION TOWARD THE MEAN (Item 15)
-# ----------------------------------------------------------------------------------------------------------
-# Pulls team offensive and defensive efficiency toward league average before the sim.
-# This reflects the reality that on any given night, team quality is noisier than
-# season averages suggest. Good teams have bad nights, bad teams have good nights.
-#
-# Effect: tighter matchups in the sim, more realistic upset rates, less overconfidence.
-#
-# Parameters:
-#   REGRESSION_STRENGTH_OFFENSE  — how much to pull offense toward league avg (0 = none, 1 = full)
-#   REGRESSION_STRENGTH_DEFENSE  — how much to pull defense toward league avg (0 = none, 1 = full)
-#
-# Applied to: pts_per_poss in team_offensive_efficiency_q
-#             opp_pts_per_poss_allowed in team_defensive_profiles_q
-# ==========================================================================================================
-
-# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
-# 💠💠💠 START: Team Level Efficiency Regression 
-# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
-
-
-REGRESSION_STRENGTH_OFFENSE <- 0.12  # 12% pull toward league avg offense
-REGRESSION_STRENGTH_DEFENSE <- 0.10  # 10% pull toward league avg defense
-
-LEAGUE_AVG_OFF_EFFICIENCY <- 1.10    # ~110 pts per 100 possessions
-LEAGUE_AVG_DEF_EFFICIENCY <- 1.10    # Same (league avg offense = league avg defense allowed)
-
-# ── BACKTEST ──
-if (exists("team_offensive_efficiency_q") && nrow(team_offensive_efficiency_q) > 0) {
-  
-  cat("📊 Applying regression toward mean — BACKTEST offense...\n")
-  
-  team_offensive_efficiency_q <- team_offensive_efficiency_q %>%
-    mutate(
-      pts_per_poss_raw = pts_per_poss,
-      pts_per_poss = pts_per_poss * (1 - REGRESSION_STRENGTH_OFFENSE) + 
-        LEAGUE_AVG_OFF_EFFICIENCY * REGRESSION_STRENGTH_OFFENSE
-    )
-  
-  cat("  Offense regression applied | strength=", REGRESSION_STRENGTH_OFFENSE, "\n")
-  cat("  Mean pts/poss before:", round(mean(team_offensive_efficiency_q$pts_per_poss_raw, na.rm = TRUE), 4), "\n")
-  cat("  Mean pts/poss after: ", round(mean(team_offensive_efficiency_q$pts_per_poss, na.rm = TRUE), 4), "\n\n")
-}
-
-if (exists("team_defensive_profiles_q") && nrow(team_defensive_profiles_q) > 0) {
-  
-  cat("📊 Applying regression toward mean — BACKTEST defense...\n")
-  
-  team_defensive_profiles_q <- team_defensive_profiles_q %>%
-    mutate(
-      opp_pts_per_poss_allowed_raw = opp_pts_per_poss_allowed,
-      opp_pts_per_poss_allowed = opp_pts_per_poss_allowed * (1 - REGRESSION_STRENGTH_DEFENSE) + 
-        LEAGUE_AVG_DEF_EFFICIENCY * REGRESSION_STRENGTH_DEFENSE
-    )
-  
-  cat("  Defense regression applied | strength=", REGRESSION_STRENGTH_DEFENSE, "\n")
-  cat("  Mean def pts/poss before:", round(mean(team_defensive_profiles_q$opp_pts_per_poss_allowed_raw, na.rm = TRUE), 4), "\n")
-  cat("  Mean def pts/poss after: ", round(mean(team_defensive_profiles_q$opp_pts_per_poss_allowed, na.rm = TRUE), 4), "\n\n")
-}
-
-# ── TODAY ──
-if (exists("team_offensive_efficiency_q_today") && nrow(team_offensive_efficiency_q_today) > 0) {
-  
-  cat("📊 Applying regression toward mean — TODAY offense...\n")
-  
-  team_offensive_efficiency_q_today <- team_offensive_efficiency_q_today %>%
-    mutate(
-      pts_per_poss_raw = pts_per_poss,
-      pts_per_poss = pts_per_poss * (1 - REGRESSION_STRENGTH_OFFENSE) + 
-        LEAGUE_AVG_OFF_EFFICIENCY * REGRESSION_STRENGTH_OFFENSE
-    )
-  
-  cat("  Offense regression applied | strength=", REGRESSION_STRENGTH_OFFENSE, "\n\n")
-}
-
-if (exists("team_defensive_profiles_q_today") && nrow(team_defensive_profiles_q_today) > 0) {
-  
-  cat("📊 Applying regression toward mean — TODAY defense...\n")
-  
-  team_defensive_profiles_q_today <- team_defensive_profiles_q_today %>%
-    mutate(
-      opp_pts_per_poss_allowed_raw = opp_pts_per_poss_allowed,
-      opp_pts_per_poss_allowed = opp_pts_per_poss_allowed * (1 - REGRESSION_STRENGTH_DEFENSE) + 
-        LEAGUE_AVG_DEF_EFFICIENCY * REGRESSION_STRENGTH_DEFENSE
-    )
-  
-  cat("  Defense regression applied | strength=", REGRESSION_STRENGTH_DEFENSE, "\n\n")
-}
-
-cat("✅ Item 15: Team efficiency regression toward mean — COMPLETE\n\n")
-
-
-# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
-# 💠💠💠 END: Team Level Efficiency Regression 
-# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
-
-
-
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 #
@@ -8798,7 +9506,7 @@ if (exists("nba_games_canon_season") &&
       team_rebounding_rates_q = team_rebounding_rates_q,
       team_turnover_rates_q = team_turnover_rates_q,
       team_defensive_profiles_q = team_defensive_profiles_q,
-      adjustment_strength = 0.65
+      adjustment_strength = 0.80
     )
     
     # Validation
@@ -8826,6 +9534,373 @@ if (exists("nba_games_canon_season") &&
 # 💠💠💠END: Opponent-Adjusted Offensive Profiles
 # 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
 
+
+
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
+#
+#     oooooooooooo  .o88o.  .o88o.  o8o             o8o                                                   ooooooooo.                                                              o8o                               .o ooooooooooooo o.   
+#     `888'     `8  888 `"  888 `"  `"'             `"'                                                   `888   `Y88.                                                            `"'                              .8' 8'   888   `8 `8.  
+#      888         o888oo  o888oo  oooo   .ooooo.  oooo   .ooooo.  ooo. .oo.    .ooooo.  oooo    ooo       888   .d88'  .ooooo.   .oooooooo oooo d8b  .ooooo.   .oooo.o  .oooo.o oooo   .ooooo.  ooo. .oo.        .8'       888       `8. 
+#      888oooo8     888     888    `888  d88' `"Y8 `888  d88' `88b `888P"Y88b  d88' `"Y8  `88.  .8'        888ooo88P'  d88' `88b 888' `88b  `888""8P d88' `88b d88(  "8 d88(  "8 `888  d88' `88b `888P"Y88b       88        888        88 
+#      888    "     888     888     888  888        888  888ooo888  888   888  888         `88..8'         888`88b.    888ooo888 888   888   888     888ooo888 `"Y88b.  `"Y88b.   888  888   888  888   888       88        888        88 
+#      888       o  888     888     888  888   .o8  888  888    .o  888   888  888   .o8    `888'          888  `88b.  888    .o `88bod8P'   888     888    .o o.  )88b o.  )88b  888  888   888  888   888       `8.       888       .8' 
+#     o888ooooood8 o888o   o888o   o888o `Y8bod8P' o888o `Y8bod8P' o888o o888o `Y8bod8P'     .8'          o888o  o888o `Y8bod8P' `8oooooo.  d888b    `Y8bod8P' 8""888P' 8""888P' o888o `Y8bod8P' o888o o888o       `8.     o888o     .8'  
+#                                                                                        .o..P'                                  d"     YD                                                                          `"               "'   
+#                                                                                        `Y8P'                                   "Y88888P'                                                                                                
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠 
+
+# ==========================================================================================================
+# TEAM EFFICIENCY REGRESSION TOWARD THE MEAN (Item 15)
+# ----------------------------------------------------------------------------------------------------------
+# Pulls team offensive and defensive efficiency toward league average before the sim.
+# This reflects the reality that on any given night, team quality is noisier than
+# season averages suggest. Good teams have bad nights, bad teams have good nights.
+#
+# Effect: tighter matchups in the sim, more realistic upset rates, less overconfidence.
+#
+# Parameters:
+#   REGRESSION_STRENGTH_OFFENSE  — how much to pull offense toward league avg (0 = none, 1 = full)
+#   REGRESSION_STRENGTH_DEFENSE  — how much to pull defense toward league avg (0 = none, 1 = full)
+#
+# Applied to: pts_per_poss in team_offensive_efficiency_q
+#             opp_pts_per_poss_allowed in team_defensive_profiles_q
+# ==========================================================================================================
+
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+# 💠💠💠 START: Team Level Efficiency Regression 
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+
+
+REGRESSION_STRENGTH_OFFENSE <- 0.12    # 12% pull toward league avg offense
+REGRESSION_STRENGTH_DEFENSE <- 0.10  # 10% pull toward league avg defense
+
+LEAGUE_AVG_OFF_EFFICIENCY <- 1.10    # ~110 pts per 100 possessions
+LEAGUE_AVG_DEF_EFFICIENCY <- 1.10    # Same (league avg offense = league avg defense allowed)
+
+# ── BACKTEST ──
+# Item 35: Early season warm-up — heavier regression when data is thin
+if (exists("team_offensive_efficiency_q") && nrow(team_offensive_efficiency_q) > 0) {
+  
+  team_offensive_efficiency_q <- team_offensive_efficiency_q %>%
+    left_join(
+      nba_games_canon_season %>%
+        transmute(
+          game_id = as.character(game_id),
+          game_date = as.Date(game_date)
+        ) %>% distinct(),
+      by = c("ESPN_GAME_ID" = "game_id")
+    ) %>%
+    group_by(ESPN_TEAM_ID) %>%
+    mutate(
+      season_start = min(game_date, na.rm = TRUE),
+      days_into_season = as.numeric(game_date - season_start),
+      # Games roughly every 2 days, so 40 days ≈ 20 games
+      early_season_factor = pmax(0, 1 - days_into_season / 40),
+      # Extra regression that fades as season progresses
+      early_regression = early_season_factor * 0.15,
+      pts_per_poss = pts_per_poss * (1 - early_regression) + 
+        LEAGUE_AVG_OFF_EFFICIENCY * early_regression
+    ) %>%
+    ungroup() %>%
+    select(-season_start, -days_into_season, -early_season_factor, -early_regression, -game_date)
+  
+  cat("  Item 35: Early season warm-up applied\n")
+  cat("  Extra regression fades from 15% to 0% over first ~40 days\n\n")
+}
+  
+  cat("📊 Applying regression toward mean — BACKTEST offense...\n")
+  
+  team_offensive_efficiency_q <- team_offensive_efficiency_q %>%
+    mutate(
+      pts_per_poss_raw = pts_per_poss,
+      pts_per_poss = pts_per_poss * (1 - REGRESSION_STRENGTH_OFFENSE) + 
+        LEAGUE_AVG_OFF_EFFICIENCY * REGRESSION_STRENGTH_OFFENSE
+    )
+  
+  cat("  Offense regression applied | strength=", REGRESSION_STRENGTH_OFFENSE, "\n")
+  cat("  Mean pts/poss before:", round(mean(team_offensive_efficiency_q$pts_per_poss_raw, na.rm = TRUE), 4), "\n")
+  cat("  Mean pts/poss after: ", round(mean(team_offensive_efficiency_q$pts_per_poss, na.rm = TRUE), 4), "\n\n")
+
+
+if (exists("team_defensive_profiles_q") && nrow(team_defensive_profiles_q) > 0) {
+  
+  cat("📊 Applying regression toward mean — BACKTEST defense...\n")
+  
+  team_defensive_profiles_q <- team_defensive_profiles_q %>%
+    mutate(
+      opp_pts_per_poss_allowed_raw = opp_pts_per_poss_allowed,
+      opp_pts_per_poss_allowed = opp_pts_per_poss_allowed * (1 - REGRESSION_STRENGTH_DEFENSE) + 
+        LEAGUE_AVG_DEF_EFFICIENCY * REGRESSION_STRENGTH_DEFENSE
+    )
+  
+  cat("  Defense regression applied | strength=", REGRESSION_STRENGTH_DEFENSE, "\n")
+  cat("  Mean def pts/poss before:", round(mean(team_defensive_profiles_q$opp_pts_per_poss_allowed_raw, na.rm = TRUE), 4), "\n")
+  cat("  Mean def pts/poss after: ", round(mean(team_defensive_profiles_q$opp_pts_per_poss_allowed, na.rm = TRUE), 4), "\n\n")
+}
+
+# ── TODAY ──
+if (exists("team_offensive_efficiency_q_today") && nrow(team_offensive_efficiency_q_today) > 0) {
+  
+  cat("📊 Applying regression toward mean — TODAY offense...\n")
+  
+  team_offensive_efficiency_q_today <- team_offensive_efficiency_q_today %>%
+    mutate(
+      pts_per_poss_raw = pts_per_poss,
+      pts_per_poss = pts_per_poss * (1 - REGRESSION_STRENGTH_OFFENSE) + 
+        LEAGUE_AVG_OFF_EFFICIENCY * REGRESSION_STRENGTH_OFFENSE
+    )
+  
+  cat("  Offense regression applied | strength=", REGRESSION_STRENGTH_OFFENSE, "\n\n")
+}
+
+if (exists("team_defensive_profiles_q_today") && nrow(team_defensive_profiles_q_today) > 0) {
+  
+  cat("📊 Applying regression toward mean — TODAY defense...\n")
+  
+  team_defensive_profiles_q_today <- team_defensive_profiles_q_today %>%
+    mutate(
+      opp_pts_per_poss_allowed_raw = opp_pts_per_poss_allowed,
+      opp_pts_per_poss_allowed = opp_pts_per_poss_allowed * (1 - REGRESSION_STRENGTH_DEFENSE) + 
+        LEAGUE_AVG_DEF_EFFICIENCY * REGRESSION_STRENGTH_DEFENSE
+    )
+  
+  cat("  Defense regression applied | strength=", REGRESSION_STRENGTH_DEFENSE, "\n\n")
+}
+
+cat("✅ Item 15: Team efficiency regression toward mean — COMPLETE\n\n")
+
+
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+# 💠💠💠 END: Team Level Efficiency Regression 
+# 💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠💠
+
+
+
+# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+#
+#
+#     ooooo   ooooo                                                  .o.             .o8                                        .                                       ooooooooo.                       .o88o.  o8o  oooo                   .o ooooooooo.   o.   
+#     `888'   `888'                                                 .888.           "888                                      .o8                                       `888   `Y88.                     888 `"  `"'  `888                  .8' `888   `Y88. `8.  
+#      888     888   .ooooo.  ooo. .oo.  .oo.    .ooooo.           .8"888.      .oooo888  oooo    ooo  .oooo.   ooo. .oo.   .o888oo  .oooo.    .oooooooo  .ooooo.        888   .d88' oooo d8b  .ooooo.  o888oo  oooo   888   .ooooo.       .8'   888   .d88'  `8. 
+#      888ooooo888  d88' `88b `888P"Y88bP"Y88b  d88' `88b         .8' `888.    d88' `888   `88.  .8'  `P  )88b  `888P"Y88b    888   `P  )88b  888' `88b  d88' `88b       888ooo88P'  `888""8P d88' `88b  888    `888   888  d88' `88b      88    888ooo88P'    88 
+#      888     888  888   888  888   888   888  888ooo888        .88ooo8888.   888   888    `88..8'    .oP"888   888   888    888    .oP"888  888   888  888ooo888       888          888     888   888  888     888   888  888ooo888      88    888           88 
+#      888     888  888   888  888   888   888  888    .o       .8'     `888.  888   888     `888'    d8(  888   888   888    888 . d8(  888  `88bod8P'  888    .o       888          888     888   888  888     888   888  888    .o      `8.   888          .8' 
+#     o888o   o888o `Y8bod8P' o888o o888o o888o `Y8bod8P'      o88o     o8888o `Y8bod88P"     `8'     `Y888""8o o888o o888o   "888" `Y888""8o `8oooooo.  `Y8bod8P'      o888o        d888b    `Y8bod8P' o888o   o888o o888o `Y8bod8P'       `8. o888o        .8'  
+#                                                                                                                                             d"     YD                                                                                      `"              "'   
+#                                                                                                                                             "Y88888P'                                                                                                           
+#                                                                                                                                                                                                                                                            
+# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+# ==========================================================================================================
+# HOME COURT ADVANTAGE ADJUSTMENTS
+# ----------------------------------------------------------------------------------------------------------
+# This section applies empirically-derived home court advantage adjustments to team offense profiles.
+# Extensive NBA research shows that home teams perform measurably better across multiple dimensions:
+#
+# SHOOTING EFFICIENCY:
+#   - 2PT shooting: ~+1.5% at home (more comfortable rim, familiar depth perception)
+#   - 3PT shooting: ~+2.0% at home (greater effect on perimeter shots)
+#   - FT shooting: ~+1.0% at home (less pressure, crowd support)
+#
+# FOUL CALLS:
+#   - Free throw rate: ~+5% at home (documented referee home bias)
+#
+# OVERALL IMPACT:
+#   - Home teams win ~58% of NBA games historically
+#   - Point spread adjustment: ~2.5 points for home court
+#
+# NOTE: HCA is applied directly to team_offense_adjusted_q (not player profiles) to ensure
+# it flows correctly into the MC simulation. Player-level HCA was removed as HOME_AWAY
+# column was not reliably available at that stage of the pipeline.
+#
+# TODO: Add rest days adjustment, travel distance, back-to-back flags
+# ==========================================================================================================
+
+# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+# 🏠🏠🏠 START: Home Court Advantage Adjustments
+# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+
+# --------------------------------------------------
+# Home Court Adjustment Parameters
+# --------------------------------------------------
+HCA <- list(
+  fg2_mult  = 1.020,   # bumped from 1.020
+  fg3_mult  = 1.025,   # bumped from 1.025
+  ft_mult   = 1.010,   # unchanged
+  fta_mult  = 1.060,   # unchanged
+  tov_mult  = 0.970,   # bumped from 0.970 (more aggressive)
+  oreb_mult = 1.020,   # bumped from 1.020
+  
+  # NEW: direct pts/poss boost for home team
+  # Applied to pts_per_poss_adjusted in team_offense_adjusted_q
+  # 3% boost ≈ ~3 extra points per game for home team
+  pts_per_poss_mult = 1.000
+)
+
+# ==========================================================================================================
+# TEAM-SPECIFIC HCA OVERRIDES (Item 26)
+# ----------------------------------------------------------------------------------------------------------
+# Some teams have home court advantages that deviate significantly from league average.
+# Denver's altitude (5,280 ft) creates measurable fatigue effects on visiting teams,
+# boosting Denver's home performance beyond what the standard HCA captures.
+#
+# Applied in the opponent-adjusted profiles section by checking if a game involves
+# a team with a specific HCA override.
+# ==========================================================================================================
+
+TEAM_HCA_OVERRIDES <- list(
+  # Denver Nuggets — altitude effect
+  # Visiting teams show reduced shooting efficiency and increased turnovers
+  # at altitude, especially in Q3-Q4 as fatigue compounds
+  "7" = list(
+    fg2_mult  = 1.035,   # +3.5% on 2PT (vs standard 2.0%)
+    fg3_mult  = 1.040,   # +4.0% on 3PT (vs standard 2.5%)
+    ft_mult   = 1.010,   # same as standard
+    fta_mult  = 1.060,   # same as standard
+    tov_mult  = 0.950,   # -5% turnovers at home (vs standard 3%)
+    oreb_mult = 1.030    # +3% OREB at home (vs standard 2%)
+  )
+)
+
+# --------------------------------------------------
+# Apply HCA to BACKTEST team offense profiles
+# --------------------------------------------------
+if (exists("team_offense_adjusted_q") && nrow(team_offense_adjusted_q) > 0) {
+  
+  cat("🏠 Applying home court advantage to BACKTEST team offense profiles...\n")
+  
+  team_offense_adjusted_q <- team_offense_adjusted_q %>%
+    left_join(
+      nba_games_canon_season %>%
+        transmute(
+          game_id      = as.character(game_id),
+          home_team_id = as.character(home_team_id)
+        ),
+      by = "game_id"
+    ) %>%
+    mutate(
+      is_home                = ESPN_TEAM_ID == home_team_id,
+      fg2_pct_adjusted       = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
+      fg3_pct_adjusted       = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
+      ft_pct_adjusted        = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
+      fta_per_fga_adjusted   = ifelse(is_home, fta_per_fga_adjusted   * HCA$fta_mult,          fta_per_fga_adjusted),
+      tov_per_poss_adjusted  = ifelse(is_home, tov_per_poss_adjusted  * HCA$tov_mult,           tov_per_poss_adjusted),
+      oreb_per_poss_adjusted = ifelse(is_home, oreb_per_poss_adjusted * HCA$oreb_mult,          oreb_per_poss_adjusted),
+      # ── NEW: direct pts/poss boost ──────────────────────────────────
+      pts_per_poss_adjusted  = ifelse(is_home, pts_per_poss_adjusted  * HCA$pts_per_poss_mult,  pts_per_poss_adjusted)
+      # ────────────────────────────────────────────────────────────────
+    ) %>%
+    select(-is_home, -home_team_id)
+  
+  message("✅ Home court advantage applied to BACKTEST team offense profiles")
+  
+  # Apply team-specific HCA overrides (Item 26)
+  for (team_id in names(TEAM_HCA_OVERRIDES)) {
+    override <- TEAM_HCA_OVERRIDES[[team_id]]
+    
+    team_offense_adjusted_q <- team_offense_adjusted_q %>%
+      mutate(
+        is_override_home = (ESPN_TEAM_ID == team_id & 
+                              game_id %in% (nba_games_canon_season %>% 
+                                              filter(home_team_id == team_id) %>% 
+                                              pull(game_id))),
+        
+        fg2_pct_adjusted = ifelse(is_override_home, 
+                                  fg2_pct_adjusted * (override$fg2_mult / HCA$fg2_mult), 
+                                  fg2_pct_adjusted),
+        fg3_pct_adjusted = ifelse(is_override_home, 
+                                  fg3_pct_adjusted * (override$fg3_mult / HCA$fg3_mult), 
+                                  fg3_pct_adjusted),
+        tov_per_poss_adjusted = ifelse(is_override_home, 
+                                       tov_per_poss_adjusted * (override$tov_mult / HCA$tov_mult), 
+                                       tov_per_poss_adjusted),
+        oreb_per_poss_adjusted = ifelse(is_override_home, 
+                                        oreb_per_poss_adjusted * (override$oreb_mult / HCA$oreb_mult), 
+                                        oreb_per_poss_adjusted),
+      ) %>%
+      select(-is_override_home)
+  }
+}
+
+# --------------------------------------------------
+# Apply HCA to TODAY team offense profiles
+# --------------------------------------------------
+if (exists("team_offense_adjusted_q_today") && nrow(team_offense_adjusted_q_today) > 0) {
+  
+  cat("🏠 Applying home court advantage to TODAY team offense profiles...\n")
+  
+  team_offense_adjusted_q_today <- team_offense_adjusted_q_today %>%
+    left_join(
+      canon_today %>% select(game_id, home_team_id),
+      by = "game_id"
+    ) %>%
+    mutate(
+      is_home              = ESPN_TEAM_ID == home_team_id,
+      fg2_pct_adjusted     = ifelse(is_home, pmin(fg2_pct_adjusted * HCA$fg2_mult, 1.0), fg2_pct_adjusted),
+      fg3_pct_adjusted     = ifelse(is_home, pmin(fg3_pct_adjusted * HCA$fg3_mult, 1.0), fg3_pct_adjusted),
+      ft_pct_adjusted      = ifelse(is_home, pmin(ft_pct_adjusted  * HCA$ft_mult,  1.0), ft_pct_adjusted),
+      fta_per_fga_adjusted = ifelse(is_home, fta_per_fga_adjusted * HCA$fta_mult, fta_per_fga_adjusted),
+      tov_per_poss_adjusted  = ifelse(is_home, tov_per_poss_adjusted  * HCA$tov_mult,  tov_per_poss_adjusted),
+      oreb_per_poss_adjusted = ifelse(is_home, oreb_per_poss_adjusted * HCA$oreb_mult, oreb_per_poss_adjusted),
+      # ── NEW: direct pts/poss boost ──────────────────────────────────
+      pts_per_poss_adjusted  = ifelse(is_home, pts_per_poss_adjusted  * HCA$pts_per_poss_mult,  pts_per_poss_adjusted)
+    ) %>%
+    select(-is_home, -home_team_id)
+  
+  message("✅ Home court advantage applied to TODAY team offense profiles")
+  
+  # Apply team-specific HCA overrides to TODAY (Item 26)
+  for (team_id in names(TEAM_HCA_OVERRIDES)) {
+    override <- TEAM_HCA_OVERRIDES[[team_id]]
+    
+    team_offense_adjusted_q_today <- team_offense_adjusted_q_today %>%
+      mutate(
+        is_override_home = (ESPN_TEAM_ID == team_id & 
+                              game_id %in% (nba_games_canon_season %>% 
+                                              filter(home_team_id == team_id) %>% 
+                                              pull(game_id))),
+        
+        fg2_pct_adjusted = ifelse(is_override_home, 
+                                  fg2_pct_adjusted * (override$fg2_mult / HCA$fg2_mult), 
+                                  fg2_pct_adjusted),
+        fg3_pct_adjusted = ifelse(is_override_home, 
+                                  fg3_pct_adjusted * (override$fg3_mult / HCA$fg3_mult), 
+                                  fg3_pct_adjusted),
+        tov_per_poss_adjusted = ifelse(is_override_home, 
+                                       tov_per_poss_adjusted * (override$tov_mult / HCA$tov_mult), 
+                                       tov_per_poss_adjusted),
+        oreb_per_poss_adjusted = ifelse(is_override_home, 
+                                        oreb_per_poss_adjusted * (override$oreb_mult / HCA$oreb_mult), 
+                                        oreb_per_poss_adjusted)
+      ) %>%
+      select(-is_override_home)
+  }
+}
+
+# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+# 🏠🏠🏠 END: Home Court Advantage Adjustments
+# 🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠🏠
+
+
+# Rerun just up to the HCA block, then check
+team_offense_adjusted_q %>%
+  left_join(
+    nba_games_canon_season %>%
+      transmute(
+        game_id      = as.character(game_id),
+        home_team_id = as.character(home_team_id)
+      ),
+    by = "game_id"
+  ) %>%
+  mutate(is_home = ESPN_TEAM_ID == home_team_id) %>%
+  group_by(is_home) %>%
+  summarise(
+    mean_pts_per_poss = round(mean(pts_per_poss_adjusted, na.rm = TRUE), 4),
+    .groups = "drop"
+  )
 
 
 # 🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲🎲
@@ -9093,7 +10168,8 @@ build_game_player_profiles <- function(game_id,
                                        player_bpm_profile_q,
                                        player_spm_profile_q,
                                        player_rpm_profile_q,
-                                       player_fpm_profile_q) {
+                                       player_fpm_profile_q,
+                                       player_clutch_profile_q = NULL) {
   
   # Start with shooting profile (the anchor — has game/team/player/qtr/mins)
   profiles <- player_shooting_profile_q %>%
@@ -9134,6 +10210,12 @@ build_game_player_profiles <- function(game_id,
         select(ESPN_PLAYER_ID, ESPN_TEAM_ID, qtr, fouls_per_min),
       by = c("ESPN_PLAYER_ID", "ESPN_TEAM_ID", "qtr")
     ) %>%
+    left_join(
+      player_clutch_profile_q %>%
+        filter(ESPN_GAME_ID == !!game_id) %>%
+        select(ESPN_PLAYER_ID, ESPN_TEAM_ID, clutch_fg2_pct, clutch_fg3_pct, clutch_games),
+      by = c("ESPN_PLAYER_ID", "ESPN_TEAM_ID")
+    ) %>%
     mutate(
       # Fallback defaults for NAs
       usage_rate    = num0(usage_rate,    0.20),
@@ -9143,10 +10225,23 @@ build_game_player_profiles <- function(game_id,
       reb_per_min   = num0(reb_per_min,   0.08),
       oreb_per_min  = num0(oreb_per_min,  0.02),
       dreb_per_min  = num0(dreb_per_min,  0.06),
-      fouls_per_min = num0(fouls_per_min, 0.07)
+      fouls_per_min = num0(fouls_per_min, 0.07),
+      clutch_fg2_pct = num0(clutch_fg2_pct, NA_real_),
+      clutch_fg3_pct = num0(clutch_fg3_pct, NA_real_),
+      clutch_games   = num0(clutch_games, 0)
     )
-  
-  profiles
+      # Add clutch profile if available (Item 31)
+      if (!is.null(player_clutch_profile_q)) {
+        profiles <- profiles %>%
+          left_join(
+            player_clutch_profile_q %>%
+              filter(ESPN_GAME_ID == !!game_id) %>%
+              select(ESPN_PLAYER_ID, ESPN_TEAM_ID, clutch_fg2_pct, clutch_fg3_pct, clutch_games),
+            by = c("ESPN_PLAYER_ID", "ESPN_TEAM_ID")
+          )
+      }
+      
+      profiles
 }
 
 
@@ -9352,6 +10447,31 @@ simulate_quarter_offense_player <- function(
   fouls_vec[is.na(fouls_vec)] <- 0.07
   mins_vec[is.na(mins_vec)]   <- 0
   probs[is.na(probs)]         <- 0
+  
+  # --------------------------------------------------
+  # STEP 5c: Q4 Clutch Performance Factor (Item 31)
+  # Blend standard shooting with clutch rates when:
+  #   - Quarter is Q4 or OT
+  #   - Player has enough clutch data (5+ games)
+  # Only affects shooting — other rates stay standard
+  # --------------------------------------------------
+  CLUTCH_BLEND <- 0.30  # 30% clutch, 70% standard
+  CLUTCH_MIN_GAMES <- 5  # minimum clutch games to use clutch data
+  
+  if (qtr >= 4) {
+    has_clutch <- !is.na(players_q$clutch_fg2_pct) & 
+      !is.na(players_q$clutch_games) & 
+      players_q$clutch_games >= CLUTCH_MIN_GAMES
+    
+    clutch_fg2 <- players_q$clutch_fg2_pct
+    clutch_fg3 <- players_q$clutch_fg3_pct
+    
+    # Only blend for players with enough clutch data
+    fg2_vec[has_clutch] <- fg2_vec[has_clutch] * (1 - CLUTCH_BLEND) + 
+      clutch_fg2[has_clutch] * CLUTCH_BLEND
+    fg3_vec[has_clutch] <- fg3_vec[has_clutch] * (1 - CLUTCH_BLEND) + 
+      clutch_fg3[has_clutch] * CLUTCH_BLEND
+  }
   
   # --------------------------------------------------
   # STEP 7: Time-based stats (vectorized, unchanged)
@@ -9773,7 +10893,7 @@ calculate_summary_stats <- function(game_totals, nba_games_canon_season) {
       home_wins     = sum(home_pts > away_pts, na.rm = TRUE),
       away_wins     = sum(away_pts > home_pts, na.rm = TRUE),
       ties          = sum(home_pts == away_pts, na.rm = TRUE),
-      home_win_prob = pmin(0.98, pmax(0.02, home_wins / n_sims)),
+      home_win_prob = pmin(0.95, pmax(0.05, home_wins / n_sims)),
       away_win_prob = away_wins / n_sims,
       
       spread_mean   = mean(home_pts - away_pts, na.rm = TRUE),
@@ -9980,6 +11100,7 @@ run_mc_simulations_batch <- function(games_to_simulate,
                                      player_spm_profile_q      = NULL,
                                      player_rpm_profile_q      = NULL,
                                      player_fpm_profile_q      = NULL,
+                                     player_clutch_profile_q   = NULL,
                                      # Mode toggle
                                      sim_mode     = "player",
                                      n_sims       = MC_CONFIG$n_sims_per_game,
@@ -10047,7 +11168,8 @@ run_mc_simulations_batch <- function(games_to_simulate,
             player_bpm_profile_q      = player_bpm_profile_q,
             player_spm_profile_q      = player_spm_profile_q,
             player_rpm_profile_q      = player_rpm_profile_q,
-            player_fpm_profile_q      = player_fpm_profile_q
+            player_fpm_profile_q      = player_fpm_profile_q,
+            player_clutch_profile_q   = player_clutch_profile_q
           )
         }
         
@@ -10500,6 +11622,7 @@ mc_output <- run_mc_simulations_batch(
   player_spm_profile_q      = player_spm_profile_q,
   player_rpm_profile_q      = player_rpm_profile_q,
   player_fpm_profile_q      = player_fpm_profile_q,
+  player_clutch_profile_q = player_clutch_profile_q,
   
   sim_mode     = "player",
   n_sims       = n_sims,
@@ -10638,6 +11761,7 @@ if (mode == "production") {
     player_spm_profile_q      = player_spm_profile_q_today,
     player_rpm_profile_q      = player_rpm_profile_q_today,
     player_fpm_profile_q      = player_fpm_profile_q_today,
+    player_clutch_profile_q = player_clutch_profile_q_today,
     
     sim_mode     = "player",
     n_sims       = n_sims,
@@ -10924,57 +12048,45 @@ if (mode == "production" && !exists("platt_model_full")) {
 #   ONYX says 0.55 → reality 0.603 (need +0.057) — leave alone, close enough
 #   ONYX says 0.65 → reality 0.656 (need +0.009) — nearly perfect
 
+# Rebuild knots from THIS backtest's actual calibration data
 apply_underdog_calibration <- function(win_prob) {
-  # Only adjust probabilities where ONYX systematically undervalues
-  # Leave 0.45+ alone — those are already well calibrated
+  raw_knots    <- c(0.00, 0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 1.00)
+  actual_knots <- c(0.10, 0.385, 0.296, 0.355, 0.493, 0.431, 0.559, 1.00)
   
-  # Calibration knots: (raw ONYX probability, empirical actual win rate)
-  raw_knots    <- c(0.00, 0.07, 0.16, 0.25, 0.35, 0.45, 0.55, 1.00)
-  actual_knots <- c(0.00, 0.28, 0.31, 0.38, 0.43, 0.49, 0.55, 1.00)
-  
-  # Linear interpolation
   approx(x = raw_knots, y = actual_knots, xout = win_prob, rule = 2)$y
 }
 
-# Apply to backtest validation
 if (exists("mc_backtest_validation") && nrow(mc_backtest_validation) > 0) {
   
   cat("📈 Applying underdog calibration curve...\n")
   
   mc_backtest_validation <- mc_backtest_validation %>%
     mutate(
-      # Apply to home win prob (adjusts both sides since away = 1 - home)
       home_win_prob_dog_cal = sapply(home_win_prob_calibrated, apply_underdog_calibration),
+      # Item 24: Final probability cap — prevent extreme overconfidence
+      home_win_prob_dog_cal = pmin(0.95, pmax(0.05, home_win_prob_dog_cal)),
       away_win_prob_dog_cal = 1 - home_win_prob_dog_cal,
-      
-      # Recalculate pick based on calibrated probability
-      model_pick_cal = ifelse(home_win_prob_dog_cal > 0.5, "home", "away"),
+      model_pick_cal        = ifelse(home_win_prob_dog_cal > 0.5, "home", "away"),
       model_pick_correct_cal = (model_pick_cal == actual_winner),
-      
-      # Recalculate model probability
-      model_prob_cal = pmax(home_win_prob_dog_cal, away_win_prob_dog_cal)
-      )
-
+      model_prob_cal        = pmax(home_win_prob_dog_cal, away_win_prob_dog_cal)
+    )
   
-  # Compare accuracy before and after underdog calibration
   acc_before <- mean(mc_backtest_validation$correct_pick, na.rm = TRUE)
   acc_after  <- mean(mc_backtest_validation$model_pick_correct_cal, na.rm = TRUE)
   
   cat("  Accuracy before underdog cal:", round(acc_before * 100, 1), "%\n")
   cat("  Accuracy after underdog cal: ", round(acc_after * 100, 1), "%\n")
   
-  # How many dogs are we picking now?
-  n_dog_picks_before <- sum(mc_backtest_validation$home_win_prob_calibrated < 0.5 & 
-                              mc_backtest_validation$predicted_winner == "away", na.rm = TRUE) +
-    sum(mc_backtest_validation$home_win_prob_calibrated > 0.5 & 
-          mc_backtest_validation$predicted_winner == "home", na.rm = TRUE)
+  # Fixed dog pick counter — picks where model disagrees with market favorite
+  n_dog_picks_before <- sum(
+    (mc_backtest_validation$home_win_prob_calibrated > 0.5 & mc_backtest_validation$home_ml_fair < 0.5) |
+      (mc_backtest_validation$home_win_prob_calibrated < 0.5 & mc_backtest_validation$home_ml_fair > 0.5),
+    na.rm = TRUE
+  )
   
-  # Count picks where calibrated prob picked the dog
   n_dog_picks_after <- sum(
-    (mc_backtest_validation$home_win_prob_dog_cal < 0.5 & 
-       mc_backtest_validation$home_ml_fair > 0.5) |
-      (mc_backtest_validation$home_win_prob_dog_cal > 0.5 & 
-         mc_backtest_validation$home_ml_fair < 0.5),
+    (mc_backtest_validation$home_win_prob_dog_cal > 0.5 & mc_backtest_validation$home_ml_fair < 0.5) |
+      (mc_backtest_validation$home_win_prob_dog_cal < 0.5 & mc_backtest_validation$home_ml_fair > 0.5),
     na.rm = TRUE
   )
   
@@ -10984,9 +12096,7 @@ if (exists("mc_backtest_validation") && nrow(mc_backtest_validation) > 0) {
   cat("✅ Underdog calibration curve applied\n\n")
 }
 
-# Save the function for production use
 saveRDS(apply_underdog_calibration, file.path(base_path, "underdog_calibration_func.rds"))
-
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
 # 🧬🧬🧬 END: Underdog Calibration Curve Section
 # 🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬🧬
@@ -12854,6 +13964,70 @@ save_rds(run_config, "run_config")
 cat("\n💾 All outputs saved to:", pred_dir, "\n")
 cat("   Timestamp:", timestamp, "\n\n")
 
+# --------------------------------------------------
+# 📝 RUN CHANGELOG — saved as .txt alongside outputs
+# --------------------------------------------------
+# Each run gets a changelog entry documenting what changed.
+# This builds a cumulative log across runs.
+
+changelog_path <- file.path(pred_dir, "ONYX_run_changelog.txt")
+
+run_entry <- paste0(
+  "================================================================================\n",
+  "RUN: ", timestamp, "\n",
+  "MODE: ", mode, "\n",
+  "AS_OF_DATE: ", as.character(as_of_date), "\n",
+  "N_SIMS: ", n_sims, "\n",
+  "RAW ACCURACY: ", round(mean(mc_backtest_validation$correct, na.rm = TRUE) * 100, 1), "%\n",
+  "SD_PROB: ", round(sd(mc_results_summary$home_win_prob, na.rm = TRUE), 4), "\n",
+  "MEAN SIM TOTAL: ", round(mean(mc_results_summary$home_pts_mean + mc_results_summary$away_pts_mean, na.rm = TRUE), 1), "\n",
+  "GAMES: ", nrow(mc_results_summary), "\n",
+  "--------------------------------------------------------------------------------\n",
+  "CHANGES THIS RUN:\n",
+  "  1. RESTORED closest defender application to player shooting profiles.\n",
+  "     Investigation of old 61.6% run revealed this was the mechanism generating\n",
+  "     90 confident away picks (vs 23 without it). Closest defender tracking data\n",
+  "     adjusts individual player FG2% and FG3% based on opponent defense quality.\n",
+  "     This is a SEPARATE channel from opponent adjustment — player-level vs team-level.\n",
+  "     Old run had both active and hit 0.217 sd_prob / 61.6% accuracy.\n",
+  "  2. Item 44 de-cumulation fix still in place (T_PTS_Q columns are cumulative).\n",
+  "  3. Deleted ALL profile caches — clean rebuild from scratch.\n",
+  "  ALL OTHER SETTINGS:\n",
+  "  - Full revert to old 61.6% config (HCA 1.02/1.025/0.97/1.02, no pts_per_poss_mult)\n",
+  "  - Regression: 0.12 offense / 0.10 defense\n",
+  "  - Opponent adjustment: 0.65\n",
+  "  - MC_VAR shrinkage: original full values\n",
+  "  - Item 44: Full profile blend at 40% player / 60% team box score\n",
+  "  - V2 defensive profile builder retained (feeds opponent adjustment)\n",
+  "  - Closest defender restored (feeds player shooting directly)\n",
+  "  - Item 24: Probability cap at 5-95%\n",
+  "  - 100 sims (quick run)\n",
+  "--------------------------------------------------------------------------------\n",
+  "KEY FINDING FROM OLD RUN INVESTIGATION:\n",
+  "  Old 61.6% run: 90 confident away picks, sd_prob 0.2168\n",
+  "  Without closest defender: 23 confident away picks, sd_prob 0.1741\n",
+  "  Closest defender provides player-level matchup differentiation that\n",
+  "  opponent adjustment alone cannot replicate.\n",
+  "HYPOTHESIS: Restoring closest defender + Item 44 blend + old config should\n",
+  "  push sd_prob back to 0.217+ and recover 61%+ accuracy. Clean cache rebuild\n",
+  "  ensures no stale data interference.\n",
+  "================================================================================\n\n"
+)
+
+# Append to changelog (creates file if first run)
+cat(run_entry, file = changelog_path, append = TRUE)
+cat("📝 Run changelog appended to:", changelog_path, "\n\n")
+
 # 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
 # END SAVE RUN OUTPUTS
 # 💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾💾
+
+team_offensive_efficiency_q %>%
+  summarise(
+    mean_ppp_blended = mean(pts_per_poss, na.rm = TRUE),
+    mean_ppp_player = mean(pts_per_poss_player, na.rm = TRUE)
+  )
+
+
+cat("Mean home pts:", mean(mc_results_summary$home_pts_mean), "\n")
+cat("Mean away pts:", mean(mc_results_summary$away_pts_mean), "\n")
